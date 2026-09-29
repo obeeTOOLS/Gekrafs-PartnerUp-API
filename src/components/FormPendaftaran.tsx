@@ -313,18 +313,28 @@ export const FormPendaftaran: React.FC<FormPendaftaranProps> = ({ onSuccessNavig
 
   return (
     <div className="max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
-      {/* Hero Banner Card */}
-      <div className="bg-gradient-to-br from-[#001c3c] via-[#004c80] to-[#0070b3] rounded-2xl p-4 sm:p-6 md:p-8 text-white shadow-lg border-b-4 border-[#ffc72c] mb-5 sm:mb-6">
-        <div className="flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-[#ffc72c] mb-1">
-          <Building2 className="w-4 h-4 flex-shrink-0" />
-          <span className="truncate">GEKRAFS Kota Batu</span>
+      {/* Hero Banner Card with Official Gekrafs Kota Batu Logo */}
+      <div className="bg-gradient-to-br from-[#001c3c] via-[#004c80] to-[#0070b3] rounded-2xl p-4 sm:p-6 md:p-8 text-white shadow-lg border-b-4 border-[#ffc72c] mb-5 sm:mb-6 flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-[#ffc72c] mb-1">
+            <Building2 className="w-4 h-4 flex-shrink-0" />
+            <span className="truncate">GEKRAFS Kota Batu</span>
+          </div>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight mt-1 leading-snug">
+            Form Pendaftaran Pendampingan Usaha
+          </h1>
+          <p className="mt-2 text-slate-200 text-xs sm:text-sm leading-relaxed max-w-2xl">
+            Program akselerasi dan kurasi kapasitas usaha ekonomi kreatif Kota Batu. Seluruh data yang diisi akan ditinjau secara profesional oleh tim kurator.
+          </p>
         </div>
-        <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight mt-1 leading-snug">
-          Form Pendaftaran Pendampingan Usaha
-        </h1>
-        <p className="mt-2 text-slate-200 text-xs sm:text-sm leading-relaxed max-w-2xl">
-          Program akselerasi dan kurasi kapasitas usaha ekonomi kreatif Kota Batu. Seluruh data yang diisi akan ditinjau secara profesional oleh tim kurator.
-        </p>
+        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-2xl p-2 shadow-md flex items-center justify-center flex-shrink-0 mx-auto sm:mx-0">
+          <img 
+            src="/logo.svg" 
+            alt="Logo Resmi Gekrafs Kota Batu" 
+            className="w-full h-full object-contain select-none"
+            referrerPolicy="no-referrer"
+          />
+        </div>
       </div>
 
       {statusMsg && (

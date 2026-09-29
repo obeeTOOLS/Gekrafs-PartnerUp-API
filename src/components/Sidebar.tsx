@@ -119,12 +119,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           title="Gekrafs PartnerUp Kota Batu"
         >
           {/* Logo Badge */}
-          <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center p-1.5 shadow-md flex-shrink-0 group-hover:scale-105 group-hover:ring-2 ring-[#ffc72c] transition-all">
-            <svg viewBox="0 0 100 100" className="w-full h-full text-[#001c3c]" fill="currentColor">
-              <polygon points="50,5 95,25 95,75 50,95 5,25" fill="#001c3c" />
-              <polygon points="50,15 85,32 85,68 50,85 15,68 15,32" fill="#ffc72c" />
-              <text x="50" y="60" fontSize="24" fontWeight="bold" textAnchor="middle" fill="#001c3c">GK</text>
-            </svg>
+          <div className="w-11 h-11 rounded-xl bg-white flex items-center justify-center p-1 shadow-md flex-shrink-0 group-hover:scale-105 group-hover:ring-2 ring-[#ffc72c] transition-all">
+            <img 
+              src="/logo.svg" 
+              alt="Logo Resmi Gekrafs Kota Batu" 
+              className="w-full h-full object-contain select-none"
+              referrerPolicy="no-referrer"
+            />
           </div>
 
           {!isCollapsed && (

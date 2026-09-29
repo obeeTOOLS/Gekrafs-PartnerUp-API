@@ -124,12 +124,13 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center gap-3 min-w-0">
             {/* Mobile-only Brand Logo */}
             <div className="flex md:hidden items-center gap-2 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-[#001c3c] flex items-center justify-center p-1 shadow flex-shrink-0 text-[#ffc72c]">
-                <svg viewBox="0 0 100 100" className="w-full h-full" fill="currentColor">
-                  <polygon points="50,5 95,25 95,75 50,95 5,25" fill="#001c3c" />
-                  <polygon points="50,15 85,32 85,68 50,85 15,68 15,32" fill="#ffc72c" />
-                  <text x="50" y="60" fontSize="24" fontWeight="bold" textAnchor="middle" fill="#001c3c">GK</text>
-                </svg>
+              <div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center p-0.5 shadow-sm border border-slate-200 flex-shrink-0">
+                <img 
+                  src="/logo.svg" 
+                  alt="Logo Resmi Gekrafs Kota Batu" 
+                  className="w-full h-full object-contain select-none"
+                  referrerPolicy="no-referrer"
+                />
               </div>
               <div className="truncate">
                 <span className="text-xs font-black tracking-tight text-[#001c3c] block truncate">

@@ -228,8 +228,18 @@ export default function App() {
         {/* Modern Clean Footer with discreet Panitia & Engineer Links */}
         <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500">
           <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div>
-              <span className="font-bold text-[#001c3c]">Gekrafs PartnerUp</span> &middot; Gerakan Ekonomi Kreatif Nasional Kota Batu
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-white p-0.5 shadow-xs border border-slate-200 flex items-center justify-center flex-shrink-0">
+                <img 
+                  src="/logo.svg" 
+                  alt="Gekrafs Kota Batu" 
+                  className="w-full h-full object-contain" 
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+              <div>
+                <span className="font-bold text-[#001c3c]">Gekrafs PartnerUp</span> &middot; Gerakan Ekonomi Kreatif Nasional Kota Batu
+              </div>
             </div>
 
             <div className="flex items-center gap-3">
