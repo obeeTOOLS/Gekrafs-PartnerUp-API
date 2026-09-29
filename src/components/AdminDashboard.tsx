@@ -33,31 +33,103 @@ import {
   Check, 
   Copy, 
   CloudDownload,
-  RefreshCw
+  RefreshCw,
+  Terminal, 
+  Sparkles, 
+  KeyRound,
+  UserPlus,
+  ShieldAlert,
+  CheckCircle,
+  XCircle,
+  Mail,
+  UserCheck,
+  Eye,
+  EyeOff,
+  RotateCcw,
+  Key
 } from 'lucide-react';
 
+import { 
+  EngineerSession, 
+  authService, 
+  AUTHORIZED_ENGINEERS, 
+  AdminAccount, 
+  AdminRoleType,
+  DEFAULT_DEVELOPER_PASSWORD 
+} from '../services/authService';
+
 interface AdminDashboardProps {
-  userRole: UserRole;
+  userRole?: UserRole;
+  engineerSession?: EngineerSession | null;
+  onLogout?: () => void;
+  onLoginSuccess?: () => void;
+  onNavigateToPublic?: () => void;
+  onEngineerLogin?: (email: string) => void;
 }
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ userRole }) => {
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ 
+  userRole,
+  engineerSession,
+  onLogout,
+  onLoginSuccess,
+  onNavigateToPublic,
+  onEngineerLogin
+}) => {
   const [activeTab, setActiveTab] = useState<
     'timeline' | 'jadwal' | 'kehadiran' | 'peserta' | 'statistik' | 'pengaturan' | 'asesmen' | 'kolaborasi'
   >('peserta');
 
-  // Auth gate state (Developer role bypasses passcode)
+  // Whitelist Admin state (Model 2)
+  const [adminWhitelist, setAdminWhitelist] = useState<AdminAccount[]>(() => 
+    authService.getAdminWhitelist()
+  );
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newAdminNama, setNewAdminNama] = useState('');
+  const [newAdminPeran, setNewAdminPeran] = useState<AdminRoleType>('Kurator');
+  const [activeAdminProfile, setActiveAdminProfile] = useState<{ email?: string; nama?: string; peran?: string } | null>(() => {
+    try {
+      const raw = localStorage.getItem('gkf_admin_auth');
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return null;
+  });
+
+  // Strict Auth gate state - requires valid admin passcode OR active authorized engineer
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    if (userRole === 'developer') return true;
+    // If already authenticated as authorized engineer, bypass immediately!
+    if (engineerSession && authService.isAuthorizedEngineer(engineerSession.email)) {
+      return true;
+    }
     const session = localStorage.getItem('gkf_admin_auth');
     if (session) {
-      const data = JSON.parse(session);
-      return data.expiresAt > Date.now();
+      try {
+        const data = JSON.parse(session);
+        return data.expiresAt > Date.now();
+      } catch {
+        return false;
+      }
     }
     return false;
   });
 
-  const [passcode, setPasscode] = useState('');
+  // Login form state (Email + Password)
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [authError, setAuthError] = useState(false);
+  const [authErrorMessage, setAuthErrorMessage] = useState<string | null>(null);
+
+  // New admin initial password
+  const [newAdminPassword, setNewAdminPassword] = useState(DEFAULT_DEVELOPER_PASSWORD);
+
+  // Change Password Modal state
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
+  const [oldPasswordInput, setOldPasswordInput] = useState('');
+  const [newPasswordInput, setNewPasswordInput] = useState('');
+  const [confirmPasswordInput, setConfirmPasswordInput] = useState('');
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [changePasswordError, setChangePasswordError] = useState<string | null>(null);
 
   // Selected session filter
   const [filterSesi, setFilterSesi] = useState<string>('Sesi 2');
@@ -129,23 +201,152 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ userRole }) => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const currentSettings = gasService.getSettings();
-    if (passcode === currentSettings.passcode || passcode === '123456') {
+    const result = authService.verifyAdminLogin(loginEmail, loginPassword);
+
+    if (result.success) {
+      if (result.authType === 'engineer' && result.account) {
+        onEngineerLogin?.(result.account.email);
+      }
       setIsAuthenticated(true);
       setAuthError(false);
-      localStorage.setItem(
-        'gkf_admin_auth',
-        JSON.stringify({ expiresAt: Date.now() + 12 * 60 * 60 * 1000 })
-      );
+      setAuthErrorMessage(null);
+      if (result.account) {
+        const accName = 'name' in result.account ? result.account.name : result.account.nama;
+        const accPeran = 'peran' in result.account ? result.account.peran : 'Lead Developer';
+        setActiveAdminProfile({
+          email: result.account.email,
+          nama: accName,
+          peran: accPeran
+        });
+      }
+      onLoginSuccess?.();
     } else {
       setAuthError(true);
+      setAuthErrorMessage(result.message);
+    }
+  };
+
+  const handleQuickEngineerLogin = (email: string) => {
+    const res = authService.loginWithEmail(email);
+    if (res.success && res.session) {
+      onEngineerLogin?.(email);
+      setIsAuthenticated(true);
+      setAuthError(false);
+      setAuthErrorMessage(null);
+      setActiveAdminProfile({
+        email: res.session.email,
+        nama: res.session.name,
+        peran: 'Lead Developer'
+      });
+      onLoginSuccess?.();
     }
   };
 
   const handleLogout = () => {
     localStorage.removeItem('gkf_admin_auth');
+    authService.logout();
     setIsAuthenticated(false);
-    setPasscode('');
+    setActiveAdminProfile(null);
+    setLoginEmail('');
+    setLoginPassword('');
+    onLogout?.();
+  };
+
+  // Change Password Submit (Mandiri oleh Admin)
+  const handleChangePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const targetEmail = activeAdminProfile?.email || engineerSession?.email;
+    if (!targetEmail) {
+      setChangePasswordError('Sesi email tidak ditemukan.');
+      return;
+    }
+
+    if (!newPasswordInput || newPasswordInput.trim().length < 6) {
+      setChangePasswordError('Password baru minimal 6 karakter.');
+      return;
+    }
+
+    if (newPasswordInput !== confirmPasswordInput) {
+      setChangePasswordError('Konfirmasi password baru tidak cocok.');
+      return;
+    }
+
+    const res = authService.changePassword(targetEmail, oldPasswordInput, newPasswordInput);
+    if (res.success) {
+      showToast(res.message);
+      setIsChangePasswordModalOpen(false);
+      setOldPasswordInput('');
+      setNewPasswordInput('');
+      setConfirmPasswordInput('');
+      setChangePasswordError(null);
+      setAdminWhitelist(authService.getAdminWhitelist());
+    } else {
+      setChangePasswordError(res.message);
+    }
+  };
+
+  // Reset Password ke Default oleh Developer
+  const handleResetPassword = (email: string) => {
+    if (confirm(`Reset password untuk "${email}" kembali ke password default ("${DEFAULT_DEVELOPER_PASSWORD}")?`)) {
+      const res = authService.resetPasswordToDefault(email);
+      if (res.success) {
+        showToast(res.message);
+        setAdminWhitelist(authService.getAdminWhitelist());
+      } else {
+        alert(res.message);
+      }
+    }
+  };
+
+  // Whitelist Admin Handlers (Model 2)
+  const handleAddAdmin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAdminEmail.trim()) {
+      alert('Alamat email admin wajib diisi.');
+      return;
+    }
+
+    const currentActor = engineerSession?.email || activeAdminProfile?.email || 'obeetools@gmail.com';
+    const res = authService.addAdminToWhitelist(
+      newAdminEmail, 
+      newAdminNama, 
+      newAdminPeran, 
+      newAdminPassword,
+      currentActor
+    );
+
+    if (res.success) {
+      showToast(res.message);
+      setAdminWhitelist(authService.getAdminWhitelist());
+      setNewAdminEmail('');
+      setNewAdminNama('');
+      setNewAdminPeran('Kurator');
+      setNewAdminPassword(DEFAULT_DEVELOPER_PASSWORD);
+    } else {
+      alert(res.message);
+    }
+  };
+
+  const handleRemoveAdmin = (email: string) => {
+    if (confirm(`Yakin ingin mencabut hak akses admin untuk "${email}"? Akun ini tidak akan dapat login lagi.`)) {
+      const res = authService.removeAdminFromWhitelist(email);
+      if (res.success) {
+        showToast(res.message);
+        setAdminWhitelist(authService.getAdminWhitelist());
+      } else {
+        alert(res.message);
+      }
+    }
+  };
+
+  const handleToggleAdminStatus = (email: string) => {
+    const res = authService.toggleAdminStatus(email);
+    if (res.success) {
+      showToast(res.message);
+      setAdminWhitelist(authService.getAdminWhitelist());
+    } else {
+      alert(res.message);
+    }
   };
 
   // Timeline Handlers
@@ -328,37 +529,128 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ userRole }) => {
   // Auth Gate
   if (!isAuthenticated) {
     return (
-      <div className="max-w-md mx-auto px-4 py-16">
-        <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-md text-center">
-          <div className="w-14 h-14 rounded-full bg-[#eaf2fb] text-[#004c80] flex items-center justify-center mx-auto mb-3">
+      <div className="max-w-md mx-auto px-4 py-12 sm:py-16">
+        <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-xl text-center">
+          <div className="w-14 h-14 rounded-full bg-[#001c3c] text-[#ffc72c] flex items-center justify-center mx-auto mb-3 shadow-md">
             <Lock className="w-7 h-7" />
           </div>
-          <h2 className="text-2xl font-bold text-[#001c3c]">Admin Gate</h2>
-          <p className="text-xs text-slate-500 mt-1">
-            Masukkan passcode admin untuk mengelola timeline, jadwal, kurasi peserta, dan hasil asesmen.
+          <h2 className="text-xl sm:text-2xl font-black text-[#001c3c]">Portal Khusus Kurator & Panitia</h2>
+          <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+            Akses dikontrol melalui <strong>Whitelist Email Admin (Model 2)</strong>. Masukkan alamat email admin terdaftar atau passcode master.
           </p>
 
           {authError && (
-            <div className="mt-3 p-2.5 rounded-lg bg-rose-50 text-rose-700 text-xs font-semibold">
-              Passcode salah. Silakan coba lagi (Default: 123456).
+            <div className="mt-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold animate-in fade-in text-left">
+              {authErrorMessage || 'Passcode atau Email tidak valid. Pastikan email Anda sudah didaftarkan di Whitelist Admin.'}
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="mt-5 space-y-4">
-            <input
-              type="password"
-              required
-              placeholder="Passcode Admin"
-              value={passcode}
-              onChange={(e) => setPasscode(e.target.value)}
-              className="w-full text-center px-4 py-2.5 text-base tracking-widest border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#004c80] outline-none"
-            />
+          <form onSubmit={handleLogin} className="mt-5 space-y-4 text-left">
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                Alamat Email Admin Terdaftar
+              </label>
+              <div className="relative">
+                <input
+                  type="email"
+                  required
+                  autoFocus
+                  placeholder="contoh: kurator.batu@gmail.com"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#004c80] outline-none font-medium text-slate-900 bg-white"
+                />
+                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+              </div>
+              <span className="text-[10px] text-slate-400 mt-1 block">
+                Hanya email yang sudah didaftarkan di whitelist yang dapat masuk
+              </span>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[11px] font-bold text-slate-700 uppercase">
+                  Password Akun Admin
+                </label>
+                <span className="text-[10px] text-slate-400">
+                  Awal: <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-600">{DEFAULT_DEVELOPER_PASSWORD}</code>
+                </span>
+              </div>
+              <div className="relative">
+                <input
+                  type={showLoginPassword ? 'text' : 'password'}
+                  required
+                  placeholder="Masukkan password..."
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  className="w-full pl-9 pr-10 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#004c80] outline-none font-mono text-slate-900 bg-white"
+                />
+                <Key className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+                <button
+                  type="button"
+                  onClick={() => setShowLoginPassword(!showLoginPassword)}
+                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                  title={showLoginPassword ? 'Sembunyikan password' : 'Lihat password'}
+                >
+                  {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
             <button
               type="submit"
-              className="w-full py-2.5 rounded-xl bg-[#001c3c] hover:bg-[#004c80] text-white font-bold text-sm transition-colors shadow"
+              className="w-full py-3 rounded-xl bg-[#001c3c] hover:bg-[#004c80] active:bg-[#001c3c] text-white font-extrabold text-sm transition-all shadow-md cursor-pointer text-center"
             >
-              Masuk Dashboard
+              Masuk Dashboard Kurator
             </button>
+
+            {/* Akses Cepat Tim Engineer Terdaftar */}
+            <div className="pt-3 border-t border-slate-100 space-y-2">
+              <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wide flex items-center justify-center gap-1">
+                <Terminal className="w-3.5 h-3.5 text-purple-600" />
+                <span>Akses Cepat Engineer Terdaftar:</span>
+              </div>
+              
+              <div className="grid grid-cols-1 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleQuickEngineerLogin('obeetools@gmail.com')}
+                  className="w-full py-2 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-900 text-xs font-bold transition-all flex items-center justify-between text-left"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-purple-600" />
+                    <span>obeetools@gmail.com</span>
+                  </div>
+                  <span className="text-[10px] bg-purple-200 text-purple-800 px-2 py-0.5 rounded font-semibold">
+                    Lead Developer
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleQuickEngineerLogin('loehendra@gmail.com')}
+                  className="w-full py-2 px-3 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-900 text-xs font-bold transition-all flex items-center justify-between text-left"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-600" />
+                    <span>loehendra@gmail.com</span>
+                  </div>
+                  <span className="text-[10px] bg-blue-200 text-blue-800 px-2 py-0.5 rounded font-semibold">
+                    Engineer
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {onNavigateToPublic && (
+              <button
+                type="button"
+                onClick={onNavigateToPublic}
+                className="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-xs font-semibold transition-colors mt-2"
+              >
+                &larr; Kembali ke Portal Publik (Pendaftaran)
+              </button>
+            )}
           </form>
         </div>
       </div>
@@ -384,44 +676,72 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ userRole }) => {
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-4 sm:space-y-6">
       {/* Toast Notification */}
       {toastMsg && (
-        <div className="fixed top-20 right-4 z-50 bg-[#001c3c] text-white px-4 py-2.5 rounded-xl shadow-xl text-xs font-bold flex items-center gap-2 border border-[#ffc72c] animate-in fade-in">
+        <div className="fixed top-16 sm:top-20 right-3 sm:right-4 z-50 bg-[#001c3c] text-white px-3.5 py-2.5 rounded-xl shadow-xl text-xs font-bold flex items-center gap-2 border border-[#ffc72c] animate-in fade-in">
           <Check className="w-4 h-4 text-[#ffc72c]" />
           <span>{toastMsg}</span>
         </div>
       )}
 
       {/* Admin Header Bar */}
-      <div className="bg-[#001c3c] rounded-2xl p-5 sm:p-6 text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-[#001c3c] rounded-2xl p-4 sm:p-6 text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#ffc72c]">
+          <div className="flex items-center gap-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-[#ffc72c]">
             <Users className="w-4 h-4" />
             <span>Portal Manajemen Kurasi & Pendampingan</span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-black mt-1">Dashboard Kurator & Pimpinan</h1>
-          <p className="text-xs text-slate-300 mt-0.5">
+          <h1 className="text-lg sm:text-2xl font-black mt-1">Dashboard Kurator & Pimpinan</h1>
+          <p className="text-[11px] sm:text-xs text-slate-300 mt-0.5">
             Sesi Aktif: <strong className="text-white">{settingsForm.sesiAktif}</strong> &middot; Data langsung tersambung ke Google Spreadsheet
           </p>
+          {engineerSession ? (
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-200 border border-purple-400/30 text-[11px] mt-1.5 font-medium">
+              <Terminal className="w-3 h-3 text-amber-300 flex-shrink-0" />
+              <span>Akses Penuh: <strong className="text-white">{engineerSession.name}</strong> ({engineerSession.email}) &middot; {engineerSession.title}</span>
+            </div>
+          ) : activeAdminProfile ? (
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-200 border border-blue-400/30 text-[11px] mt-1.5 font-medium">
+              <UserCheck className="w-3 h-3 text-cyan-300 flex-shrink-0" />
+              <span>Login: <strong className="text-white">{activeAdminProfile.nama || activeAdminProfile.email}</strong> &middot; {activeAdminProfile.peran || 'Kurator'}</span>
+            </div>
+          ) : null}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Tombol Utama Tarik Data Langsung */}
           <button
             onClick={handlePullFromLiveSheet}
             disabled={isPulling}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow transition-all disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-xs font-bold shadow transition-all disabled:opacity-50"
           >
-            <CloudDownload className={`w-4 h-4 ${isPulling ? 'animate-bounce' : ''}`} />
-            <span>{isPulling ? 'Menarik Data...' : 'Tarik Data Sheet Asli'}</span>
+            <CloudDownload className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isPulling ? 'animate-bounce' : ''}`} />
+            <span>{isPulling ? 'Menarik...' : 'Tarik Sheet Asli'}</span>
+          </button>
+
+          {/* Tombol Ganti Password */}
+          <button
+            type="button"
+            onClick={() => {
+              setChangePasswordError(null);
+              setOldPasswordInput('');
+              setNewPasswordInput('');
+              setConfirmPasswordInput('');
+              setIsChangePasswordModalOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 border border-white/20 text-xs font-semibold text-white transition-colors cursor-pointer"
+            title="Ganti Password Akun Saya"
+          >
+            <KeyRound className="w-3.5 h-3.5 text-[#ffc72c]" />
+            <span>Ganti Password</span>
           </button>
 
           {/* Sesi Filter */}
           <select
             value={filterSesi}
             onChange={(e) => setFilterSesi(e.target.value)}
-            className="px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-xs font-bold text-white focus:outline-none"
+            className="px-2.5 py-2 rounded-xl bg-white/10 border border-white/20 text-xs font-bold text-white focus:outline-none"
           >
             <option value="Sesi 2" className="text-slate-800">Sesi 2 (Aktif)</option>
             <option value="Sesi 1" className="text-slate-800">Sesi 1 (Arsip)</option>
@@ -430,7 +750,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ userRole }) => {
 
           <button
             onClick={handleLogout}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-rose-900/60 border border-white/20 text-xs font-semibold transition-colors"
+            className="flex items-center gap-1 px-2.5 py-2 rounded-xl bg-white/10 hover:bg-rose-900/60 active:bg-rose-900/80 border border-white/20 text-xs font-semibold transition-colors"
           >
             <LogOut className="w-3.5 h-3.5 text-rose-300" />
             <span>Keluar</span>
@@ -439,7 +759,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ userRole }) => {
       </div>
 
       {/* Admin Nav Tabs */}
-      <div className="flex p-1 bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto gap-1">
+      <div className="flex p-1 bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto scrollbar-none gap-1">
         {[
           { id: 'peserta', label: `Peserta (${pesertaList.length})`, icon: Users },
           { id: 'asesmen', label: `Asesmen (${asesmenList.length})`, icon: ClipboardList },
@@ -456,7 +776,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ userRole }) => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+              className={`flex items-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all whitespace-nowrap active:scale-95 ${
                 isActive
                   ? 'bg-[#001c3c] text-white shadow'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
@@ -471,7 +791,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ userRole }) => {
 
       {/* TAB 1: PESERTA TERDAFTAR */}
       {activeTab === 'peserta' && (
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+        <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200 shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
             <div>
               <h2 className="text-base font-extrabold text-[#001c3c]">
@@ -479,20 +799,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ userRole }) => {
               </h2>
               <p className="text-xs text-slate-500">Klik nama usaha untuk melihat profil lengkap dan kontak WhatsApp langsung</p>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="relative">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative flex-1 sm:flex-initial">
                 <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Cari usaha, pemilik..."
                   value={pesertaSearch}
                   onChange={(e) => setPesertaSearch(e.target.value)}
-                  className="pl-9 pr-3 py-1.5 rounded-lg border border-slate-300 text-xs w-48 sm:w-60 focus:ring-2 focus:ring-[#004c80] outline-none"
+                  className="pl-9 pr-3 py-1.5 rounded-lg border border-slate-300 text-xs w-full sm:w-60 focus:ring-2 focus:ring-[#004c80] outline-none"
                 />
               </div>
               <button
                 onClick={openPesertaPdfPreview}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#001c3c] text-white text-xs font-bold hover:bg-[#004c80]"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#001c3c] text-white text-xs font-bold hover:bg-[#004c80] active:bg-[#001c3c] flex-shrink-0"
               >
                 <FileDown className="w-3.5 h-3.5" />
                 <span>Export PDF</span>
@@ -1416,13 +1736,244 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ userRole }) => {
             </div>
           </div>
 
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+              Passcode Master Cadangan (PIN Darurat)
+            </label>
+            <input
+              type="text"
+              value={settingsForm.passcode || '123456'}
+              onChange={(e) => setSettingsForm({ ...settingsForm, passcode: e.target.value })}
+              className="w-full sm:w-64 px-3 py-2 text-xs border border-slate-300 rounded-lg outline-none font-mono"
+            />
+            <span className="text-[11px] text-slate-500 block mt-1">
+              Passcode darurat jika panitia tidak login dengan email (saat ini: 123456)
+            </span>
+          </div>
+
           <div className="pt-2">
             <button
               onClick={handleSaveSettings}
               className="px-5 py-2.5 bg-[#001c3c] hover:bg-[#004c80] text-white text-xs font-bold rounded-xl transition-colors"
             >
-              Simpan Pengaturan
+              Simpan Siklus Program
             </button>
+          </div>
+
+          {/* SECTION MODEL 2: KONTROL WHITELIST EMAIL ADMIN */}
+          <div className="pt-6 border-t border-slate-200 space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-[#eaf2fb] p-4 rounded-xl border border-blue-200">
+              <div>
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#004c80]">
+                  <ShieldAlert className="w-4 h-4 text-[#004c80]" />
+                  <span>Kontrol Hak Akses: Whitelist Email Admin (Model 2)</span>
+                </div>
+                <h3 className="text-base font-extrabold text-[#001c3c] mt-0.5">
+                  Daftar Akun Admin & Kurator yang Diizinkan Login
+                </h3>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  Hanya email di bawah ini yang dapat login ke Dashboard Admin. Anda dapat menambah atau mencabut hak akses panitia sewaktu-waktu.
+                </p>
+              </div>
+              <div className="text-right">
+                <span className="text-[11px] bg-[#001c3c] text-[#ffc72c] font-bold px-2.5 py-1 rounded-full whitespace-nowrap">
+                  {adminWhitelist.filter(a => a.status === 'Aktif').length} Admin Aktif
+                </span>
+              </div>
+            </div>
+
+            {/* Form Tambah Admin Baru */}
+            <form onSubmit={handleAddAdmin} className="bg-slate-50 p-4 sm:p-5 rounded-xl border border-slate-200 space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-[#001c3c] uppercase">
+                <UserPlus className="w-4 h-4 text-emerald-600" />
+                <span>Tambah Email Admin / Kurator Baru</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                    Alamat Email Admin *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="nama.panitia@gmail.com"
+                    value={newAdminEmail}
+                    onChange={(e) => setNewAdminEmail(e.target.value)}
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg outline-none bg-white font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                    Nama Lengkap / Panggilan
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Budi (Divisi Acara)"
+                    value={newAdminNama}
+                    onChange={(e) => setNewAdminNama(e.target.value)}
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg outline-none bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                    Peran / Jabatan
+                  </label>
+                  <select
+                    value={newAdminPeran}
+                    onChange={(e) => setNewAdminPeran(e.target.value as AdminRoleType)}
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg outline-none bg-white font-semibold text-slate-800"
+                  >
+                    <option value="Kurator">Kurator (Penilaian & Review)</option>
+                    <option value="Panitia">Panitia (Presensi & Acara)</option>
+                    <option value="Pimpinan">Pimpinan (Monitoring & Laporan)</option>
+                    <option value="Admin Operasional">Admin Operasional</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                    Password Awal Akun *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newAdminPassword}
+                    onChange={(e) => setNewAdminPassword(e.target.value)}
+                    placeholder="Default: Gekrafs2026!"
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg outline-none bg-white font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-[11px] text-slate-500">
+                  Admin dapat login menggunakan email & password awal ini, kemudian menggantinya sendiri di dalam sistem.
+                </span>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold rounded-lg shadow transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>Tambahkan ke Whitelist</span>
+                </button>
+              </div>
+            </form>
+
+            {/* Tabel Whitelist Admin Aktif */}
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-100 text-[#001c3c] font-bold border-b border-slate-200">
+                  <tr>
+                    <th className="p-3">Nama & Alamat Email</th>
+                    <th className="p-3">Peran</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3">Password Akun</th>
+                    <th className="p-3 hidden sm:table-cell">Ditambahkan</th>
+                    <th className="p-3 text-center">Aksi / Kontrol</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {adminWhitelist.map((adm) => {
+                    const isProtected = adm.isProtected || adm.email === 'obeetools@gmail.com' || adm.email === 'loehendra@gmail.com';
+                    return (
+                      <tr key={adm.email} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="p-3">
+                          <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                            <span>{adm.nama}</span>
+                            {isProtected && (
+                              <span className="text-[10px] bg-purple-100 text-purple-800 font-bold px-1.5 py-0.2 rounded border border-purple-200">
+                                Developer
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-slate-500 font-mono flex items-center gap-1 mt-0.5">
+                            <Mail className="w-3 h-3 text-slate-400" />
+                            <span>{adm.email}</span>
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            adm.peran === 'Lead Developer'
+                              ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                              : adm.peran === 'Kurator'
+                              ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                              : adm.peran === 'Pimpinan'
+                              ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                              : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                          }`}>
+                            {adm.peran}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <button
+                            type="button"
+                            disabled={isProtected}
+                            onClick={() => handleToggleAdminStatus(adm.email)}
+                            title={isProtected ? 'Akun pengembang inti selalu aktif' : 'Klik untuk mengubah status aktif/nonaktif'}
+                            className={`px-2 py-0.5 rounded text-[11px] font-bold flex items-center gap-1 transition-all ${
+                              adm.status === 'Aktif'
+                                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
+                                : 'bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-300'
+                            } ${isProtected ? 'cursor-default opacity-90' : 'cursor-pointer'}`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${adm.status === 'Aktif' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                            <span>{adm.status}</span>
+                          </button>
+                        </td>
+                        <td className="p-3">
+                          {adm.isDefaultPassword !== false ? (
+                            <span className="text-[10px] bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded font-mono inline-block">
+                              Bawaan Dev ({DEFAULT_DEVELOPER_PASSWORD})
+                            </span>
+                          ) : (
+                            <span className="text-[10px] bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.5 rounded font-semibold inline-flex items-center gap-1">
+                              <CheckCircle className="w-3 h-3 text-emerald-600" />
+                              <span>Diubah Mandiri</span>
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-3 text-slate-500 text-[11px] hidden sm:table-cell">
+                          <div>{adm.tanggalDitambahkan || '-'}</div>
+                          <div className="text-[10px] text-slate-400">oleh {adm.ditambahkanOleh.split('@')[0]}</div>
+                        </td>
+                        <td className="p-3 text-center">
+                          {isProtected ? (
+                            <span className="text-[10px] text-slate-400 font-semibold italic">
+                              Akun Terlindungi
+                            </span>
+                          ) : (
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleResetPassword(adm.email)}
+                                title={`Reset password ke bawaan developer (${DEFAULT_DEVELOPER_PASSWORD})`}
+                                className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded text-[11px] font-bold transition-colors inline-flex items-center gap-1 cursor-pointer"
+                              >
+                                <RotateCcw className="w-3 h-3 text-amber-600" />
+                                <span>Reset PIN</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveAdmin(adm.email)}
+                                title="Cabut Akses Admin"
+                                className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 border border-rose-200 rounded text-[11px] font-bold transition-colors inline-flex items-center gap-1 cursor-pointer"
+                              >
+                                <Trash2 className="w-3 h-3 text-rose-600" />
+                                <span>Cabut</span>
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -1444,6 +1995,118 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ userRole }) => {
       >
         {pdfModalContent}
       </PdfExportModal>
+
+      {/* Change Password Modal */}
+      {isChangePasswordModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-[#001c3c] text-[#ffc72c] flex items-center justify-center font-bold shadow">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm sm:text-base text-[#001c3c]">Ganti Password Akun Saya</h3>
+                  <p className="text-[11px] text-slate-500 font-mono">
+                    {activeAdminProfile?.email || engineerSession?.email || 'admin@gekrafs.id'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsChangePasswordModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 text-xl font-bold p-1 cursor-pointer"
+              >
+                &times;
+              </button>
+            </div>
+
+            {changePasswordError && (
+              <div className="p-3 mb-4 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl">
+                {changePasswordError}
+              </div>
+            )}
+
+            <form onSubmit={handleChangePasswordSubmit} className="space-y-3.5">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                  Password Saat Ini / Bawaan Awal
+                </label>
+                <div className="relative">
+                  <input
+                    type={showOldPassword ? 'text' : 'password'}
+                    required
+                    placeholder="Masukkan password lama..."
+                    value={oldPasswordInput}
+                    onChange={(e) => setOldPasswordInput(e.target.value)}
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg outline-none font-mono pr-9"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowOldPassword(!showOldPassword)}
+                    className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    {showOldPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                  Password Baru Pilihan Anda (Min. 6 Karakter)
+                </label>
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    required
+                    placeholder="Masukkan password baru..."
+                    value={newPasswordInput}
+                    onChange={(e) => setNewPasswordInput(e.target.value)}
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg outline-none font-mono pr-9"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    {showNewPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                  Konfirmasi Ulang Password Baru
+                </label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Ketik ulang password baru..."
+                  value={confirmPasswordInput}
+                  onChange={(e) => setConfirmPasswordInput(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg outline-none font-mono"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsChangePasswordModalOpen(false)}
+                  className="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold rounded-xl cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-[#001c3c] hover:bg-[#004c80] text-white text-xs font-bold rounded-xl shadow transition-colors cursor-pointer"
+                >
+                  Simpan Password Baru
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

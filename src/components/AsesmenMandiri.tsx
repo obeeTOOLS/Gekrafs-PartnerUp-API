@@ -288,13 +288,13 @@ export const AsesmenMandiri: React.FC<AsesmenMandiriProps> = ({ onNavigateToRegi
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6 sm:py-8">
+    <div className="max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
       {/* Banner */}
-      <div className="bg-gradient-to-br from-[#001c3c] via-[#004c80] to-[#0070b3] rounded-2xl p-6 sm:p-8 text-white shadow-lg border-b-4 border-[#ffc72c] mb-6">
-        <div className="text-xs font-bold tracking-wider uppercase text-[#ffc72c] mb-1">
+      <div className="bg-gradient-to-br from-[#001c3c] via-[#004c80] to-[#0070b3] rounded-2xl p-4 sm:p-6 md:p-8 text-white shadow-lg border-b-4 border-[#ffc72c] mb-5 sm:mb-6">
+        <div className="text-[11px] sm:text-xs font-bold tracking-wider uppercase text-[#ffc72c] mb-1">
           Gekrafs PartnerUp &middot; Kota Batu
         </div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight">
           Asesmen Mandiri Peserta
         </h1>
         <p className="mt-2 text-slate-200 text-xs sm:text-sm leading-relaxed max-w-2xl">
@@ -304,8 +304,8 @@ export const AsesmenMandiri: React.FC<AsesmenMandiriProps> = ({ onNavigateToRegi
 
       {/* Step 1: Identification */}
       {identStep ? (
-        <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-5">
-          <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 leading-relaxed">
+        <div className="bg-white rounded-2xl p-4 sm:p-6 md:p-8 border border-slate-200 shadow-sm space-y-5">
+          <div className="p-3.5 sm:p-4 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 leading-relaxed">
             Halaman asesmen ini khusus untuk peserta yang <strong>sudah mendaftar program</strong>. Jika belum mendaftar, silakan{' '}
             {onNavigateToRegister ? (
               <button
@@ -348,7 +348,7 @@ export const AsesmenMandiri: React.FC<AsesmenMandiriProps> = ({ onNavigateToRegi
                 placeholder="Pilih atau ketik nama usaha..."
                 value={identNama}
                 onChange={(e) => setIdentNama(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-[#004c80] outline-none"
+                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-base sm:text-sm focus:ring-2 focus:ring-[#004c80] outline-none"
               />
               <datalist id="registeredNamesDatalist">
                 {registeredNames.map((name) => (
@@ -367,13 +367,13 @@ export const AsesmenMandiri: React.FC<AsesmenMandiriProps> = ({ onNavigateToRegi
                 placeholder="Sesuai nomor WhatsApp saat mendaftar"
                 value={identWa}
                 onChange={(e) => setIdentWa(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-[#004c80] outline-none"
+                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-base sm:text-sm focus:ring-2 focus:ring-[#004c80] outline-none"
               />
             </div>
 
             <button
               type="submit"
-              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#001c3c] to-[#004c80] text-white font-extrabold text-sm hover:opacity-95 transition-opacity shadow-md"
+              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#001c3c] to-[#004c80] text-white font-extrabold text-sm hover:opacity-95 active:opacity-90 transition-opacity shadow-md"
             >
               Lanjutkan ke Form Asesmen &rarr;
             </button>
@@ -383,10 +383,10 @@ export const AsesmenMandiri: React.FC<AsesmenMandiriProps> = ({ onNavigateToRegi
         /* Step 2: Assessment Form */
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Identity Verified Badge */}
-          <div className="bg-[#eaf2fb] border-l-4 border-[#001c3c] p-4 rounded-xl flex items-center justify-between text-xs sm:text-sm">
+          <div className="bg-[#eaf2fb] border-l-4 border-[#001c3c] p-3.5 sm:p-4 rounded-xl flex items-center justify-between text-xs sm:text-sm">
             <div>
               <span className="text-slate-600">Mengisi asesmen sebagai:</span>{' '}
-              <strong className="text-[#001c3c] font-bold text-base">{verifiedNama}</strong>
+              <strong className="text-[#001c3c] font-bold text-sm sm:text-base">{verifiedNama}</strong>
             </div>
             <button
               type="button"
@@ -398,18 +398,18 @@ export const AsesmenMandiri: React.FC<AsesmenMandiriProps> = ({ onNavigateToRegi
           </div>
 
           {formError && (
-            <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-800 flex items-start gap-2.5">
+            <div className="p-3.5 sm:p-4 rounded-xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-800 flex items-start gap-2.5">
               <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
               <div>{formError}</div>
             </div>
           )}
 
           {/* Bagian 1: Diagnosa Mendalam (35 Questions) */}
-          <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 md:p-8 border border-slate-200 shadow-sm space-y-6">
             <div>
-              <div className="flex items-center gap-2 text-[#001c3c] font-extrabold text-base uppercase pb-2 border-b border-slate-100">
-                <ClipboardCheck className="w-5 h-5 text-[#004c80]" />
-                <span>Bagian 1 — Diagnosa Mendalam 8 Kategori Bisnis</span>
+              <div className="flex items-center gap-2 text-[#001c3c] font-extrabold text-sm sm:text-base uppercase pb-2 border-b border-slate-100">
+                <ClipboardCheck className="w-5 h-5 text-[#004c80] flex-shrink-0" />
+                <span>Bagian 1 — Diagnosa 8 Kategori Bisnis</span>
               </div>
               <p className="text-xs text-slate-600 mt-2 leading-relaxed">
                 Pilih <strong>SATU</strong> pernyataan yang paling menggambarkan kondisi usaha Anda saat ini pada tiap pertanyaan.
@@ -432,13 +432,13 @@ export const AsesmenMandiri: React.FC<AsesmenMandiriProps> = ({ onNavigateToRegi
                     return (
                       <div
                         key={qIdx}
-                        className={`p-4 rounded-xl border transition-colors ${
+                        className={`p-3.5 sm:p-4 rounded-xl border transition-colors ${
                           isAnswered
                             ? 'border-slate-200 bg-white'
                             : 'border-amber-300 bg-amber-50/40'
                         }`}
                       >
-                        <div className="font-bold text-xs sm:text-sm text-slate-900 mb-2.5">
+                        <div className="font-bold text-xs sm:text-sm text-slate-900 mb-2.5 leading-snug">
                           {qIdx + 1}. {q.teks}
                         </div>
 
@@ -450,9 +450,9 @@ export const AsesmenMandiri: React.FC<AsesmenMandiriProps> = ({ onNavigateToRegi
                                 key={optIdx}
                                 type="button"
                                 onClick={() => handleB3Select(catIdx, qIdx, optIdx)}
-                                className={`w-full text-left p-2.5 rounded-lg border text-xs leading-relaxed transition-all flex items-start gap-2.5 ${
+                                className={`w-full text-left p-3 sm:p-2.5 rounded-lg border text-xs leading-relaxed transition-all flex items-start gap-2.5 active:scale-[0.99] ${
                                   isChosen
-                                    ? 'bg-[#eaf2fb] border-[#001c3c] font-semibold text-[#001c3c] shadow-sm'
+                                    ? 'bg-[#eaf2fb] border-[#001c3c] font-semibold text-[#001c3c] shadow-sm ring-1 ring-[#001c3c]'
                                     : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                                 }`}
                               >
@@ -463,7 +463,7 @@ export const AsesmenMandiri: React.FC<AsesmenMandiriProps> = ({ onNavigateToRegi
                                 >
                                   {isChosen && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                                 </div>
-                                <span>{opsiText}</span>
+                                <span className="flex-1">{opsiText}</span>
                               </button>
                             );
                           })}
@@ -477,10 +477,10 @@ export const AsesmenMandiri: React.FC<AsesmenMandiriProps> = ({ onNavigateToRegi
           </div>
 
           {/* Bagian 2: Kurasi Kesiapan (7 Kriteria, Score 1-5) */}
-          <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 md:p-8 border border-slate-200 shadow-sm space-y-6">
             <div>
-              <div className="flex items-center gap-2 text-[#001c3c] font-extrabold text-base uppercase pb-2 border-b border-slate-100">
-                <CheckCircle2 className="w-5 h-5 text-[#004c80]" />
+              <div className="flex items-center gap-2 text-[#001c3c] font-extrabold text-sm sm:text-base uppercase pb-2 border-b border-slate-100">
+                <CheckCircle2 className="w-5 h-5 text-[#004c80] flex-shrink-0" />
                 <span>Bagian 2 — Kurasi Kesiapan UMKM Kreatif</span>
               </div>
               <p className="text-xs text-slate-600 mt-2">
@@ -490,22 +490,22 @@ export const AsesmenMandiri: React.FC<AsesmenMandiriProps> = ({ onNavigateToRegi
 
             <div className="space-y-5">
               {ASESMEN_KRITERIA.slice(0, 7).map((kriteria, idx) => (
-                <div key={kriteria} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">
+                <div key={kriteria} className="p-3.5 sm:p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">
                   <div className="font-bold text-xs sm:text-sm text-[#001c3c]">
                     {idx + 1}. {kriteria}
                   </div>
 
                   {/* 1-5 buttons */}
                   <div>
-                    <div className="grid grid-cols-5 gap-2">
+                    <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
                       {[1, 2, 3, 4, 5].map((val) => (
                         <button
                           key={val}
                           type="button"
                           onClick={() => handleScoreChange(idx, val)}
-                          className={`py-2 rounded-lg font-bold text-xs transition-colors ${
+                          className={`py-2.5 sm:py-2 rounded-lg font-bold text-sm sm:text-xs transition-colors active:scale-95 ${
                             scores[idx] === val
-                              ? 'bg-[#001c3c] text-white shadow'
+                              ? 'bg-[#001c3c] text-white shadow ring-2 ring-[#001c3c]'
                               : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
                           }`}
                         >
@@ -514,8 +514,8 @@ export const AsesmenMandiri: React.FC<AsesmenMandiriProps> = ({ onNavigateToRegi
                       ))}
                     </div>
                     <div className="flex justify-between text-[10px] text-slate-400 mt-1 px-1 font-semibold">
-                      <span>1 = Sangat Kurang</span>
-                      <span>5 = Sangat Baik</span>
+                      <span>1 = Kurang</span>
+                      <span>5 = Baik</span>
                     </div>
                   </div>
 
@@ -538,10 +538,10 @@ export const AsesmenMandiri: React.FC<AsesmenMandiriProps> = ({ onNavigateToRegi
           </div>
 
           {/* Bagian 3: Radar Kinerja Bisnis (8 Sliders) */}
-          <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 md:p-8 border border-slate-200 shadow-sm space-y-6">
             <div>
-              <div className="flex items-center gap-2 text-[#001c3c] font-extrabold text-base uppercase pb-2 border-b border-slate-100">
-                <Sliders className="w-5 h-5 text-[#004c80]" />
+              <div className="flex items-center gap-2 text-[#001c3c] font-extrabold text-sm sm:text-base uppercase pb-2 border-b border-slate-100">
+                <Sliders className="w-5 h-5 text-[#004c80] flex-shrink-0" />
                 <span>Bagian 3 — Kategori Kinerja Bisnis (Radar)</span>
               </div>
               <p className="text-xs text-slate-600 mt-2">
@@ -550,7 +550,7 @@ export const AsesmenMandiri: React.FC<AsesmenMandiriProps> = ({ onNavigateToRegi
               </p>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-5 sm:space-y-6">
               {ASESMEN_KRITERIA.slice(7).map((kriteria, relIdx) => {
                 const globalIdx = 7 + relIdx;
                 const score = scores[globalIdx];
@@ -560,7 +560,7 @@ export const AsesmenMandiri: React.FC<AsesmenMandiriProps> = ({ onNavigateToRegi
                 return (
                   <div
                     key={kriteria}
-                    className={`p-4 rounded-xl border transition-all ${
+                    className={`p-3.5 sm:p-4 rounded-xl border transition-all ${
                       !touched ? 'border-amber-300 bg-amber-50/30' : 'border-slate-200 bg-slate-50/50'
                     }`}
                   >
@@ -587,7 +587,7 @@ export const AsesmenMandiri: React.FC<AsesmenMandiriProps> = ({ onNavigateToRegi
                       step={1}
                       value={score}
                       onChange={(e) => handleSliderChange(globalIdx, Number(e.target.value))}
-                      className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#001c3c]"
+                      className="w-full h-3 sm:h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#001c3c]"
                     />
 
                     <div className="flex justify-between text-[10px] font-bold text-slate-400 mt-1">
@@ -616,7 +616,7 @@ export const AsesmenMandiri: React.FC<AsesmenMandiriProps> = ({ onNavigateToRegi
           </div>
 
           {/* Refleksi Kolaborasi */}
-          <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-4">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 md:p-8 border border-slate-200 shadow-sm space-y-4">
             <h3 className="font-extrabold text-sm uppercase text-[#001c3c] border-b border-slate-100 pb-2">
               Refleksi Kolaborasi & Peer Mentoring
             </h3>

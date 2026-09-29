@@ -82,16 +82,16 @@ export const AbsensiKehadiran: React.FC<AbsensiKehadiranProps> = ({ initialSesiI
   };
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-6 sm:py-8">
+    <div className="max-w-xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
       {/* Banner */}
-      <div className="bg-gradient-to-br from-[#001c3c] via-[#004c80] to-[#0070b3] rounded-2xl p-6 text-white shadow-lg border-b-4 border-[#ffc72c] mb-6 text-center">
-        <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-2 text-[#ffc72c]">
-          <QrCode className="w-6 h-6" />
+      <div className="bg-gradient-to-br from-[#001c3c] via-[#004c80] to-[#0070b3] rounded-2xl p-4 sm:p-6 text-white shadow-lg border-b-4 border-[#ffc72c] mb-5 sm:mb-6 text-center">
+        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-2 text-[#ffc72c]">
+          <QrCode className="w-5 h-5 sm:w-6 sm:h-6" />
         </div>
-        <div className="text-xs font-bold tracking-wider uppercase text-[#ffc72c]">
+        <div className="text-[11px] sm:text-xs font-bold tracking-wider uppercase text-[#ffc72c]">
           Gekrafs PartnerUp &middot; Kota Batu
         </div>
-        <h1 className="text-2xl font-extrabold tracking-tight mt-1">
+        <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight mt-1">
           Absensi Kehadiran Pelatihan
         </h1>
         <p className="mt-2 text-slate-200 text-xs sm:text-sm leading-relaxed max-w-md mx-auto">
@@ -100,15 +100,15 @@ export const AbsensiKehadiran: React.FC<AbsensiKehadiranProps> = ({ initialSesiI
       </div>
 
       {checkinSuccess ? (
-        <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm text-center">
-          <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto mb-3">
-            <Sparkles className="w-8 h-8" />
+        <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm text-center">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto mb-3">
+            <Sparkles className="w-7 h-7 sm:w-8 sm:h-8" />
           </div>
-          <h2 className="text-2xl font-extrabold text-[#001c3c]">Kehadiran Tercatat!</h2>
-          <p className="mt-2 text-slate-600 text-sm leading-relaxed">
+          <h2 className="text-xl sm:text-2xl font-extrabold text-[#001c3c]">Kehadiran Tercatat!</h2>
+          <p className="mt-2 text-slate-600 text-xs sm:text-sm leading-relaxed">
             <strong className="text-slate-900">{checkinSuccess.namaUsaha}</strong> berhasil tercatat hadir pada sesi:
           </p>
-          <div className="mt-3 p-3 bg-[#eaf2fb] rounded-xl text-sm font-bold text-[#001c3c]">
+          <div className="mt-3 p-3 bg-[#eaf2fb] rounded-xl text-xs sm:text-sm font-bold text-[#001c3c]">
             {checkinSuccess.topik}
           </div>
           <p className="mt-4 text-xs text-slate-500">
@@ -122,13 +122,13 @@ export const AbsensiKehadiran: React.FC<AbsensiKehadiranProps> = ({ initialSesiI
               setWhatsapp('');
               setStatusMsg(null);
             }}
-            className="mt-6 px-5 py-2.5 bg-[#001c3c] text-white text-xs font-bold rounded-xl hover:bg-[#004c80] transition-colors"
+            className="mt-6 px-5 py-3 sm:py-2.5 bg-[#001c3c] text-white text-xs font-bold rounded-xl hover:bg-[#004c80] transition-colors w-full sm:w-auto"
           >
             Absensi Peserta Lain
           </button>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+        <div className="bg-white rounded-2xl p-4 sm:p-6 md:p-8 border border-slate-200 shadow-sm space-y-5 sm:space-y-6">
           {/* Select Session */}
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase mb-1">

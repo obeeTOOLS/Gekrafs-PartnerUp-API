@@ -14,16 +14,16 @@ export const TimelineJadwal: React.FC<TimelineJadwalProps> = ({ onNavigateToAses
   const jadwal = gasService.getJadwal();
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 sm:py-8">
+    <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
       {/* Header Banner */}
-      <div className="bg-gradient-to-br from-[#001c3c] via-[#004c80] to-[#0070b3] rounded-2xl p-6 sm:p-8 text-white shadow-lg border-b-4 border-[#ffc72c] mb-6">
-        <div className="text-xs font-bold tracking-wider uppercase text-[#ffc72c] mb-1">
+      <div className="bg-gradient-to-br from-[#001c3c] via-[#004c80] to-[#0070b3] rounded-2xl p-4 sm:p-6 md:p-8 text-white shadow-lg border-b-4 border-[#ffc72c] mb-5 sm:mb-6">
+        <div className="text-[11px] sm:text-xs font-bold tracking-wider uppercase text-[#ffc72c] mb-1">
           Program Pendampingan UMKM &middot; Gekrafs Kota Batu
         </div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight">
           Timeline & Jadwal Pelatihan
         </h1>
-        <p className="mt-2 text-slate-200 text-sm leading-relaxed max-w-xl">
+        <p className="mt-2 text-slate-200 text-xs sm:text-sm leading-relaxed max-w-xl">
           Pantau tahapan program akselerasi dan jadwal sesi pelatihan mingguan setiap hari Sabtu.
         </p>
 
@@ -31,7 +31,7 @@ export const TimelineJadwal: React.FC<TimelineJadwalProps> = ({ onNavigateToAses
           <div className="mt-4">
             <button
               onClick={onNavigateToAsesmen}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 border border-white/30 text-xs font-bold text-white transition-colors"
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 active:bg-white/30 border border-white/30 text-xs font-bold text-white transition-colors"
             >
               <span>📝 Lanjut ke Asesmen Mandiri Peserta</span>
             </button>
@@ -40,35 +40,35 @@ export const TimelineJadwal: React.FC<TimelineJadwalProps> = ({ onNavigateToAses
       </div>
 
       {/* Segmented Control Tabs */}
-      <div className="flex p-1 bg-white rounded-xl shadow-sm border border-slate-200 mb-6">
+      <div className="flex p-1 bg-white rounded-xl shadow-sm border border-slate-200 mb-5 sm:mb-6">
         <button
           onClick={() => setActiveSubTab('timeline')}
-          className={`flex-1 py-2.5 px-4 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 py-2 sm:py-2.5 px-2 sm:px-4 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
             activeSubTab === 'timeline'
               ? 'bg-[#001c3c] text-white shadow'
-              : 'text-slate-600 hover:text-slate-900'
+              : 'text-slate-600 hover:text-slate-900 active:bg-slate-100'
           }`}
         >
-          <Milestone className="w-4 h-4" />
+          <Milestone className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           <span>Timeline Program</span>
         </button>
 
         <button
           onClick={() => setActiveSubTab('jadwal')}
-          className={`flex-1 py-2.5 px-4 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 py-2 sm:py-2.5 px-2 sm:px-4 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
             activeSubTab === 'jadwal'
               ? 'bg-[#001c3c] text-white shadow'
-              : 'text-slate-600 hover:text-slate-900'
+              : 'text-slate-600 hover:text-slate-900 active:bg-slate-100'
           }`}
         >
-          <Calendar className="w-4 h-4" />
-          <span>Jadwal Pelatihan ({jadwal.length} Sesi)</span>
+          <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <span>Jadwal Pelatihan ({jadwal.length})</span>
         </button>
       </div>
 
       {/* Content: Timeline */}
       {activeSubTab === 'timeline' && (
-        <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm">
+        <div className="bg-white rounded-2xl p-4 sm:p-6 md:p-8 border border-slate-200 shadow-sm">
           <div className="space-y-6 relative before:absolute before:inset-0 before:left-5 before:w-0.5 before:bg-[#eaf2fb] before:translate-x-[-1px]">
             {timeline.map((item, idx) => {
               const start = formatTanggalIndonesia(item.tanggalMulai);

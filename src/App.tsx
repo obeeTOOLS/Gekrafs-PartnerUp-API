@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { UserRole } from './types';
 import { gasService } from './services/gasService';
+import { authService, EngineerSession } from './services/authService';
+import { UserRole } from './types';
 import { Header } from './components/Header';
 import { MobileNav } from './components/MobileNav';
 import { FormPendaftaran } from './components/FormPendaftaran';
@@ -11,7 +12,8 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { DeveloperTools } from './components/DeveloperTools';
 import { HelpModal } from './components/HelpModal';
 import { ShareModal } from './components/ShareModal';
-import { Check } from 'lucide-react';
+import { EngineerModal } from './components/EngineerModal';
+import { Check, Lock, Terminal } from 'lucide-react';
 
 export default function App() {
   // Query param auto-routing (?page=admin, ?page=info, ?page=asesmen, ?page=kehadiran, ?sesi_id=...)
@@ -31,11 +33,26 @@ export default function App() {
     return params.get('sesi_id') || '';
   });
 
-  const [userRole, setUserRole] = useState<UserRole>(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('role') === 'developer' || params.get('page') === 'developer') return 'developer';
-    if (params.get('page') === 'admin') return 'admin';
-    return 'peserta';
+  // Engineer Session (obeetools@gmail.com / loehendra@gmail.com)
+  const [engineerSession, setEngineerSession] = useState<EngineerSession | null>(() => {
+    return authService.getCurrentSession();
+  });
+  const [isEngineerModalOpen, setIsEngineerModalOpen] = useState(false);
+
+  // Strict Admin Authentication Session tracking
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(() => {
+    // If engineer session exists, automatically considered admin authenticated
+    if (authService.getCurrentSession()) {
+      return true;
+    }
+    try {
+      const session = localStorage.getItem('gkf_admin_auth');
+      if (session) {
+        const data = JSON.parse(session);
+        return data.expiresAt > Date.now();
+      }
+    } catch {}
+    return false;
   });
 
   const [syncState, setSyncState] = useState(gasService.getSyncState());
@@ -88,6 +105,43 @@ export default function App() {
     setTimeout(() => setGlobalToast(null), 5000);
   };
 
+  const handleAdminLogout = () => {
+    localStorage.removeItem('gkf_admin_auth');
+    authService.logout();
+    setIsAdminLoggedIn(false);
+    setEngineerSession(null);
+    setActiveTab('pendaftaran');
+    // Remove query param from browser bar gracefully
+    window.history.replaceState({}, '', window.location.pathname);
+  };
+
+  const handleAdminLoginSuccess = () => {
+    setIsAdminLoggedIn(true);
+  };
+
+  const handleSwitchPerspective = (role: UserRole) => {
+    const updated = authService.setPerspective(role);
+    if (updated) {
+      setEngineerSession({ ...updated });
+      if (role === 'developer') {
+        setActiveTab('developer');
+      } else if (role === 'admin') {
+        setActiveTab('admin');
+      } else if (role === 'peserta') {
+        setActiveTab('pendaftaran');
+      }
+    }
+  };
+
+  const handleSessionChange = (newSession: EngineerSession | null) => {
+    setEngineerSession(newSession);
+    if (newSession) {
+      setIsAdminLoggedIn(true);
+    } else {
+      setIsAdminLoggedIn(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-[#f0f4f9] text-[#10233d]">
       {/* Global Sync Notification Banner */}
@@ -98,22 +152,25 @@ export default function App() {
         </div>
       )}
 
-      {/* Top Navigation */}
+      {/* Top Navigation Bar with Engineer Access & Perspective Switcher */}
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        userRole={userRole}
-        setUserRole={setUserRole}
+        isAdminLoggedIn={isAdminLoggedIn || !!engineerSession}
+        onAdminLogout={handleAdminLogout}
         onOpenHelp={() => setIsHelpOpen(true)}
         onOpenShare={() => setIsShareOpen(true)}
         syncState={syncState}
         onRefreshData={handleRefreshData}
         onPullFromSheet={handlePullFromLiveSheet}
         isPulling={isPulling}
+        engineerSession={engineerSession}
+        onOpenEngineerModal={() => setIsEngineerModalOpen(true)}
+        onSwitchPerspective={handleSwitchPerspective}
       />
 
       {/* Main View Area */}
-      <main className="flex-1 pb-24 md:pb-12">
+      <main className="flex-1 pb-24 sm:pb-28 md:pb-12" style={{ paddingBottom: 'calc(4.75rem + env(safe-area-inset-bottom, 0px))' }}>
         {activeTab === 'pendaftaran' && (
           <FormPendaftaran onSuccessNavigate={(tab) => setActiveTab(tab)} />
         )}
@@ -127,11 +184,21 @@ export default function App() {
         )}
 
         {activeTab === 'kehadiran' && (
-          <AbsensiKehadiran initialSesiId={initialSesiId} userRole={userRole} />
+          <AbsensiKehadiran initialSesiId={initialSesiId} />
         )}
 
         {activeTab === 'admin' && (
-          <AdminDashboard userRole={userRole} />
+          <AdminDashboard 
+            engineerSession={engineerSession}
+            onLoginSuccess={handleAdminLoginSuccess}
+            onLogout={handleAdminLogout}
+            onNavigateToPublic={() => setActiveTab('pendaftaran')}
+            onEngineerLogin={(email) => {
+              const sess = authService.getCurrentSession();
+              setEngineerSession(sess);
+              setIsAdminLoggedIn(true);
+            }}
+          />
         )}
 
         {activeTab === 'developer' && (
@@ -139,14 +206,39 @@ export default function App() {
         )}
       </main>
 
-      {/* Modern Clean Footer */}
-      <footer className="hidden md:block bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      {/* Modern Clean Footer with discreet Panitia & Engineer Links */}
+      <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div>
             <span className="font-bold text-[#001c3c]">Gekrafs PartnerUp</span> &middot; Gerakan Ekonomi Kreatif Nasional Kota Batu
           </div>
-          <div className="font-semibold text-[#004c80]">
-            Developed by Lalu Mahendra &middot; All Rights Reserved
+
+          <div className="flex items-center gap-3">
+            <span className="font-semibold text-[#004c80]">
+              Developed by Lalu Mahendra &middot; All Rights Reserved
+            </span>
+
+            {/* Engineer access console shortcut */}
+            <button
+              type="button"
+              onClick={() => setIsEngineerModalOpen(true)}
+              title="Konsol Hak Akses Engineer & Pemilih Peran"
+              className="text-slate-400 hover:text-purple-600 transition-colors p-1 rounded"
+              aria-label="Konsol Engineer"
+            >
+              <Terminal className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Discreet lock icon for authorized staff to access pass-gate */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('admin')}
+              title="Akses Khusus Tim Kurator (Passcode Terlindungi)"
+              className="text-slate-300 hover:text-slate-600 transition-colors p-1 rounded"
+              aria-label="Akses Kurator"
+            >
+              <Lock className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       </footer>
@@ -155,12 +247,21 @@ export default function App() {
       <MobileNav
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        userRole={userRole}
+        isAdminLoggedIn={isAdminLoggedIn || !!engineerSession}
+        engineerSession={engineerSession}
+        onOpenEngineerModal={() => setIsEngineerModalOpen(true)}
       />
 
       {/* Modals */}
       <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
       <ShareModal isOpen={isShareOpen} onClose={() => setIsShareOpen(false)} />
+      <EngineerModal 
+        isOpen={isEngineerModalOpen} 
+        onClose={() => setIsEngineerModalOpen(false)}
+        session={engineerSession}
+        onSessionChange={handleSessionChange}
+        onSelectTab={(tab) => setActiveTab(tab)}
+      />
     </div>
   );
 }
