@@ -39,6 +39,7 @@ export default function App() {
     return authService.getCurrentSession();
   });
   const [isEngineerModalOpen, setIsEngineerModalOpen] = useState(false);
+  const currentPerspective = engineerSession?.activePerspective || 'peserta';
 
   // Strict Admin Authentication Session tracking
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(() => {
@@ -221,7 +222,26 @@ export default function App() {
           )}
 
           {activeTab === 'developer' && (
-            <DeveloperTools />
+            (engineerSession && currentPerspective === 'developer') ? (
+              <DeveloperTools />
+            ) : (
+              <div className="max-w-md mx-auto my-12 p-8 bg-white rounded-2xl border border-slate-200 text-center shadow-sm">
+                <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center mx-auto mb-4">
+                  <Lock className="w-6 h-6" />
+                </div>
+                <h2 className="text-lg font-bold text-[#001c3c]">Akses Terbatas</h2>
+                <p className="text-xs text-slate-500 mt-2">
+                  Halaman Dev Hub dan Laporan Verifikasi Sistem hanya dapat diakses oleh peran Developer terotorisasi (obeetools@gmail.com).
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('pendaftaran')}
+                  className="mt-5 px-5 py-2.5 bg-[#001c3c] text-white text-xs font-bold rounded-xl hover:bg-[#002c5c] transition-colors cursor-pointer"
+                >
+                  Kembali ke Beranda
+                </button>
+              </div>
+            )
           )}
         </main>
 

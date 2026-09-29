@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <link rel="apple-touch-icon" href="/logo.svg" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#001c3c" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="PartnerUp" />
     <title>Gekrafs PartnerUp Kota Batu</title>
     <meta name="description" content="Modern Web App Headless Google Apps Script & Google Sheets untuk Kurasi, Monitoring, dan Asesmen Mandiri UMKM Kreatif Kota Batu" />
     <meta property="og:title" content="Gekrafs PartnerUp" />
@@ -18,6 +24,13 @@
   <body class="bg-[#f0f4f9] text-[#10233d] font-sans antialiased selection:bg-[#004c80] selection:text-white">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
+      }
+    </script>
   </body>
 </html>
 

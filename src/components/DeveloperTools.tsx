@@ -13,7 +13,8 @@ import {
   AlertCircle,
   Database,
   CloudDownload,
-  FileSpreadsheet
+  FileSpreadsheet,
+  FileCheck
 } from 'lucide-react';
 
 export const DeveloperTools: React.FC = () => {
@@ -82,15 +83,28 @@ export const DeveloperTools: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 sm:py-8 space-y-6">
       {/* Dev Header */}
-      <div className="bg-[#001c3c] rounded-2xl p-6 text-white border-l-4 border-purple-500 shadow-md">
-        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-purple-300">
-          <Terminal className="w-4 h-4" />
-          <span>Developer Console & Architecture</span>
+      <div className="bg-[#001c3c] rounded-2xl p-6 text-white border-l-4 border-purple-500 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-purple-300">
+            <Terminal className="w-4 h-4" />
+            <span>Developer Console & Architecture</span>
+          </div>
+          <h1 className="text-2xl font-extrabold mt-1">Headless Google Apps Script Hub</h1>
+          <p className="text-slate-300 text-xs sm:text-sm mt-1 leading-relaxed max-w-xl">
+            Kelola arsitektur headless hybrid antara Google Apps Script, Google Sheets, dan frontend React ini.
+          </p>
         </div>
-        <h1 className="text-2xl font-extrabold mt-1">Headless Google Apps Script Hub</h1>
-        <p className="text-slate-300 text-xs sm:text-sm mt-1 leading-relaxed">
-          Kelola arsitektur headless hybrid antara Google Apps Script, Google Sheets, dan frontend React ini.
-        </p>
+
+        <a
+          href="/laporan-verifikasi.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-[#001c3c] font-black text-xs shadow-md transition-all group"
+          title="Buka & Unduh Laporan Resmi Audit Verifikasi Sistem (Format Cetak PDF)"
+        >
+          <FileCheck className="w-4 h-4 text-[#001c3c] group-hover:scale-110 transition-transform" />
+          <span>Unduh Laporan Verifikasi (PDF)</span>
+        </a>
       </div>
 
       {resetMessage && (

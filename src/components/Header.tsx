@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Share2, 
   HelpCircle, 
@@ -6,12 +6,14 @@ import {
   WifiOff, 
   RefreshCw, 
   Terminal,
-  ShieldCheck,
   ChevronRight,
-  Sparkles
+  Maximize2,
+  Minimize2,
+  Smartphone
 } from 'lucide-react';
 import { EngineerSession } from '../services/authService';
 import { UserRole } from '../types';
+import { PwaInstallModal } from './PwaInstallModal';
 
 interface HeaderProps {
   activeTab: string;
@@ -78,6 +80,68 @@ export const Header: React.FC<HeaderProps> = ({
   const hasEngineerAccess = !!engineerSession;
   const currentPerspective = engineerSession?.activePerspective || 'peserta';
   const canShowAdminTools = (isAdminLoggedIn || hasEngineerAccess) && currentPerspective !== 'peserta';
+
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    // Check fullscreen state
+    const handleFullscreenChange = () => {
+      const activeFs = !!(document.fullscreenElement || (document as any).webkitFullscreenElement);
+      setIsFullscreen(activeFs);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+
+    // Check standalone mode
+    const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+    setIsStandalone(isStandaloneMode);
+
+    // Listen to beforeinstallprompt event
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const toggleFullscreen = async () => {
+    try {
+      const docEl = document.documentElement as any;
+      const doc = document as any;
+
+      if (!doc.fullscreenElement && !doc.webkitFullscreenElement) {
+        if (docEl.requestFullscreen) {
+          await docEl.requestFullscreen();
+        } else if (docEl.webkitRequestFullscreen) {
+          await docEl.webkitRequestFullscreen();
+        } else {
+          // iOS Safari fallback: prompt to install PWA for full screen
+          setIsInstallModalOpen(true);
+        }
+      } else {
+        if (doc.exitFullscreen) {
+          await doc.exitFullscreen();
+        } else if (doc.webkitExitFullscreen) {
+          await doc.webkitExitFullscreen();
+        }
+      }
+    } catch (err) {
+      console.warn('Fullscreen request failed or restricted:', err);
+      // Fallback to install modal
+      setIsInstallModalOpen(true);
+    }
+  };
 
   const currentTabInfo = TAB_TITLES[activeTab] || {
     title: 'Gekrafs PartnerUp Kota Batu',
@@ -181,6 +245,38 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             )}
 
+            {/* Fullscreen Button */}
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              title={isFullscreen ? 'Keluar dari Layar Penuh' : 'Mode Layar Penuh (Full Screen)'}
+              className={`p-1.5 sm:px-2.5 sm:py-1 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer border ${
+                isFullscreen 
+                  ? 'bg-amber-100 text-amber-900 border-amber-300' 
+                  : 'text-slate-600 hover:text-[#001c3c] hover:bg-slate-100 border-transparent hover:border-slate-200'
+              }`}
+            >
+              {isFullscreen ? (
+                <Minimize2 className="w-3.5 h-3.5 text-amber-600" />
+              ) : (
+                <Maximize2 className="w-3.5 h-3.5 text-slate-700" />
+              )}
+              <span className="hidden sm:inline">{isFullscreen ? 'Normal' : 'Layar Penuh'}</span>
+            </button>
+
+            {/* Install App / PWA Button (tampil jika belum standalone) */}
+            {!isStandalone && (
+              <button
+                type="button"
+                onClick={() => setIsInstallModalOpen(true)}
+                title="Pasang di Layar Utama HP (Full Screen Standalone)"
+                className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer"
+              >
+                <Smartphone className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                <span className="hidden sm:inline">Pasang App</span>
+              </button>
+            )}
+
             {/* Quick Share Link */}
             <button
               type="button"
@@ -217,6 +313,17 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
       </div>
+
+      {/* PWA Install Modal */}
+      <PwaInstallModal
+        isOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
+        deferredPrompt={deferredPrompt}
+        onInstalled={() => {
+          setIsStandalone(true);
+          setDeferredPrompt(null);
+        }}
+      />
     </header>
   );
 };

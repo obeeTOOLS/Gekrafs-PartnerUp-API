@@ -1,0 +1,27 @@
+{
+  "id": "/",
+  "name": "GEKRAFS PartnerUp Kota Batu",
+  "short_name": "PartnerUp",
+  "description": "Aplikasi Akselerasi, Kurasi, dan Asesmen Mandiri UMKM Kreatif GEKRAFS Kota Batu",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#001c3c",
+  "background_color": "#001c3c",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["business", "productivity", "utilities"]
+}
