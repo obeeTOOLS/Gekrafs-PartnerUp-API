@@ -58,6 +58,9 @@ export const Header: React.FC<HeaderProps> = ({
   const hasEngineerAccess = !!engineerSession;
   const currentPerspective = engineerSession?.activePerspective || 'peserta';
 
+  // Tools khusus admin & engineer (disembunyikan saat dalam mode simulasi peserta atau untuk publik)
+  const canShowAdminTools = (isAdminLoggedIn || hasEngineerAccess) && currentPerspective !== 'peserta';
+
   return (
     <header className="sticky top-0 z-30 bg-[#001c3c] border-b border-[#004c80] text-white shadow-md">
       {/* Top Banner Accent */}
@@ -153,8 +156,8 @@ export const Header: React.FC<HeaderProps> = ({
               );
             })}
 
-            {/* If Admin is Authenticated or Engineer is active: show Admin Portal Tab */}
-            {(isAdminLoggedIn || hasEngineerAccess) && (
+            {/* If Admin is Authenticated or Engineer is active: show Admin Portal Tab (Hanya jika bukan mode peserta) */}
+            {canShowAdminTools && (
               <button
                 onClick={() => setActiveTab('admin')}
                 className={`px-3 py-1.5 rounded-lg text-[15px] font-medium transition-colors flex items-center gap-1.5 ${
@@ -168,8 +171,8 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             )}
 
-            {/* If Engineer is active: show Developer Console Tab */}
-            {hasEngineerAccess && (
+            {/* If Engineer is active: show Developer Console Tab (Hanya saat mode Developer) */}
+            {hasEngineerAccess && currentPerspective === 'developer' && (
               <button
                 onClick={() => setActiveTab('developer')}
                 className={`px-3 py-1.5 rounded-lg text-[15px] font-medium transition-colors flex items-center gap-1.5 ${
@@ -247,39 +250,45 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             ) : null}
 
-            {/* Tombol Tarik Data Langsung dari Google Sheets */}
-            <button
-              type="button"
-              onClick={onPullFromSheet}
-              disabled={isPulling}
-              title="Tarik & Sinkronkan data langsung dari Google Sheets asli"
-              className="flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-[11px] sm:text-xs font-bold shadow-sm transition-all disabled:opacity-50"
-            >
-              <CloudDownload className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isPulling ? 'animate-bounce' : ''}`} />
-              <span className="hidden xs:inline sm:inline">{isPulling ? 'Menarik...' : 'Tarik Data'}</span>
-            </button>
+            {/* Tombol Tarik Data Langsung dari Google Sheets: KHUSUS ADMIN & ENGINEER (Disembunyikan dari Peserta) */}
+            {canShowAdminTools && (
+              <button
+                type="button"
+                onClick={onPullFromSheet}
+                disabled={isPulling}
+                title="Tarik & Sinkronkan data langsung dari Google Sheets asli"
+                className="flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-[11px] sm:text-xs font-bold shadow-sm transition-all disabled:opacity-50"
+              >
+                <CloudDownload className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isPulling ? 'animate-bounce' : ''}`} />
+                <span className="hidden xs:inline sm:inline">{isPulling ? 'Menarik...' : 'Tarik Data'}</span>
+              </button>
+            )}
 
-            {/* Sync Status Badge (Desktop Only) */}
-            <div className="hidden xl:flex items-center gap-1.5 text-xs text-slate-300 bg-white/10 px-2.5 py-1 rounded-full border border-white/10">
-              {syncState.status === 'online' ? (
-                <Wifi className="w-3.5 h-3.5 text-emerald-400" />
-              ) : syncState.status === 'syncing' ? (
-                <RefreshCw className="w-3.5 h-3.5 text-amber-400 animate-spin" />
-              ) : (
-                <WifiOff className="w-3.5 h-3.5 text-rose-400" />
-              )}
-              <span className="truncate max-w-[130px]">{syncState.message}</span>
-            </div>
+            {/* Sync Status Badge (Desktop Only): KHUSUS ADMIN & ENGINEER */}
+            {canShowAdminTools && (
+              <div className="hidden xl:flex items-center gap-1.5 text-xs text-slate-300 bg-white/10 px-2.5 py-1 rounded-full border border-white/10">
+                {syncState.status === 'online' ? (
+                  <Wifi className="w-3.5 h-3.5 text-emerald-400" />
+                ) : syncState.status === 'syncing' ? (
+                  <RefreshCw className="w-3.5 h-3.5 text-amber-400 animate-spin" />
+                ) : (
+                  <WifiOff className="w-3.5 h-3.5 text-rose-400" />
+                )}
+                <span className="truncate max-w-[130px]">{syncState.message}</span>
+              </div>
+            )}
 
-            {/* Quick Refresh */}
-            <button
-              type="button"
-              onClick={onRefreshData}
-              title="Refresh / Muat Ulang Cache"
-              className="p-1.5 sm:p-2 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 active:bg-white/20 transition-colors"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
+            {/* Quick Refresh: KHUSUS ADMIN & ENGINEER */}
+            {canShowAdminTools && (
+              <button
+                type="button"
+                onClick={onRefreshData}
+                title="Refresh / Muat Ulang Cache"
+                className="p-1.5 sm:p-2 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 active:bg-white/20 transition-colors"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            )}
 
             {/* Share Button */}
             <button
