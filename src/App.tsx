@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { gasService } from './services/gasService';
 import { authService, EngineerSession } from './services/authService';
 import { UserRole } from './types';
+import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { MobileNav } from './components/MobileNav';
 import { FormPendaftaran } from './components/FormPendaftaran';
@@ -143,105 +144,124 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#f0f4f9] text-[#10233d]">
-      {/* Global Sync Notification Banner */}
-      {globalToast && (
-        <div className="bg-emerald-600 text-white text-xs font-bold py-2 px-4 text-center flex items-center justify-center gap-2 shadow animate-in fade-in">
-          <Check className="w-4 h-4" />
-          <span>{globalToast}</span>
-        </div>
-      )}
-
-      {/* Top Navigation Bar with Engineer Access & Perspective Switcher */}
-      <Header
+    <div className="min-h-screen flex bg-[#f0f4f9] text-[#10233d]">
+      {/* Desktop Left Sidebar (Icon-Only Mode / Collapsed & Expandable) */}
+      <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         isAdminLoggedIn={isAdminLoggedIn || !!engineerSession}
-        onAdminLogout={handleAdminLogout}
-        onOpenHelp={() => setIsHelpOpen(true)}
-        onOpenShare={() => setIsShareOpen(true)}
-        syncState={syncState}
-        onRefreshData={handleRefreshData}
-        onPullFromSheet={handlePullFromLiveSheet}
-        isPulling={isPulling}
         engineerSession={engineerSession}
         onOpenEngineerModal={() => setIsEngineerModalOpen(true)}
         onSwitchPerspective={handleSwitchPerspective}
+        onPullFromSheet={handlePullFromLiveSheet}
+        isPulling={isPulling}
+        syncState={syncState}
+        onRefreshData={handleRefreshData}
+        onOpenShare={() => setIsShareOpen(true)}
+        onOpenHelp={() => setIsHelpOpen(true)}
       />
 
-      {/* Main View Area */}
-      <main className="flex-1 pb-24 sm:pb-28 md:pb-12" style={{ paddingBottom: 'calc(4.75rem + env(safe-area-inset-bottom, 0px))' }}>
-        {activeTab === 'pendaftaran' && (
-          <FormPendaftaran onSuccessNavigate={(tab) => setActiveTab(tab)} />
-        )}
-
-        {activeTab === 'timeline' && (
-          <TimelineJadwal onNavigateToAsesmen={() => setActiveTab('asesmen')} />
-        )}
-
-        {activeTab === 'asesmen' && (
-          <AsesmenMandiri onNavigateToRegister={() => setActiveTab('pendaftaran')} />
-        )}
-
-        {activeTab === 'kehadiran' && (
-          <AbsensiKehadiran initialSesiId={initialSesiId} />
-        )}
-
-        {activeTab === 'admin' && (
-          <AdminDashboard 
-            engineerSession={engineerSession}
-            onLoginSuccess={handleAdminLoginSuccess}
-            onLogout={handleAdminLogout}
-            onNavigateToPublic={() => setActiveTab('pendaftaran')}
-            onEngineerLogin={(email) => {
-              const sess = authService.getCurrentSession();
-              setEngineerSession(sess);
-              setIsAdminLoggedIn(true);
-            }}
-          />
-        )}
-
-        {activeTab === 'developer' && (
-          <DeveloperTools />
-        )}
-      </main>
-
-      {/* Modern Clean Footer with discreet Panitia & Engineer Links */}
-      <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div>
-            <span className="font-bold text-[#001c3c]">Gekrafs PartnerUp</span> &middot; Gerakan Ekonomi Kreatif Nasional Kota Batu
+      {/* Main Content Workspace with Sleek Top Header */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-x-hidden">
+        {/* Global Sync Notification Banner */}
+        {globalToast && (
+          <div className="bg-emerald-600 text-white text-xs font-bold py-2 px-4 text-center flex items-center justify-center gap-2 shadow animate-in fade-in">
+            <Check className="w-4 h-4" />
+            <span>{globalToast}</span>
           </div>
+        )}
 
-          <div className="flex items-center gap-3">
-            <span className="font-semibold text-[#004c80]">
-              Developed by Lalu Mahendra &middot; All Rights Reserved
-            </span>
+        {/* Top Header / Breadcrumb Bar */}
+        <Header
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          isAdminLoggedIn={isAdminLoggedIn || !!engineerSession}
+          onAdminLogout={handleAdminLogout}
+          onOpenHelp={() => setIsHelpOpen(true)}
+          onOpenShare={() => setIsShareOpen(true)}
+          syncState={syncState}
+          onRefreshData={handleRefreshData}
+          onPullFromSheet={handlePullFromLiveSheet}
+          isPulling={isPulling}
+          engineerSession={engineerSession}
+          onOpenEngineerModal={() => setIsEngineerModalOpen(true)}
+          onSwitchPerspective={handleSwitchPerspective}
+        />
 
-            {/* Engineer access console shortcut */}
-            <button
-              type="button"
-              onClick={() => setIsEngineerModalOpen(true)}
-              title="Konsol Hak Akses Engineer & Pemilih Peran"
-              className="text-slate-400 hover:text-purple-600 transition-colors p-1 rounded"
-              aria-label="Konsol Engineer"
-            >
-              <Terminal className="w-3.5 h-3.5" />
-            </button>
+        {/* Main View Area */}
+        <main className="flex-1 pb-24 sm:pb-28 md:pb-12" style={{ paddingBottom: 'calc(4.75rem + env(safe-area-inset-bottom, 0px))' }}>
+          {activeTab === 'pendaftaran' && (
+            <FormPendaftaran onSuccessNavigate={(tab) => setActiveTab(tab)} />
+          )}
 
-            {/* Discreet lock icon for authorized staff to access pass-gate */}
-            <button
-              type="button"
-              onClick={() => setActiveTab('admin')}
-              title="Akses Khusus Tim Kurator (Passcode Terlindungi)"
-              className="text-slate-300 hover:text-slate-600 transition-colors p-1 rounded"
-              aria-label="Akses Kurator"
-            >
-              <Lock className="w-3.5 h-3.5" />
-            </button>
+          {activeTab === 'timeline' && (
+            <TimelineJadwal onNavigateToAsesmen={() => setActiveTab('asesmen')} />
+          )}
+
+          {activeTab === 'asesmen' && (
+            <AsesmenMandiri onNavigateToRegister={() => setActiveTab('pendaftaran')} />
+          )}
+
+          {activeTab === 'kehadiran' && (
+            <AbsensiKehadiran initialSesiId={initialSesiId} />
+          )}
+
+          {activeTab === 'admin' && (
+            <AdminDashboard 
+              engineerSession={engineerSession}
+              onLoginSuccess={handleAdminLoginSuccess}
+              onLogout={handleAdminLogout}
+              onNavigateToPublic={() => setActiveTab('pendaftaran')}
+              onEngineerLogin={(email) => {
+                const sess = authService.getCurrentSession();
+                setEngineerSession(sess);
+                setIsAdminLoggedIn(true);
+              }}
+            />
+          )}
+
+          {activeTab === 'developer' && (
+            <DeveloperTools />
+          )}
+        </main>
+
+        {/* Modern Clean Footer with discreet Panitia & Engineer Links */}
+        <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500">
+          <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div>
+              <span className="font-bold text-[#001c3c]">Gekrafs PartnerUp</span> &middot; Gerakan Ekonomi Kreatif Nasional Kota Batu
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="font-semibold text-[#004c80]">
+                Developed by Lalu Mahendra &middot; All Rights Reserved
+              </span>
+
+              {/* Engineer access console shortcut */}
+              <button
+                type="button"
+                onClick={() => setIsEngineerModalOpen(true)}
+                title="Konsol Hak Akses Engineer & Pemilih Peran"
+                className="text-slate-400 hover:text-purple-600 transition-colors p-1 rounded cursor-pointer"
+                aria-label="Konsol Engineer"
+              >
+                <Terminal className="w-3.5 h-3.5" />
+              </button>
+
+              {/* Discreet lock icon for authorized staff to access pass-gate */}
+              <button
+                type="button"
+                onClick={() => setActiveTab('admin')}
+                title="Akses Khusus Tim Kurator (Passcode Terlindungi)"
+                className="text-slate-300 hover:text-slate-600 transition-colors p-1 rounded cursor-pointer"
+                aria-label="Akses Kurator"
+              >
+                <Lock className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
-        </div>
-      </footer>
+        </footer>
+      </div>
 
       {/* Mobile Bottom Navigation Bar */}
       <MobileNav
