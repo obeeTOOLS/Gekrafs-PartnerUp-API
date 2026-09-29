@@ -1,0 +1,6 @@
+{
+  "name": "Gekrafs PartnerUp",
+  "description": "Modern Web App Headless Google Apps Script & Google Sheets untuk Kurasi, Monitoring, dan Asesmen Mandiri UMKM Kreatif Kota Batu",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

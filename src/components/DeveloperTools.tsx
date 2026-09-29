@@ -1,0 +1,304 @@
+import React, { useState } from 'react';
+import { gasService } from '../services/gasService';
+import { HEADLESS_GAS_CODE } from '../services/headlessGasCode';
+import { 
+  Terminal, 
+  Copy, 
+  Check, 
+  Send, 
+  Download, 
+  RotateCcw, 
+  FileCode, 
+  CheckCircle2, 
+  AlertCircle,
+  Database,
+  CloudDownload,
+  FileSpreadsheet
+} from 'lucide-react';
+
+export const DeveloperTools: React.FC = () => {
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [testUrl, setTestUrl] = useState(gasService.getSettings().gasEndpointUrl);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string; latency?: number } | null>(null);
+  const [isTesting, setIsTesting] = useState(false);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
+  const [autoSync, setAutoSync] = useState(gasService.getSettings().autoSync);
+
+  // Live Sheet Pull State
+  const [customSheetId, setCustomSheetId] = useState('183uoyYw6opnr3w7T6oljvwuy5Rzs7GZE7fM3vi_pwm4');
+  const [isPulling, setIsPulling] = useState(false);
+  const [pullResult, setPullResult] = useState<{
+    success: boolean;
+    message: string;
+    counts?: { peserta: number; asesmen: number; timeline: number; jadwal: number };
+  } | null>(null);
+
+  const handleCopyCode = () => {
+    navigator.clipboard.writeText(HEADLESS_GAS_CODE);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2500);
+  };
+
+  const handleTestEndpoint = async () => {
+    setIsTesting(true);
+    setTestResult(null);
+    const res = await gasService.testConnection(testUrl);
+    setTestResult(res);
+    setIsTesting(false);
+  };
+
+  const handleSaveEndpoint = () => {
+    gasService.saveSettings({ gasEndpointUrl: testUrl, autoSync });
+    alert('Pengaturan endpoint GAS berhasil disimpan!');
+  };
+
+  const handlePullFromLiveSheet = async () => {
+    setIsPulling(true);
+    setPullResult(null);
+    const res = await gasService.syncFromLiveSpreadsheet(customSheetId.trim());
+    setPullResult(res);
+    setIsPulling(false);
+  };
+
+  const handleExportJson = () => {
+    const jsonStr = gasService.exportAllDataAsJson();
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `GekrafsPartnerUp_Backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleResetData = () => {
+    if (confirm('Yakin ingin mereset data lokal ke data awal? Data perubahan lokal akan dikembalikan.')) {
+      const res = gasService.resetToDefaultData();
+      setResetMessage(res.message);
+      setTimeout(() => setResetMessage(null), 3000);
+    }
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-6 sm:py-8 space-y-6">
+      {/* Dev Header */}
+      <div className="bg-[#001c3c] rounded-2xl p-6 text-white border-l-4 border-purple-500 shadow-md">
+        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-purple-300">
+          <Terminal className="w-4 h-4" />
+          <span>Developer Console & Architecture</span>
+        </div>
+        <h1 className="text-2xl font-extrabold mt-1">Headless Google Apps Script Hub</h1>
+        <p className="text-slate-300 text-xs sm:text-sm mt-1 leading-relaxed">
+          Kelola arsitektur headless hybrid antara Google Apps Script, Google Sheets, dan frontend React ini.
+        </p>
+      </div>
+
+      {resetMessage && (
+        <div className="p-4 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4" />
+          <span>{resetMessage}</span>
+        </div>
+      )}
+
+      {/* Section 1: Tarik Data Langsung dari Google Spreadsheet Asli */}
+      <div className="bg-white rounded-2xl p-6 border-2 border-emerald-500/40 shadow-sm space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+          <div>
+            <h2 className="text-sm font-extrabold text-[#001c3c] uppercase flex items-center gap-2">
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+              <span>Tarik Data Langsung dari Google Spreadsheet Asli</span>
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Mengambil data asli secara instan dari seluruh tab Google Sheets (Pendaftaran, Peserta, Timeline, Jadwal, Asesmen, Kehadiran).
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+            Google Spreadsheet ID
+          </label>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="text"
+              value={customSheetId}
+              onChange={(e) => setCustomSheetId(e.target.value)}
+              className="flex-1 px-3.5 py-2 rounded-lg border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-emerald-600 outline-none"
+            />
+            <button
+              onClick={handlePullFromLiveSheet}
+              disabled={isPulling}
+              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap shadow-sm disabled:opacity-50"
+            >
+              <CloudDownload className={`w-4 h-4 ${isPulling ? 'animate-bounce' : ''}`} />
+              <span>{isPulling ? 'Menarik Data...' : 'Tarik Data Sekarang'}</span>
+            </button>
+          </div>
+        </div>
+
+        {pullResult && (
+          <div
+            className={`p-4 rounded-xl text-xs font-semibold flex items-start gap-3 ${
+              pullResult.success
+                ? 'bg-emerald-50 text-emerald-900 border border-emerald-200'
+                : 'bg-rose-50 text-rose-800 border border-rose-200'
+            }`}
+          >
+            {pullResult.success ? (
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+            ) : (
+              <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            )}
+            <div className="space-y-1">
+              <div className="font-bold">{pullResult.message}</div>
+              {pullResult.counts && (
+                <div className="text-[11px] opacity-90 flex flex-wrap gap-3 pt-1">
+                  <span>Peserta: <strong>{pullResult.counts.peserta}</strong></span>
+                  <span>Asesmen: <strong>{pullResult.counts.asesmen}</strong></span>
+                  <span>Timeline: <strong>{pullResult.counts.timeline}</strong></span>
+                  <span>Jadwal: <strong>{pullResult.counts.jadwal}</strong></span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Section 2: Endpoint Tester */}
+      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+          <h2 className="text-sm font-extrabold text-[#001c3c] uppercase flex items-center gap-2">
+            <Send className="w-4 h-4 text-[#004c80]" />
+            <span>Koneksi Endpoint GAS (doGet & doPost)</span>
+          </h2>
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+            Google Apps Script Web App URL (/exec)
+          </label>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="text"
+              value={testUrl}
+              onChange={(e) => setTestUrl(e.target.value)}
+              className="flex-1 px-3.5 py-2 rounded-lg border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-[#004c80] outline-none"
+            />
+            <button
+              onClick={handleTestEndpoint}
+              disabled={isTesting}
+              className="px-4 py-2 bg-[#004c80] hover:bg-[#0070b3] text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap disabled:opacity-50"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>{isTesting ? 'Menguji...' : 'Uji Koneksi (Ping)'}</span>
+            </button>
+            <button
+              onClick={handleSaveEndpoint}
+              className="px-4 py-2 bg-[#001c3c] hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition-colors whitespace-nowrap"
+            >
+              Simpan URL
+            </button>
+          </div>
+          <div className="mt-2 flex items-center gap-2">
+            <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={autoSync}
+                onChange={(e) => setAutoSync(e.target.checked)}
+                className="w-4 h-4 text-[#004c80] rounded"
+              />
+              <span className="font-semibold">Aktifkan sinkronisasi otomatis ke Google Apps Script di latar belakang</span>
+            </label>
+          </div>
+        </div>
+
+        {testResult && (
+          <div
+            className={`p-3.5 rounded-xl text-xs font-semibold flex items-start gap-2.5 ${
+              testResult.success
+                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                : 'bg-rose-50 text-rose-800 border border-rose-200'
+            }`}
+          >
+            {testResult.success ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+            ) : (
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            )}
+            <div>
+              <div>{testResult.message}</div>
+              {testResult.latency !== undefined && (
+                <div className="text-[11px] opacity-75 mt-0.5">Latency: {testResult.latency} ms</div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Section 3: Headless Code.gs Viewer & Copier */}
+      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+          <div>
+            <h2 className="text-sm font-extrabold text-[#001c3c] uppercase flex items-center gap-2">
+              <FileCode className="w-4 h-4 text-[#004c80]" />
+              <span>Kode Backend Headless GAS (Code.gs)</span>
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Salin kode ini ke Google Apps Script Anda untuk mengubah web app lama menjadi REST/JSON API murni.
+            </p>
+          </div>
+          <button
+            onClick={handleCopyCode}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#001c3c] text-white hover:bg-[#004c80] text-xs font-bold transition-colors"
+          >
+            {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+            <span>{copiedCode ? 'Tersalin!' : 'Salin Code.gs'}</span>
+          </button>
+        </div>
+
+        <div className="relative">
+          <pre className="p-4 bg-slate-900 text-slate-100 rounded-xl text-xs font-mono max-h-72 overflow-y-auto leading-relaxed border border-slate-800">
+            {HEADLESS_GAS_CODE}
+          </pre>
+        </div>
+
+        <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-700 leading-relaxed">
+          <strong className="text-slate-900">Petunjuk Deployment Headless:</strong>
+          <ol className="list-decimal list-inside mt-1.5 space-y-1 text-slate-600">
+            <li>Buka project Google Apps Script Anda di <code>script.google.com</code></li>
+            <li>Ganti isi file <code>Code.gs</code> dengan kode di atas</li>
+            <li>Klik <strong>Deploy &rarr; Manage deployments &rarr; Edit &rarr; New version &rarr; Deploy</strong></li>
+            <li>Pastikan akses diatur <strong>"Who has access: Anyone"</strong></li>
+            <li>Salin URL <code>/exec</code> ke input di atas. Data akan langsung tersinkron secara headless tanpa banner Google!</li>
+          </ol>
+        </div>
+      </div>
+
+      {/* Section 4: Data Management & Reset */}
+      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+        <h2 className="text-sm font-extrabold text-[#001c3c] uppercase flex items-center gap-2 border-b border-slate-100 pb-2">
+          <Database className="w-4 h-4 text-[#004c80]" />
+          <span>Cadangan Data & Reset</span>
+        </h2>
+
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={handleExportJson}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            <span>Ekspor Semua Data (JSON Backup)</span>
+          </button>
+
+          <button
+            onClick={handleResetData}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-rose-200 text-rose-700 hover:bg-rose-50 text-xs font-bold transition-colors"
+          >
+            <RotateCcw className="w-4 h-4" />
+            <span>Reset ke Data Asli Bawaan</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
