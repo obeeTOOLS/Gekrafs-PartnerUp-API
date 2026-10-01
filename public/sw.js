@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gekrafs-partnerup-v1';
+const CACHE_NAME = 'gekrafs-partnerup-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -27,30 +27,52 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Let Google API, Apps Script, and external requests bypass service worker cache
+  // Let Google API, Apps Script, Fonnte, and non-GET requests bypass service worker cache
   if (
     event.request.url.includes('script.google.com') ||
     event.request.url.includes('sheets.googleapis.com') ||
     event.request.url.includes('googleusercontent.com') ||
+    event.request.url.includes('api.fonnte.com') ||
     event.request.method !== 'GET'
   ) {
     return;
   }
 
+  // 1. Navigation requests (HTML / page load): NETWORK FIRST to prevent stale chunk 404s
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseClone);
+            });
+          }
+          return networkResponse;
+        })
+        .catch(() => {
+          return caches.match('/index.html') || caches.match('/');
+        })
+    );
+    return;
+  }
+
+  // 2. Static hashed assets: Cache First, fallback to Network
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
-        // Background fetch to refresh cache
-        fetch(event.request).then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, networkResponse);
-            });
-          }
-        }).catch(() => {});
         return cachedResponse;
       }
-      return fetch(event.request);
+      return fetch(event.request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
+        }
+        return networkResponse;
+      });
     })
   );
 });
