@@ -15,7 +15,9 @@ import {
   ToggleLeft,
   ToggleRight,
   HelpCircle,
-  ExternalLink
+  ExternalLink,
+  ShieldCheck,
+  RotateCcw
 } from 'lucide-react';
 import { whatsappService, WhatsAppSettings, FonnteGroupItem } from '../services/whatsappService';
 
@@ -36,6 +38,8 @@ export const WhatsAppSettingsModal: React.FC<WhatsAppSettingsModalProps> = ({
   const [isCheckingDevice, setIsCheckingDevice] = useState(false);
   const [isFetchingGroups, setIsFetchingGroups] = useState(false);
   const [groups, setGroups] = useState<FonnteGroupItem[]>([]);
+  const [dedupCount, setDedupCount] = useState<number>(0);
+  const [resetDedupMsg, setResetDedupMsg] = useState<string | null>(null);
   const [deviceInfo, setDeviceInfo] = useState<{
     success: boolean;
     status: string;
@@ -54,6 +58,10 @@ export const WhatsAppSettingsModal: React.FC<WhatsAppSettingsModalProps> = ({
       setSettings(s);
       setTestResult(null);
       setSaveSuccess(false);
+      setResetDedupMsg(null);
+      const log = whatsappService.getDedupLog();
+      setDedupCount(Object.keys(log).length);
+
       if (s.fonnteToken) {
         checkDevice(s.fonnteToken);
       }
@@ -61,6 +69,13 @@ export const WhatsAppSettingsModal: React.FC<WhatsAppSettingsModalProps> = ({
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const handleClearDedup = () => {
+    whatsappService.clearDedupLog();
+    setDedupCount(0);
+    setResetDedupMsg('Riwayat anti-duplikasi telah direset. Anda dapat menguji coba nomor yang sama kembali.');
+    setTimeout(() => setResetDedupMsg(null), 4000);
+  };
 
   const checkDevice = async (token?: string) => {
     setIsCheckingDevice(true);
@@ -407,6 +422,52 @@ export const WhatsAppSettingsModal: React.FC<WhatsAppSettingsModalProps> = ({
             {testResult && (
               <p className={`text-[11px] font-bold ${testResult.success ? 'text-emerald-700' : 'text-rose-600'}`}>
                 {testResult.message}
+              </p>
+            )}
+          </div>
+
+          {/* Section 5: Proteksi Anti-Duplikasi & Anti-Spam */}
+          <div className="bg-emerald-50/60 border border-emerald-200 rounded-2xl p-4 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="font-extrabold uppercase text-emerald-950 text-xs flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span>Proteksi Anti-Duplikasi & Anti-Spam (Aktif)</span>
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-200/60 text-emerald-800 text-[10px] font-bold">
+                {dedupCount} Pesan Terproteksi
+              </span>
+            </div>
+            
+            <p className="text-[11px] text-emerald-900 leading-relaxed">
+              Sistem secara otomatis mencegah pesan yang sama terkirim berulang kali:
+              <br />
+              &bull; <strong>Konfirmasi Pendaftaran:</strong> Maksimal 1x per nomor dalam 24 jam.
+              <br />
+              &bull; <strong>Notifikasi Panitia:</strong> Maksimal 1x per pendaftar dalam 24 jam.
+              <br />
+              &bull; <strong>Status Kurasi:</strong> Jeda 10 menit untuk mencegah klik ganda tak sengaja.
+              <br />
+              &bull; <strong>Rapid-Click Guard:</strong> Pesan identik ke target sama dibatasi jeda 15 detik.
+            </p>
+
+            <div className="pt-1 flex items-center justify-between border-t border-emerald-200/50">
+              <span className="text-[10px] text-emerald-700 italic">
+                Ingin mengulang tes ke nomor HP yang sama?
+              </span>
+              <button
+                type="button"
+                onClick={handleClearDedup}
+                className="px-2.5 py-1 rounded-lg bg-white border border-emerald-300 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                title="Hapus cache riwayat pengiriman agar Anda dapat menguji kembali nomor yang sama"
+              >
+                <RotateCcw className="w-3 h-3 text-emerald-600" />
+                <span>Reset Cache Uji Coba</span>
+              </button>
+            </div>
+
+            {resetDedupMsg && (
+              <p className="text-[11px] font-bold text-emerald-800 bg-white/80 p-2 rounded-lg border border-emerald-300">
+                {resetDedupMsg}
               </p>
             )}
           </div>

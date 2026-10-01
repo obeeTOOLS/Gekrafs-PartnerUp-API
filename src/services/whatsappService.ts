@@ -30,6 +30,14 @@ export interface SendResult {
 }
 
 const SETTINGS_KEY = 'gkf_whatsapp_settings_v1';
+const DEDUP_LOG_KEY = 'gkf_wa_dedup_log_v1';
+
+export interface WaDedupEntry {
+  key: string;
+  target: string;
+  type: string;
+  timestamp: number;
+}
 
 export const DEFAULT_WA_SETTINGS: WhatsAppSettings = {
   fonnteToken: '',
@@ -44,6 +52,88 @@ export const DEFAULT_WA_SETTINGS: WhatsAppSettings = {
 };
 
 class WhatsAppService {
+  /**
+   * Helper hash ringkas untuk mendeteksi isi pesan identik
+   */
+  private hashString(str: string): string {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash |= 0;
+    }
+    return Math.abs(hash).toString(36);
+  }
+
+  /**
+   * Membaca riwayat pengiriman untuk anti-duplikasi
+   */
+  getDedupLog(): Record<string, WaDedupEntry> {
+    try {
+      const stored = localStorage.getItem(DEDUP_LOG_KEY);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (e) {
+      console.error('Gagal membaca dedup log:', e);
+    }
+    return {};
+  }
+
+  /**
+   * Cek apakah pesan dengan kunci tertentu sudah pernah terkirim dalam batas waktu cooldown (menit)
+   */
+  isDuplicate(key: string, cooldownMinutes: number = 30): boolean {
+    const log = this.getDedupLog();
+    const entry = log[key];
+    if (!entry) return false;
+
+    const elapsedMs = Date.now() - entry.timestamp;
+    const cooldownMs = cooldownMinutes * 60 * 1000;
+    return elapsedMs < cooldownMs;
+  }
+
+  /**
+   * Mencatat pesan telah berhasil dikirim untuk mencegah duplikasi
+   */
+  recordSent(key: string, target: string, type: string): void {
+    try {
+      const log = this.getDedupLog();
+      const now = Date.now();
+      
+      // Bersihkan entri lama lebih dari 7 hari agar hemat memori localStorage
+      const cleaned: Record<string, WaDedupEntry> = {};
+      const maxAgeMs = 7 * 24 * 60 * 60 * 1000;
+      for (const [k, v] of Object.entries(log)) {
+        if (now - v.timestamp < maxAgeMs) {
+          cleaned[k] = v;
+        }
+      }
+
+      cleaned[key] = {
+        key,
+        target,
+        type,
+        timestamp: now
+      };
+
+      localStorage.setItem(DEDUP_LOG_KEY, JSON.stringify(cleaned));
+    } catch (e) {
+      console.warn('Gagal menyimpan catatan dedup WA:', e);
+    }
+  }
+
+  /**
+   * Reset / bersihkan riwayat anti-duplikasi (berguna saat admin ingin mengulang tes kirim)
+   */
+  clearDedupLog(): void {
+    try {
+      localStorage.removeItem(DEDUP_LOG_KEY);
+    } catch (e) {
+      console.warn('Gagal reset dedup log:', e);
+    }
+  }
+
   /**
    * Mengambil konfigurasi WhatsApp dari localStorage
    */
@@ -205,7 +295,12 @@ class WhatsAppService {
   async sendViaFonnte(
     target: string,
     message: string,
-    options?: { fileUrl?: string; delaySeconds?: number }
+    options?: {
+      fileUrl?: string;
+      delaySeconds?: number;
+      bypassDedup?: boolean;
+      cooldownSeconds?: number;
+    }
   ): Promise<SendResult> {
     const settings = this.getSettings();
     if (!settings.fonnteToken) {
@@ -224,10 +319,24 @@ class WhatsAppService {
       };
     }
 
+    const cleanTarget = target.trim();
+
+    // Pencegahan Anti-Double Click / Rapid Spam (default 15 detik untuk pesan persis sama ke target yang sama)
+    const contentKey = `raw_${cleanTarget}_${this.hashString(message)}`;
+    const cooldownSec = options?.cooldownSeconds ?? 15;
+    if (!options?.bypassDedup && this.isDuplicate(contentKey, cooldownSec / 60)) {
+      return {
+        success: false,
+        method: 'fonnte',
+        target: cleanTarget,
+        message: 'Pencegahan spam aktif: Pesan serupa baru saja dikirim ke target ini. Pengiriman berulang dibatalkan.'
+      };
+    }
+
     try {
       // Siapkan form data sesuai spesifikasi Fonnte
       const formData = new FormData();
-      formData.append('target', target.trim());
+      formData.append('target', cleanTarget);
       formData.append('message', message);
       formData.append('countryCode', '62');
 
@@ -249,10 +358,13 @@ class WhatsAppService {
       const data = await response.json();
 
       if (data.status === true || data.status === 'true') {
+        // Catat ke log anti-duplikasi
+        this.recordSent(contentKey, cleanTarget, 'raw_fonnte');
+
         return {
           success: true,
           method: 'fonnte',
-          target,
+          target: cleanTarget,
           message: 'Pesan berhasil dikirim via Fonnte.',
           rawResponse: data
         };
@@ -260,7 +372,7 @@ class WhatsAppService {
         return {
           success: false,
           method: 'fonnte',
-          target,
+          target: cleanTarget,
           message: data.reason || data.message || 'Pengiriman gagal dari server Fonnte.',
           rawResponse: data
         };
@@ -269,14 +381,14 @@ class WhatsAppService {
       return {
         success: false,
         method: 'fonnte',
-        target,
+        target: cleanTarget,
         message: `Gagal menghubungi server Fonnte: ${err.message}`
       };
     }
   }
 
   /**
-   * Mengirim notifikasi konfirmasi otomatis ke Peserta baru
+   * Mengirim notifikasi konfirmasi otomatis ke Peserta baru (Anti-Duplikasi 24 Jam)
    */
   async notifyNewParticipant(participant: {
     id: string;
@@ -290,23 +402,54 @@ class WhatsAppService {
     const settings = this.getSettings();
     const results: { personalResult?: SendResult; groupResult?: SendResult } = {};
 
-    // 1. Kirim pesan ke nomor pribadi peserta
+    // 1. Kirim pesan ke nomor pribadi peserta (Anti-Duplikasi 24 jam)
     if (settings.autoSendRegistration && settings.fonnteToken && participant.telepon) {
-      const personalMsg = this.buildRegistrationMessage(participant);
-      results.personalResult = await this.sendViaFonnte(participant.telepon, personalMsg);
+      const formattedPhone = this.formatPhoneNumber(participant.telepon);
+      const personalKey = `reg_personal_${formattedPhone}`;
+
+      if (this.isDuplicate(personalKey, 24 * 60)) {
+        results.personalResult = {
+          success: true,
+          method: 'fonnte',
+          target: participant.telepon,
+          message: 'Pemberitahuan pendaftaran sudah pernah terkirim ke nomor ini (anti-duplikasi aktif).'
+        };
+      } else {
+        const personalMsg = this.buildRegistrationMessage(participant);
+        const res = await this.sendViaFonnte(participant.telepon, personalMsg, { bypassDedup: true });
+        results.personalResult = res;
+        if (res.success) {
+          this.recordSent(personalKey, participant.telepon, 'registration_personal');
+        }
+      }
     }
 
-    // 2. Kirim notifikasi ringkas ke grup panitia
+    // 2. Kirim notifikasi ringkas ke grup panitia (Anti-Duplikasi 24 jam per usaha)
     if (settings.autoNotifyGroupOnRegister && settings.fonnteToken && settings.panitiaGroupId) {
-      const groupMsg = this.buildNewParticipantGroupNotification(participant);
-      results.groupResult = await this.sendViaFonnte(settings.panitiaGroupId, groupMsg);
+      const groupKey = `reg_group_${participant.namaUsaha.toLowerCase().trim()}_${this.formatPhoneNumber(participant.telepon)}`;
+
+      if (this.isDuplicate(groupKey, 24 * 60)) {
+        results.groupResult = {
+          success: true,
+          method: 'fonnte',
+          target: settings.panitiaGroupId,
+          message: 'Pemberitahuan pendaftar ini sudah pernah dikirim ke grup panitia (anti-duplikasi aktif).'
+        };
+      } else {
+        const groupMsg = this.buildNewParticipantGroupNotification(participant);
+        const res = await this.sendViaFonnte(settings.panitiaGroupId, groupMsg, { bypassDedup: true });
+        results.groupResult = res;
+        if (res.success) {
+          this.recordSent(groupKey, settings.panitiaGroupId, 'registration_group');
+        }
+      }
     }
 
     return results;
   }
 
   /**
-   * Mengirim notifikasi status kurasi (Lolos / Cadangan / Ditolak)
+   * Mengirim notifikasi status kurasi (Lolos / Cadangan / Ditolak) dengan Anti-Double Send
    */
   async sendCurationStatusNotification(
     participant: {
@@ -316,9 +459,12 @@ class WhatsAppService {
       status: string;
       catatan?: string;
     },
-    mode: 'auto' | 'manual' = 'auto'
+    mode: 'auto' | 'manual' = 'auto',
+    forceResend: boolean = false
   ): Promise<SendResult> {
     const message = this.buildCurationStatusMessage(participant);
+    const cleanPhone = this.formatPhoneNumber(participant.telepon);
+    const curationKey = `curation_${cleanPhone}_${participant.status.replace(/\s+/g, '_')}`;
 
     if (mode === 'manual' || !this.getSettings().fonnteToken) {
       const url = this.createManualWaUrl(participant.telepon, message);
@@ -331,7 +477,21 @@ class WhatsAppService {
       };
     }
 
-    return this.sendViaFonnte(participant.telepon, message);
+    // Cek anti-duplikasi 10 menit (mencegah kurator klik dobel)
+    if (!forceResend && this.isDuplicate(curationKey, 10)) {
+      return {
+        success: false,
+        method: 'fonnte',
+        target: participant.telepon,
+        message: `Pemberitahuan status "${participant.status}" baru saja dikirim ke ${participant.nama}. Pengiriman dobel otomatis dicegah.`
+      };
+    }
+
+    const res = await this.sendViaFonnte(participant.telepon, message, { bypassDedup: true });
+    if (res.success) {
+      this.recordSent(curationKey, participant.telepon, 'curation_status');
+    }
+    return res;
   }
 
   /**
