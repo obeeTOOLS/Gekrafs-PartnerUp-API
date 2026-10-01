@@ -17,6 +17,7 @@ import { ProfileModal } from './ProfileModal';
 import { PdfExportModal } from './PdfExportModal';
 import { WhatsAppBroadcastModal } from './WhatsAppBroadcastModal';
 import { WhatsAppSettingsModal } from './WhatsAppSettingsModal';
+import { VisualAnalyticsDashboard } from './VisualAnalyticsDashboard';
 import { whatsappService } from '../services/whatsappService';
 import { 
   Milestone, 
@@ -838,7 +839,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {[
           { id: 'peserta', label: `Peserta (${pesertaList.length})`, icon: Users },
           { id: 'asesmen', label: `Asesmen (${asesmenList.length})`, icon: ClipboardList },
-          { id: 'statistik', label: 'Statistik & Radar', icon: BarChart3 },
+          { id: 'statistik', label: 'Analitik Visual & Radar', icon: BarChart3 },
           { id: 'kolaborasi', label: 'Peta Kolaborasi', icon: Network },
           { id: 'kehadiran', label: 'Presensi QR', icon: QrCode },
           { id: 'jadwal', label: `Jadwal (${jadwal.length})`, icon: Calendar },
@@ -1162,78 +1163,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
-      {/* TAB 3: STATISTIK & RADAR */}
+      {/* TAB 3: STATISTIK & RADAR (DASHBOARD ANALITIK VISUAL) */}
       {activeTab === 'statistik' && (
-        <div className="space-y-6">
-          {/* Summary Metric Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm text-center">
-              <div className="text-3xl font-black text-[#001c3c]">{stats.totalPendaftar}</div>
-              <div className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-wide">Total Pendaftar</div>
-            </div>
-            <div className="p-5 bg-emerald-50 rounded-2xl border border-emerald-200 shadow-sm text-center">
-              <div className="text-3xl font-black text-emerald-800">{stats.totalDiterima}</div>
-              <div className="text-xs font-bold text-emerald-700 mt-1 uppercase tracking-wide">Diterima</div>
-            </div>
-            <div className="p-5 bg-amber-50 rounded-2xl border border-amber-200 shadow-sm text-center">
-              <div className="text-3xl font-black text-amber-800">{stats.belumDireview}</div>
-              <div className="text-xs font-bold text-amber-700 mt-1 uppercase tracking-wide">Belum Direview</div>
-            </div>
-            <div className="p-5 bg-rose-50 rounded-2xl border border-rose-200 shadow-sm text-center">
-              <div className="text-3xl font-black text-rose-800">{stats.totalDitolak}</div>
-              <div className="text-xs font-bold text-rose-700 mt-1 uppercase tracking-wide">Ditolak</div>
-            </div>
-          </div>
-
-          {/* Progress Bar Asesmen */}
-          <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm">
-            <div className="flex items-center justify-between text-xs font-bold text-slate-700 mb-2">
-              <span>Progres Pengisian Asesmen Mandiri</span>
-              <span className="text-[#004c80]">{stats.persenAsesmenSelesai} ({stats.totalAsesmenSelesai} dari {stats.totalPendaftar})</span>
-            </div>
-            <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-[#004c80] to-[#0070b3] transition-all duration-500"
-                style={{ width: stats.persenAsesmenSelesai }}
-              />
-            </div>
-          </div>
-
-          {/* Subsektor & Domisili Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
-              <h3 className="font-bold text-sm text-[#001c3c] uppercase pb-2 border-b border-slate-100 mb-3">
-                Distribusi Subsektor Kreatif
-              </h3>
-              <div className="space-y-2">
-                {stats.subsektor.map((item) => (
-                  <div key={item.label} className="flex items-center justify-between text-xs py-1 border-b border-slate-50">
-                    <span className="text-slate-700 font-medium">{item.label}</span>
-                    <span className="px-2.5 py-0.5 rounded-full bg-[#eaf2fb] text-[#004c80] font-bold">
-                      {item.count} UMKM
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
-              <h3 className="font-bold text-sm text-[#001c3c] uppercase pb-2 border-b border-slate-100 mb-3">
-                Distribusi Domisili Usaha
-              </h3>
-              <div className="space-y-2">
-                {stats.domisili.map((item) => (
-                  <div key={item.label} className="flex items-center justify-between text-xs py-1 border-b border-slate-50">
-                    <span className="text-slate-700 font-medium">{item.label}</span>
-                    <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 font-bold">
-                      {item.count} UMKM
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+        <VisualAnalyticsDashboard
+          pesertaList={pesertaList}
+          asesmenList={asesmenList}
+          stats={stats}
+          currentSesi={filterSesi || 'Semua Sesi'}
+          availableSesiList={['Sesi 2', 'Sesi 1', 'Semua Sesi']}
+          onSesiChange={(sesi) => setFilterSesi(sesi === 'Semua Sesi' ? '' : sesi)}
+        />
       )}
 
       {/* TAB 4: PETA KOLABORASI & GROUP GENERATOR */}
