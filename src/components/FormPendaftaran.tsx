@@ -3,6 +3,7 @@ import { PendaftaranFormData } from '../types';
 import { SUBSEKTOR_LIST, KOTA_LIST, OMZET_OPTIONS } from '../data/initialData';
 import { toProperCase, formatTanggalIndonesia } from '../utils/qrUtils';
 import { gasService } from '../services/gasService';
+import { whatsappService } from '../services/whatsappService';
 import { 
   Building2, 
   User, 
@@ -160,6 +161,19 @@ export const FormPendaftaran: React.FC<FormPendaftaranProps> = ({ onSuccessNavig
         particleCount: 100,
         spread: 70,
         origin: { y: 0.6 }
+      });
+
+      // Kirim notifikasi otomatis via Fonnte jika token aktif
+      whatsappService.notifyNewParticipant({
+        id: (finalData as any).id || `REG-${Date.now().toString().slice(-4)}`,
+        nama: finalData.namaPemilik,
+        namaUsaha: finalData.namaUsaha,
+        subsektor: finalData.subsektor,
+        telepon: finalData.whatsapp,
+        omzet: finalData.omzet,
+        alamat: `${finalData.alamatUsaha}, ${finalData.kotaKabupaten}`
+      }).catch((err) => {
+        console.warn('WhatsApp automated dispatch skipped or failed:', err);
       });
     } else {
       setStatusMsg({

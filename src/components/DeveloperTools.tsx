@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { gasService } from '../services/gasService';
 import { HEADLESS_GAS_CODE } from '../services/headlessGasCode';
+import { whatsappService } from '../services/whatsappService';
+import { WhatsAppSettingsModal } from './WhatsAppSettingsModal';
+import { WhatsAppBroadcastModal } from './WhatsAppBroadcastModal';
 import { 
   Terminal, 
   Copy, 
@@ -14,7 +17,11 @@ import {
   Database,
   CloudDownload,
   FileSpreadsheet,
-  FileCheck
+  FileCheck,
+  MessageSquare,
+  Settings,
+  Smartphone,
+  ExternalLink
 } from 'lucide-react';
 
 export const DeveloperTools: React.FC = () => {
@@ -24,6 +31,11 @@ export const DeveloperTools: React.FC = () => {
   const [isTesting, setIsTesting] = useState(false);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [autoSync, setAutoSync] = useState(gasService.getSettings().autoSync);
+
+  // WhatsApp states
+  const [isWaSettingsOpen, setIsWaSettingsOpen] = useState(false);
+  const [isWaBroadcastOpen, setIsWaBroadcastOpen] = useState(false);
+  const waSettings = whatsappService.getSettings();
 
   // Live Sheet Pull State
   const [customSheetId, setCustomSheetId] = useState('183uoyYw6opnr3w7T6oljvwuy5Rzs7GZE7fM3vi_pwm4');
@@ -249,7 +261,64 @@ export const DeveloperTools: React.FC = () => {
         )}
       </div>
 
-      {/* Section 3: Headless Code.gs Viewer & Copier */}
+      {/* Section 3: WhatsApp Gateway Fonnte & Notifikasi */}
+      <div className="bg-white rounded-2xl p-6 border-2 border-emerald-500/40 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-2">
+          <div>
+            <h2 className="text-sm font-extrabold text-[#001c3c] uppercase flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-emerald-600" />
+              <span>WhatsApp Gateway (Fonnte API) & Notifikasi Otomatis</span>
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Integrasi pengiriman pesan otomatis ke nomor pribadi peserta dan broadcast ke grup WhatsApp resmi PartnerUp.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsWaBroadcastOpen(true)}
+              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>Broadcast Grup</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsWaSettingsOpen(true)}
+              className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Settings className="w-3.5 h-3.5 text-slate-600" />
+              <span>Pengaturan WA</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+            <span className="text-[10px] uppercase font-bold text-slate-400 block">Status Token Fonnte</span>
+            <span className={`text-xs font-black mt-0.5 flex items-center gap-1 ${waSettings.fonnteToken ? 'text-emerald-700' : 'text-amber-700'}`}>
+              {waSettings.fonnteToken ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <AlertCircle className="w-3.5 h-3.5 text-amber-600" />}
+              <span>{waSettings.fonnteToken ? 'Token Terpasang' : 'Belum Dikonfigurasi'}</span>
+            </span>
+          </div>
+
+          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+            <span className="text-[10px] uppercase font-bold text-slate-400 block">Target Grup Peserta</span>
+            <span className="text-xs font-bold text-[#001c3c] mt-0.5 truncate block">
+              {waSettings.pesertaGroupName || waSettings.pesertaGroupId || 'Belum dihubungkan'}
+            </span>
+          </div>
+
+          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+            <span className="text-[10px] uppercase font-bold text-slate-400 block">Target Grup Panitia</span>
+            <span className="text-xs font-bold text-[#001c3c] mt-0.5 truncate block">
+              {waSettings.panitiaGroupName || waSettings.panitiaGroupId || 'Belum dihubungkan'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 4: Headless Code.gs Viewer & Copier */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-2">
           <div>
@@ -313,6 +382,21 @@ export const DeveloperTools: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* WhatsApp Modals */}
+      <WhatsAppSettingsModal
+        isOpen={isWaSettingsOpen}
+        onClose={() => setIsWaSettingsOpen(false)}
+      />
+
+      <WhatsAppBroadcastModal
+        isOpen={isWaBroadcastOpen}
+        onClose={() => setIsWaBroadcastOpen(false)}
+        onOpenSettings={() => {
+          setIsWaBroadcastOpen(false);
+          setIsWaSettingsOpen(true);
+        }}
+      />
     </div>
   );
 };
