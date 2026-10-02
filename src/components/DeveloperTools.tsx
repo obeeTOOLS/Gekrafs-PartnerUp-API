@@ -5,6 +5,7 @@ import { whatsappService } from '../services/whatsappService';
 import { authService } from '../services/authService';
 import { WhatsAppSettingsModal } from './WhatsAppSettingsModal';
 import { WhatsAppBroadcastModal } from './WhatsAppBroadcastModal';
+import { ExecutiveDossier } from './ExecutiveDossier';
 import { 
   Terminal, 
   Copy, 
@@ -27,10 +28,13 @@ import {
   Clipboard,
   Eye,
   EyeOff,
-  RefreshCw
+  RefreshCw,
+  BookOpen,
+  Wrench
 } from 'lucide-react';
 
 export const DeveloperTools: React.FC = () => {
+  const [devView, setDevView] = useState<'dossier' | 'tools'>('dossier');
   const [copiedCode, setCopiedCode] = useState(false);
   const [testUrl, setTestUrl] = useState(gasService.getSettings().gasEndpointUrl);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; latency?: number } | null>(null);
@@ -198,12 +202,46 @@ export const DeveloperTools: React.FC = () => {
         </a>
       </div>
 
-      {resetMessage && (
-        <div className="p-4 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4" />
-          <span>{resetMessage}</span>
-        </div>
+      {/* Subtab Selector */}
+      <div className="flex p-1.5 bg-slate-200/80 rounded-2xl gap-2 shadow-inner">
+        <button
+          type="button"
+          onClick={() => setDevView('dossier')}
+          className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            devView === 'dossier'
+              ? 'bg-[#001c3c] text-white shadow-md'
+              : 'text-slate-700 hover:bg-white/60'
+          }`}
+        >
+          <BookOpen className="w-4 h-4 text-amber-400" />
+          <span>Panduan Eksekutif & Ringkasan Presentasi Pimpinan</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setDevView('tools')}
+          className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            devView === 'tools'
+              ? 'bg-[#001c3c] text-white shadow-md'
+              : 'text-slate-700 hover:bg-white/60'
+          }`}
+        >
+          <Wrench className="w-4 h-4 text-emerald-400" />
+          <span>Konsol Endpoint GAS, Live Sync & Data Engine</span>
+        </button>
+      </div>
+
+      {devView === 'dossier' && (
+        <ExecutiveDossier />
       )}
+
+      {devView === 'tools' && (
+        <div className="space-y-8">
+          {resetMessage && (
+            <div className="p-4 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>{resetMessage}</span>
+            </div>
+          )}
 
       {/* Section 1: Tarik Data Langsung dari Google Spreadsheet Asli */}
       <div className="bg-white rounded-2xl p-6 border-2 border-emerald-500/40 shadow-sm space-y-4">
@@ -549,6 +587,8 @@ export const DeveloperTools: React.FC = () => {
           </button>
         </div>
       </div>
+    </div>
+  )}
 
       {/* WhatsApp Modals */}
       <WhatsAppSettingsModal

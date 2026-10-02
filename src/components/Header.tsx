@@ -50,10 +50,19 @@ const TAB_TITLES: Record<string, { title: string; subtitle: string; badge?: stri
     title: 'Presensi & Absensi QR',
     subtitle: 'Verifikasi Kehadiran Sesi Pembinaan'
   },
+  katalog: {
+    title: 'Katalog & Direktori Ekraf Batu',
+    subtitle: 'Showcase Produk & Brand UMKM Unggulan Terkurasi GEKRAFS'
+  },
   admin: {
     title: 'Dashboard Kurator & Panitia',
     subtitle: 'Portal Kurasi, Manajemen Peserta & Laporan',
     badge: 'Internal'
+  },
+  grafik: {
+    title: 'Dashboard Grafik & Radar Bisnis',
+    subtitle: 'Analitik Visual 8 Pilar, Sebaran Omzet & Ekosistem UMKM Batu',
+    badge: 'Kurator'
   },
   developer: {
     title: 'Developer Hub Console',

@@ -202,3 +202,43 @@ export interface AppSettings {
   panitiaGroupId?: string;
   panitiaGroupName?: string;
 }
+
+export interface MentoringLogItem {
+  id: string;
+  timestamp: string;
+  namaUsaha: string;
+  namaKurator: string;
+  tanggal: string;
+  topik: string;
+  tantangan: string;
+  rekomendasiAksi: string;
+  tenggatWaktu: string;
+  status: 'Dalam Progres' | 'Selesai' | 'Menunggu Verifikasi';
+}
+
+export interface LegalitasItem {
+  id: string;
+  namaUsaha: string;
+  namaPemilik: string;
+  subsektor: string;
+  whatsapp: string;
+  jenisLegalitas: 'NIB (OSS)' | 'Sertifikasi Halal' | 'P-IRT' | 'HKI Merek' | 'BPOM' | 'Badan Usaha (PT/CV)';
+  statusPengajuan: 'Belum Diajukan' | 'Pemberkasan' | 'Proses Verifikasi' | 'Terbit';
+  nomorIzin?: string;
+  tanggalTerbit?: string;
+  catatan?: string;
+  dokumenUrl?: string;
+}
+
+export interface CertificateData {
+  idSertifikat: string;
+  namaPeserta: string;
+  namaUsaha: string;
+  subsektor: string;
+  sesi: string;
+  tanggalTerbit: string;
+  nomorSertifikat: string;
+  kehadiranPersen: number;
+  skorAsesmen: number;
+  statusKelulusan: 'Lulus dengan Pujian' | 'Lulus Terverifikasi';
+}

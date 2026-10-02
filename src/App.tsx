@@ -11,6 +11,7 @@ import { AbsensiKehadiran } from './components/AbsensiKehadiran';
 import { AsesmenMandiri } from './components/AsesmenMandiri';
 import { AdminDashboard } from './components/AdminDashboard';
 import { DeveloperTools } from './components/DeveloperTools';
+import { KatalogDirektori } from './components/KatalogDirektori';
 import { HelpModal } from './components/HelpModal';
 import { ShareModal } from './components/ShareModal';
 import { EngineerModal } from './components/EngineerModal';
@@ -27,6 +28,8 @@ export default function App() {
     const params = new URLSearchParams(window.location.search);
     const page = params.get('page');
     if (page === 'admin') return 'admin';
+    if (page === 'grafik' || page === 'statistik' || page === 'analytics') return 'grafik';
+    if (page === 'katalog' || page === 'direktori' || page === 'showcase') return 'katalog';
     if (page === 'info') return 'timeline';
     if (page === 'asesmen') return 'asesmen';
     if (page === 'kehadiran') return 'kehadiran';
@@ -260,8 +263,31 @@ export default function App() {
             <AbsensiKehadiran initialSesiId={initialSesiId} />
           )}
 
+          {activeTab === 'katalog' && (
+            <KatalogDirektori
+              pesertaList={gasService.getPeserta()}
+              onNavigateToRegister={() => setActiveTab('pendaftaran')}
+            />
+          )}
+
           {activeTab === 'admin' && (
             <AdminDashboard 
+              userRole={currentPerspective === 'developer' ? 'developer' : 'admin'}
+              engineerSession={engineerSession}
+              onLoginSuccess={handleAdminLoginSuccess}
+              onLogout={handleAdminLogout}
+              onNavigateToPublic={() => setActiveTab('pendaftaran')}
+              onEngineerLogin={(email) => {
+                const sess = authService.getCurrentSession();
+                setEngineerSession(sess);
+                setIsAdminLoggedIn(true);
+              }}
+            />
+          )}
+
+          {activeTab === 'grafik' && (
+            <AdminDashboard 
+              initialTab="statistik"
               userRole={currentPerspective === 'developer' ? 'developer' : 'admin'}
               engineerSession={engineerSession}
               onLoginSuccess={handleAdminLoginSuccess}

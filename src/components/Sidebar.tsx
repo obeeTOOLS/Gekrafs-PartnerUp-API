@@ -14,7 +14,9 @@ import {
   RefreshCw,
   Wifi,
   WifiOff,
-  LogOut
+  LogOut,
+  BarChart3,
+  Store
 } from 'lucide-react';
 import { EngineerSession } from '../services/authService';
 import { UserRole } from '../types';
@@ -103,6 +105,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       shortLabel: 'Absensi',
       icon: QrCode,
       description: 'Presensi Kehadiran Peserta'
+    },
+    {
+      id: 'katalog',
+      label: 'Direktori Ekraf',
+      shortLabel: 'Showcase',
+      icon: Store,
+      description: 'Katalog Brand UMKM Kota Batu'
     }
   ];
 
@@ -253,6 +262,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-[#001428] text-white text-xs font-bold rounded-lg shadow-xl border border-amber-500/40 whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50">
                   <div className="text-amber-300 font-extrabold">Portal Kurator & Panitia</div>
                   <div className="text-[10px] text-slate-300">Penilaian, seleksi, & presensi</div>
+                </div>
+              )}
+            </button>
+
+            {/* Dashboard Grafik (Radar & Analitik Visual Bisnis) */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('grafik')}
+              title={isCollapsed ? 'Dashboard Grafik & Radar 8 Pilar Bisnis' : undefined}
+              className={`w-full flex items-center rounded-xl transition-all group relative cursor-pointer ${
+                isCollapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2.5'
+              } ${
+                activeTab === 'grafik'
+                  ? 'bg-gradient-to-r from-sky-400 to-blue-500 text-[#001c3c] font-black shadow-md'
+                  : 'text-sky-200 hover:text-white hover:bg-sky-500/20'
+              }`}
+            >
+              <BarChart3 className="w-5 h-5 flex-shrink-0 text-sky-300 group-hover:scale-110 transition-transform" />
+              {!isCollapsed && (
+                <div className="text-left min-w-0">
+                  <div className="text-xs font-bold truncate">Dashboard Grafik</div>
+                  <div className="text-[10px] text-sky-300/80 truncate">Radar 8 Pilar & Bisnis</div>
+                </div>
+              )}
+
+              {isCollapsed && (
+                <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-[#001428] text-white text-xs font-bold rounded-lg shadow-xl border border-sky-500/40 whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50">
+                  <div className="text-sky-300 font-extrabold">Dashboard Grafik & Radar</div>
+                  <div className="text-[10px] text-slate-300">Visualisasi 8 pilar & sebaran omzet</div>
                 </div>
               )}
             </button>

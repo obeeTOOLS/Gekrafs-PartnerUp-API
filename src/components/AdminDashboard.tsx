@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   PesertaItem, 
   TimelineItem, 
@@ -18,6 +18,9 @@ import { PdfExportModal } from './PdfExportModal';
 import { WhatsAppBroadcastModal } from './WhatsAppBroadcastModal';
 import { WhatsAppSettingsModal } from './WhatsAppSettingsModal';
 import { VisualAnalyticsDashboard } from './VisualAnalyticsDashboard';
+import { MentoringTracker } from './MentoringTracker';
+import { LegalitasTracker } from './LegalitasTracker';
+import { SertifikatKelulusanModal } from './SertifikatKelulusanModal';
 import { whatsappService } from '../services/whatsappService';
 import { 
   Milestone, 
@@ -51,7 +54,11 @@ import {
   EyeOff,
   RotateCcw,
   Key,
-  MessageSquare
+  MessageSquare,
+  BookOpen,
+  Award,
+  ShieldCheck,
+  Bell
 } from 'lucide-react';
 
 import { 
@@ -66,6 +73,7 @@ import {
 interface AdminDashboardProps {
   userRole?: UserRole;
   engineerSession?: EngineerSession | null;
+  initialTab?: 'timeline' | 'jadwal' | 'kehadiran' | 'peserta' | 'statistik' | 'pengaturan' | 'asesmen' | 'kolaborasi' | 'mentoring' | 'legalitas';
   onLogout?: () => void;
   onLoginSuccess?: () => void;
   onNavigateToPublic?: () => void;
@@ -75,14 +83,23 @@ interface AdminDashboardProps {
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ 
   userRole,
   engineerSession,
+  initialTab,
   onLogout,
   onLoginSuccess,
   onNavigateToPublic,
   onEngineerLogin
 }) => {
   const [activeTab, setActiveTab] = useState<
-    'timeline' | 'jadwal' | 'kehadiran' | 'peserta' | 'statistik' | 'pengaturan' | 'asesmen' | 'kolaborasi'
-  >('peserta');
+    'timeline' | 'jadwal' | 'kehadiran' | 'peserta' | 'statistik' | 'pengaturan' | 'asesmen' | 'kolaborasi' | 'mentoring' | 'legalitas'
+  >(() => initialTab || 'peserta');
+
+  const [sertifikatModalPeserta, setSertifikatModalPeserta] = useState<PesertaItem | null>(null);
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   // Whitelist Admin state (Model 2)
   const [adminWhitelist, setAdminWhitelist] = useState<AdminAccount[]>(() => 
@@ -388,6 +405,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       const res = gasService.deleteJadwalItem(row);
       showToast(res.message);
     }
+  };
+
+  const handleSendReminderJadwal = (item: JadwalItem) => {
+    const text = `*PENGINGAT KELAS PEMBINAAN H-1 GEKRAFS PARTNERUP 2026* 📢\n\nHalo rekan-rekan pelaku UMKM binaan DPC GEKRAFS Kota Batu!\n\nMengingatkan esok hari kita akan melaksanakan sesi pembinaan:\n📌 *Topik:* ${item.topik}\n📅 *Tanggal:* ${item.tanggal}\n⏰ *Waktu:* ${item.waktu}\n📍 *Lokasi:* ${item.lokasi}\n🎙️ *Pemateri:* ${item.pemateri}\n\nMohon hadir tepat waktu dan siapkan kartu barcode QR presensi Anda. Sampai jumpa di kelas! ✨`;
+
+    navigator.clipboard.writeText(text);
+    setIsBroadcastModalOpen(true);
+    showToast('Teks pengingat H-1 berhasil disiapkan & disalin ke clipboard!');
   };
 
   // Peserta Kurasi Handler
@@ -787,6 +812,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           { id: 'asesmen', label: `Asesmen (${asesmenList.length})`, icon: ClipboardList },
           { id: 'statistik', label: 'Analitik Visual & Radar', icon: BarChart3 },
           { id: 'kolaborasi', label: 'Peta Kolaborasi', icon: Network },
+          { id: 'mentoring', label: 'Log Mentoring 1-on-1', icon: BookOpen },
+          { id: 'legalitas', label: 'Fasilitasi Legalitas', icon: ShieldCheck },
           { id: 'kehadiran', label: 'Presensi QR', icon: QrCode },
           { id: 'jadwal', label: `Jadwal (${jadwal.length})`, icon: Calendar },
           { id: 'timeline', label: `Timeline (${timeline.length})`, icon: Milestone },
@@ -922,6 +949,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             className="px-2.5 py-1 rounded bg-[#eaf2fb] text-[#004c80] hover:bg-[#dbe7f7] font-bold text-[11px] cursor-pointer"
                           >
                             Profil
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSertifikatModalPeserta(p)}
+                            title="Cetak E-Sertifikat Kelulusan Resmi & Rapor Digital"
+                            className="px-2.5 py-1 rounded bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
+                          >
+                            <Award className="w-3 h-3 text-amber-600" />
+                            <span className="hidden xl:inline">Sertifikat</span>
                           </button>
                           <button
                             type="button"
@@ -1241,6 +1277,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
+      {/* TAB: LOG MENTORING 1-ON-1 */}
+      {activeTab === 'mentoring' && (
+        <MentoringTracker pesertaList={pesertaList} />
+      )}
+
+      {/* TAB: FASILITASI LEGALITAS (NIB, HALAL, HKI) */}
+      {activeTab === 'legalitas' && (
+        <LegalitasTracker pesertaList={pesertaList} />
+      )}
+
       {/* TAB 5: PRESENSI KEHADIRAN (QR & MANUAL) */}
       {activeTab === 'kehadiran' && (
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-6">
@@ -1499,17 +1545,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <td className="p-2.5">{j.lokasi}</td>
                     <td className="p-2.5 text-center flex items-center justify-center gap-1.5">
                       <button
+                        type="button"
+                        onClick={() => handleSendReminderJadwal(j)}
+                        title="Kirim Pengingat Sesi H-1 via WhatsApp"
+                        className="px-2 py-1 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                      >
+                        <Bell className="w-3 h-3 text-emerald-600" />
+                        <span>Kirim WA H-1</span>
+                      </button>
+                      <button
                         onClick={() => {
                           setEditingJadwalRow(j.row || null);
                           setJadwalForm({ ...j });
                         }}
                         className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                        title="Edit Sesi"
                       >
                         <Edit className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => handleDeleteJadwal(j.row)}
                         className="p-1 text-rose-600 hover:bg-rose-50 rounded"
+                        title="Hapus Sesi"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -2096,6 +2153,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         onClose={() => setIsWhatsAppSettingsModalOpen(false)}
         onSaved={() => showToast('Pengaturan WhatsApp Fonnte berhasil disimpan.')}
       />
+
+      {/* E-Sertifikat Kelulusan & Rapor Digital Modal */}
+      {sertifikatModalPeserta && (
+        <SertifikatKelulusanModal
+          peserta={sertifikatModalPeserta}
+          asesmen={asesmenList.find(
+            (a) => a.namaUsaha.toLowerCase() === sertifikatModalPeserta.namaUsaha.toLowerCase()
+          )}
+          onClose={() => setSertifikatModalPeserta(null)}
+        />
+      )}
     </div>
   );
 };
