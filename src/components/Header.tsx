@@ -10,7 +10,8 @@ import {
   Maximize2,
   Minimize2,
   Smartphone,
-  LogOut
+  LogOut,
+  Store
 } from 'lucide-react';
 import { EngineerSession } from '../services/authService';
 import { UserRole } from '../types';
@@ -286,6 +287,21 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="hidden sm:inline">Pasang App</span>
               </button>
             )}
+
+            {/* Quick Button: Direktori Ekraf */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('katalog')}
+              title="Lihat Katalog Produk & Brand Ekraf Terkurasi Kota Batu"
+              className={`p-1.5 sm:px-2.5 sm:py-1 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer border ${
+                activeTab === 'katalog'
+                  ? 'bg-[#001c3c] text-white border-[#001c3c] shadow-xs'
+                  : 'bg-amber-50 text-[#001c3c] hover:bg-amber-100 border-amber-200'
+              }`}
+            >
+              <Store className={`w-3.5 h-3.5 ${activeTab === 'katalog' ? 'text-amber-400' : 'text-amber-600'} flex-shrink-0`} />
+              <span className="hidden sm:inline">Direktori Ekraf</span>
+            </button>
 
             {/* Quick Share Link */}
             <button

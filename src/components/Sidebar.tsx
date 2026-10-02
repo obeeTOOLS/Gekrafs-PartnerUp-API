@@ -56,9 +56,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem('gkf_sidebar_collapsed');
-      return saved !== null ? JSON.parse(saved) : true; // Default to icon-only mode as requested
+      return saved !== null ? JSON.parse(saved) : false; // Default to expanded mode so all labels are readable
     } catch {
-      return true;
+      return false;
     }
   });
 
@@ -197,12 +197,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <Icon className={`w-5 h-5 transition-transform group-hover:scale-110 ${
                   isActive ? 'text-[#001c3c]' : 'text-slate-300'
                 }`} />
+                {item.id === 'katalog' && isCollapsed && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-[#001c3c]" />
+                )}
               </div>
 
               {!isCollapsed && (
-                <div className="text-left min-w-0">
-                  <div className={`text-xs leading-tight truncate ${isActive ? 'font-black' : 'font-semibold'}`}>
-                    {item.label}
+                <div className="text-left min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className={`text-xs leading-tight truncate ${isActive ? 'font-black' : 'font-semibold'}`}>
+                      {item.label}
+                    </span>
+                    {item.id === 'katalog' && (
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-amber-400 text-[#001c3c] uppercase tracking-wider">
+                        BARU
+                      </span>
+                    )}
                   </div>
                   <div className={`text-[10px] truncate ${isActive ? 'text-[#001c3c]/80' : 'text-slate-400'}`}>
                     {item.shortLabel}

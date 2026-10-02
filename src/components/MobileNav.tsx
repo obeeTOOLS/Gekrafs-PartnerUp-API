@@ -5,7 +5,8 @@ import {
   ClipboardCheck, 
   QrCode, 
   ShieldCheck,
-  Terminal
+  Terminal,
+  Store
 } from 'lucide-react';
 import { EngineerSession } from '../services/authService';
 
@@ -30,7 +31,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
   const showDevTab = isEngineer && engineerSession.activePerspective === 'developer';
 
   // Total columns calculation for mobile bottom bar
-  const colCount = showDevTab ? 'grid-cols-6' : showAdminTab ? 'grid-cols-5' : 'grid-cols-4';
+  const colCount = showDevTab ? 'grid-cols-7' : showAdminTab ? 'grid-cols-6' : 'grid-cols-5';
 
   return (
     <nav 
@@ -118,6 +119,25 @@ export const MobileNav: React.FC<MobileNavProps> = ({
             )}
           </div>
           <span className="text-[10px] font-medium tracking-tight mt-1 leading-none">Absen</span>
+        </button>
+
+        {/* Tab: Direktori Ekraf (Katalog) */}
+        <button
+          type="button"
+          onClick={() => setActiveTab('katalog')}
+          className={`flex flex-col items-center justify-center h-full min-h-[48px] py-1 transition-all rounded-lg active:scale-95 ${
+            activeTab === 'katalog'
+              ? 'text-[#004c80] font-bold'
+              : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <div className="relative">
+            <Store className={`w-5 h-5 ${activeTab === 'katalog' ? 'stroke-[2.5] text-[#004c80]' : ''}`} />
+            {activeTab === 'katalog' && (
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#004c80]" />
+            )}
+          </div>
+          <span className="text-[10px] font-medium tracking-tight mt-1 leading-none">Direktori</span>
         </button>
 
         {/* Tab 5: Admin (Visible if Admin or Engineer) */}
