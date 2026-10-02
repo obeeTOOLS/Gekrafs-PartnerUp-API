@@ -21,6 +21,7 @@ import {
 interface EditUmkmModalProps {
   peserta: PesertaItem;
   isOpen: boolean;
+  isAdmin?: boolean;
   onClose: () => void;
   onSaved?: (updated: PesertaItem) => void;
 }
@@ -28,6 +29,7 @@ interface EditUmkmModalProps {
 export const EditUmkmModal: React.FC<EditUmkmModalProps> = ({
   peserta,
   isOpen,
+  isAdmin = false,
   onClose,
   onSaved
 }) => {
@@ -139,8 +141,12 @@ export const EditUmkmModal: React.FC<EditUmkmModalProps> = ({
                 <h3 className="text-base sm:text-lg font-black tracking-tight">
                   Kelola Profil & Foto Produk UMKM
                 </h3>
-                <span className="text-[10px] font-black px-2 py-0.5 rounded bg-amber-400 text-[#001c3c] uppercase">
-                  Katalog
+                <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase ${
+                  isAdmin 
+                    ? 'bg-amber-400 text-[#001c3c]' 
+                    : 'bg-emerald-400 text-emerald-950 font-bold'
+                }`}>
+                  {isAdmin ? 'Admin / Kurator' : 'Pemilik Terverifikasi'}
                 </span>
               </div>
               <p className="text-xs text-slate-300 mt-0.5">

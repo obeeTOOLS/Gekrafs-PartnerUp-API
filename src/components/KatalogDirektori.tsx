@@ -19,19 +19,25 @@ import {
   Tag,
   Camera,
   Edit3,
-  Plus
+  Plus,
+  Lock,
+  KeyRound,
+  ShieldAlert
 } from 'lucide-react';
 import { SUBSEKTOR_LIST } from '../data/initialData';
 import { EditUmkmModal } from './EditUmkmModal';
+import { gasService } from '../services/gasService';
 
 interface KatalogDirektoriProps {
   pesertaList: PesertaItem[];
+  isAdminLoggedIn?: boolean;
   onSelectPeserta?: (peserta: PesertaItem) => void;
   onNavigateToRegister?: () => void;
 }
 
 export const KatalogDirektori: React.FC<KatalogDirektoriProps> = ({
   pesertaList: initialPesertaList,
+  isAdminLoggedIn = false,
   onSelectPeserta,
   onNavigateToRegister
 }) => {
@@ -40,12 +46,42 @@ export const KatalogDirektori: React.FC<KatalogDirektoriProps> = ({
   const [selectedSubsektor, setSelectedSubsektor] = useState('Semua Subsektor');
   const [activeModalPeserta, setActiveModalPeserta] = useState<PesertaItem | null>(null);
   const [editingPeserta, setEditingPeserta] = useState<PesertaItem | null>(null);
+  const [verifyingPeserta, setVerifyingPeserta] = useState<PesertaItem | null>(null);
+  const [credentialInput, setCredentialInput] = useState('');
+  const [verifyError, setVerifyError] = useState<string | null>(null);
   const [copiedShare, setCopiedShare] = useState(false);
 
   // Sync state bila initialPesertaList berubah
   React.useEffect(() => {
     setLocalPesertaList(initialPesertaList);
   }, [initialPesertaList]);
+
+  // Request edit dengan kontrol hak akses
+  const handleRequestEdit = (peserta: PesertaItem) => {
+    if (isAdminLoggedIn) {
+      // Admin / Kurator / Developer bisa langsung mengedit tanpa perlu input verifikasi ulang
+      setEditingPeserta(peserta);
+    } else {
+      // Pengunjung / Peserta umum harus memverifikasi bahwa mereka adalah pemilik brand sah
+      setVerifyingPeserta(peserta);
+      setCredentialInput('');
+      setVerifyError(null);
+    }
+  };
+
+  const handleConfirmVerification = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!verifyingPeserta) return;
+
+    const res = gasService.verifyPesertaOwnership(verifyingPeserta.namaUsaha, credentialInput);
+    if (res.verified && res.peserta) {
+      setEditingPeserta(res.peserta);
+      setVerifyingPeserta(null);
+      setVerifyError(null);
+    } else {
+      setVerifyError(res.message);
+    }
+  };
 
   // Ambil peserta yang Diterima (Lolos Kurasi).
   // Jika database masih baru dan peserta 'Diterima' sedikit, sertakan juga pendaftar aktif agar katalog tetap kaya dan bermanfaat
@@ -270,7 +306,7 @@ export const KatalogDirektori: React.FC<KatalogDirektoriProps> = ({
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setEditingPeserta(item);
+                          handleRequestEdit(item);
                         }}
                         className="mt-2 px-2.5 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer backdrop-blur-xs"
                       >
@@ -285,13 +321,13 @@ export const KatalogDirektori: React.FC<KatalogDirektoriProps> = ({
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setEditingPeserta(item);
+                      handleRequestEdit(item);
                     }}
-                    title="Edit Informasi & Foto Produk UMKM"
+                    title={isAdminLoggedIn ? "Edit Informasi & Foto (Mode Admin)" : "Edit Informasi & Foto (Verifikasi Pemilik Usaha)"}
                     className="absolute top-3 right-3 px-2 py-1 rounded-xl bg-black/60 hover:bg-black/80 text-white text-xs font-bold backdrop-blur-md transition-all cursor-pointer flex items-center gap-1 shadow-md hover:scale-105"
                   >
                     <Edit3 className="w-3 h-3 text-amber-400" />
-                    <span className="text-[10px]">Edit Profil</span>
+                    <span className="text-[10px]">{isAdminLoggedIn ? 'Edit (Admin)' : 'Edit Profil'}</span>
                   </button>
 
                   {/* Produk Unggulan Badge */}
@@ -365,12 +401,12 @@ export const KatalogDirektori: React.FC<KatalogDirektoriProps> = ({
                   <div className="flex items-center gap-1.5">
                     <button
                       type="button"
-                      onClick={() => setEditingPeserta(item)}
-                      title="Edit Foto & Informasi"
+                      onClick={() => handleRequestEdit(item)}
+                      title={isAdminLoggedIn ? "Edit Foto & Informasi (Admin)" : "Edit Foto & Profil (Verifikasi Pemilik)"}
                       className="px-2.5 py-1.5 rounded-xl bg-slate-200/80 hover:bg-slate-300 text-slate-700 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
                     >
                       <Edit3 className="w-3 h-3 text-slate-600" />
-                      <span>Edit</span>
+                      <span>{isAdminLoggedIn ? 'Edit' : 'Kelola'}</span>
                     </button>
 
                     {item.instagram && (
@@ -464,11 +500,11 @@ export const KatalogDirektori: React.FC<KatalogDirektoriProps> = ({
             {/* Tombol Edit Profil Langsung */}
             <button
               type="button"
-              onClick={() => setEditingPeserta(activeModalPeserta)}
+              onClick={() => handleRequestEdit(activeModalPeserta)}
               className="w-full py-2.5 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#001c3c] font-black text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm"
             >
               <Edit3 className="w-4 h-4 text-[#001c3c]" />
-              <span>Edit Informasi & Foto Produk UMKM Ini</span>
+              <span>{isAdminLoggedIn ? 'Edit Informasi & Foto (Mode Admin)' : 'Kelola Profil (Verifikasi Pemilik Usaha)'}</span>
             </button>
 
             {/* Deskripsi */}
@@ -531,11 +567,96 @@ export const KatalogDirektori: React.FC<KatalogDirektoriProps> = ({
         </div>
       )}
 
+      {/* Modal Verifikasi Kepemilikan Brand (Perlindungan Data dari Publik) */}
+      {verifyingPeserta && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-in fade-in">
+          <div 
+            className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 border border-slate-200 shadow-2xl space-y-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
+                  <Lock className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-[#001c3c]">
+                    Verifikasi Pemilik Usaha
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Akses Kelola: <strong className="text-slate-800">{verifyingPeserta.namaUsaha}</strong>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setVerifyingPeserta(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-3.5 bg-blue-50/80 rounded-2xl border border-blue-200/80 text-xs text-blue-900 space-y-1">
+              <div className="font-bold flex items-center gap-1.5 text-[#004c80]">
+                <KeyRound className="w-4 h-4" />
+                <span>Keamanan Data Brand Anda</span>
+              </div>
+              <p className="text-[11px] text-blue-800/90 leading-relaxed">
+                Untuk mencegah orang lain mengubah informasi bisnis Anda secara ilegal, silakan masukkan <strong>Nomor WhatsApp</strong> atau <strong>Email</strong> yang Anda gunakan saat mendaftar program PartnerUp.
+              </p>
+            </div>
+
+            {verifyError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2">
+                <ShieldAlert className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                <span>{verifyError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleConfirmVerification} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Nomor WhatsApp atau Email Terdaftar
+                </label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  placeholder="Contoh: 081234567890 atau email@anda.com"
+                  value={credentialInput}
+                  onChange={(e) => setCredentialInput(e.target.value)}
+                  className="w-full px-3.5 py-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#004c80] focus:border-transparent bg-slate-50 focus:bg-white"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setVerifyingPeserta(null)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-[#001c3c] hover:bg-[#003366] text-white text-xs font-black rounded-xl shadow-md transition-all active:scale-95 cursor-pointer flex items-center gap-1.5"
+                >
+                  <KeyRound className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Verifikasi & Edit Profil</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* 5. Modal Edit Profil & Unggah Foto Produk UMKM */}
       {editingPeserta && (
         <EditUmkmModal
           peserta={editingPeserta}
           isOpen={!!editingPeserta}
+          isAdmin={isAdminLoggedIn}
           onClose={() => setEditingPeserta(null)}
           onSaved={(updated) => {
             setLocalPesertaList((prev) =>

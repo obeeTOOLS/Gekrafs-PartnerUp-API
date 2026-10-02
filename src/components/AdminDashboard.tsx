@@ -2189,6 +2189,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <EditUmkmModal
           peserta={editingUmkmPeserta}
           isOpen={!!editingUmkmPeserta}
+          isAdmin={true}
           onClose={() => setEditingUmkmPeserta(null)}
           onSaved={(updated) => {
             showToast(`Profil & foto produk "${updated.namaUsaha}" berhasil diperbarui!`);

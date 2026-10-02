@@ -502,6 +502,35 @@ class GasService {
     return found || null;
   }
 
+  public verifyPesertaOwnership(namaUsaha: string, credential: string): { verified: boolean; message: string; peserta?: PesertaItem } {
+    const cleanNama = namaUsaha.toLowerCase().trim();
+    const cleanCred = credential.toLowerCase().trim();
+    const cleanWaInput = credential.replace(/[\s\-()]/g, '').replace(/^\+?62/, '').replace(/^0/, '');
+
+    const found = this.peserta.find((p) => {
+      if (p.namaUsaha.toLowerCase().trim() !== cleanNama) return false;
+      
+      const pWa = (p.whatsapp || '').replace(/[\s\-()]/g, '').replace(/^\+?62/, '').replace(/^0/, '');
+      const pEmail = (p.email || '').toLowerCase().trim();
+      const pNib = (p.nib || '').toLowerCase().trim();
+
+      // Cocokkan dengan WhatsApp terdaftar atau Email terdaftar
+      return (
+        (cleanWaInput.length >= 7 && pWa === cleanWaInput) ||
+        (cleanCred.includes('@') && pEmail === cleanCred) ||
+        (cleanCred && pNib && pNib.length >= 5 && pNib === cleanCred)
+      );
+    });
+
+    if (found) {
+      return { verified: true, message: 'Verifikasi kepemilikan berhasil!', peserta: found };
+    }
+    return { 
+      verified: false, 
+      message: 'Verifikasi gagal: Nomor WhatsApp atau Email tidak sesuai dengan data pendaftar brand ini.' 
+    };
+  }
+
   public updateStatusKurasi(row: number, status: string, catatan: string): { status: string; message: string } {
     const index = this.peserta.findIndex((p) => p.row === row);
     if (index !== -1) {

@@ -266,6 +266,7 @@ export default function App() {
           {activeTab === 'katalog' && (
             <KatalogDirektori
               pesertaList={gasService.getPeserta()}
+              isAdminLoggedIn={isAdminLoggedIn}
               onNavigateToRegister={() => setActiveTab('pendaftaran')}
             />
           )}
