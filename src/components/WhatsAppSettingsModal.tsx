@@ -17,7 +17,8 @@ import {
   HelpCircle,
   ExternalLink,
   ShieldCheck,
-  RotateCcw
+  RotateCcw,
+  Clipboard
 } from 'lucide-react';
 import { whatsappService, WhatsAppSettings, FonnteGroupItem } from '../services/whatsappService';
 
@@ -97,6 +98,22 @@ export const WhatsAppSettingsModal: React.FC<WhatsAppSettingsModalProps> = ({
       quota: prev?.quota
     }));
     setIsFetchingGroups(false);
+  };
+
+  const handlePasteFromClipboard = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        const text = await navigator.clipboard.readText();
+        if (text && text.trim()) {
+          const clean = text.trim();
+          setSettings(prev => ({ ...prev, fonnteToken: clean }));
+          checkDevice(clean);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Clipboard read failed:', e);
+    }
   };
 
   const handleSave = () => {
@@ -182,9 +199,20 @@ export const WhatsAppSettingsModal: React.FC<WhatsAppSettingsModalProps> = ({
 
           {/* Section 1: API Token */}
           <div className="space-y-2">
-            <label className="block font-extrabold uppercase text-[#001c3c] tracking-wider">
-              Token API Fonnte:
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="block font-extrabold uppercase text-[#001c3c] tracking-wider text-xs">
+                Token API Fonnte:
+              </label>
+              <button
+                type="button"
+                onClick={handlePasteFromClipboard}
+                className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-0.5 rounded-lg border border-emerald-200 transition-colors flex items-center gap-1 cursor-pointer"
+                title="Tempel token yang sudah disalin di clipboard"
+              >
+                <Clipboard className="w-3 h-3 text-emerald-600" />
+                <span>Tempel dari Clipboard</span>
+              </button>
+            </div>
             <div className="relative">
               <input
                 type={showToken ? 'text' : 'password'}

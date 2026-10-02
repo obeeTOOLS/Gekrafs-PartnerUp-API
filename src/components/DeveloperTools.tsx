@@ -22,7 +22,12 @@ import {
   MessageSquare,
   Settings,
   Smartphone,
-  ExternalLink
+  ExternalLink,
+  Key,
+  Clipboard,
+  Eye,
+  EyeOff,
+  RefreshCw
 } from 'lucide-react';
 
 export const DeveloperTools: React.FC = () => {
@@ -36,7 +41,11 @@ export const DeveloperTools: React.FC = () => {
   // WhatsApp states
   const [isWaSettingsOpen, setIsWaSettingsOpen] = useState(false);
   const [isWaBroadcastOpen, setIsWaBroadcastOpen] = useState(false);
-  const waSettings = whatsappService.getSettings();
+  const [waSettings, setWaSettings] = useState(whatsappService.getSettings());
+  const [quickTokenInput, setQuickTokenInput] = useState(waSettings.fonnteToken || '');
+  const [showQuickToken, setShowQuickToken] = useState(false);
+  const [isSavingQuickToken, setIsSavingQuickToken] = useState(false);
+  const [quickTokenFeedback, setQuickTokenFeedback] = useState<{ success: boolean; message: string } | null>(null);
 
   // Live Sheet Pull State
   const [customSheetId, setCustomSheetId] = useState('183uoyYw6opnr3w7T6oljvwuy5Rzs7GZE7fM3vi_pwm4');
@@ -91,6 +100,66 @@ export const DeveloperTools: React.FC = () => {
       setResetMessage(res.message);
       setTimeout(() => setResetMessage(null), 3000);
     }
+  };
+
+  const handleSaveQuickToken = async () => {
+    const clean = quickTokenInput.trim();
+    if (!clean) {
+      setQuickTokenFeedback({ success: false, message: 'Masukkan atau tempelkan token Fonnte terlebih dahulu.' });
+      setTimeout(() => setQuickTokenFeedback(null), 4000);
+      return;
+    }
+    setIsSavingQuickToken(true);
+    setQuickTokenFeedback(null);
+
+    // Simpan ke whatsappService multi-storage (localStorage + master backup + cookie + gasService)
+    const updated = whatsappService.saveSettings({ fonnteToken: clean });
+    setWaSettings({ ...updated });
+
+    // Uji status device langsung ke server Fonnte
+    const deviceRes = await whatsappService.checkDeviceStatus(clean);
+    setIsSavingQuickToken(false);
+
+    if (deviceRes.success) {
+      setQuickTokenFeedback({
+        success: true,
+        message: `Token Fonnte tersimpan & TERHUBUNG! Device: ${deviceRes.device || 'Online'} (Sisa kuota: ${deviceRes.quota ?? '-'})`
+      });
+    } else {
+      setQuickTokenFeedback({
+        success: true,
+        message: `Token berhasil disimpan di sistem! Peringatan Fonnte: "${deviceRes.message}". Pastikan device WA sudah di-scan di fonnte.com.`
+      });
+    }
+
+    setTimeout(() => {
+      setQuickTokenFeedback(null);
+    }, 7000);
+  };
+
+  const handlePasteQuickToken = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        const text = await navigator.clipboard.readText();
+        if (text && text.trim()) {
+          const clean = text.trim();
+          setQuickTokenInput(clean);
+          setQuickTokenFeedback({
+            success: true,
+            message: 'Token berhasil disalin dari clipboard! Klik "Simpan & Aktifkan" untuk mengaktifkan.'
+          });
+          setTimeout(() => setQuickTokenFeedback(null), 4000);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Clipboard read failed:', e);
+    }
+    setQuickTokenFeedback({
+      success: false,
+      message: 'Gunakan tombol keyboard Ctrl+V (atau Cmd+V) di kolom input untuk menempelkan token.'
+    });
+    setTimeout(() => setQuickTokenFeedback(null), 4000);
   };
 
   return (
@@ -326,6 +395,94 @@ export const DeveloperTools: React.FC = () => {
             </span>
           </div>
         </div>
+
+        {/* Fitur Tempel & Perbarui Token Fonnte Langsung */}
+        <div className="p-4 bg-gradient-to-r from-emerald-50/70 via-slate-50 to-purple-50/40 rounded-xl border border-emerald-200/80 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+            <div className="flex items-center gap-2">
+              <span className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-sm flex-shrink-0">
+                <Key className="w-3.5 h-3.5" />
+              </span>
+              <div>
+                <h3 className="text-xs font-black text-[#001c3c] uppercase tracking-wide">
+                  Fitur Tempel & Perbarui Token Fonnte
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  Tempelkan token baru dari dashboard Fonnte kapan saja token berubah.
+                </p>
+              </div>
+            </div>
+            {waSettings.fonnteToken && (
+              <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-300 self-start sm:self-auto">
+                Tersimpan & Terhubung Cloud
+              </span>
+            )}
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <div className="relative flex-1">
+              <input
+                type={showQuickToken ? 'text' : 'password'}
+                value={quickTokenInput}
+                onChange={(e) => setQuickTokenInput(e.target.value)}
+                placeholder="Tempel / ketik token Fonnte di sini..."
+                className="w-full px-3 py-2 pr-10 text-xs font-mono rounded-lg border border-slate-300 bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-600 outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => setShowQuickToken(!showQuickToken)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                title={showQuickToken ? 'Sembunyikan Token' : 'Tampilkan Token'}
+              >
+                {showQuickToken ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={handlePasteQuickToken}
+              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              title="Tempel token yang sudah disalin di clipboard"
+            >
+              <Clipboard className="w-3.5 h-3.5 text-slate-600" />
+              <span>Tempel Clipboard</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={isSavingQuickToken || !quickTokenInput.trim()}
+              onClick={handleSaveQuickToken}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-sm whitespace-nowrap"
+            >
+              {isSavingQuickToken ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>Menguji Token...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Simpan & Aktifkan</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {quickTokenFeedback && (
+            <div className={`p-2.5 rounded-lg text-xs font-semibold flex items-center gap-2 ${
+              quickTokenFeedback.success 
+                ? 'bg-emerald-100/80 text-emerald-900 border border-emerald-300' 
+                : 'bg-rose-50 text-rose-800 border border-rose-200'
+            }`}>
+              {quickTokenFeedback.success ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-700 flex-shrink-0" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+              )}
+              <span>{quickTokenFeedback.message}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Section 4: Headless Code.gs Viewer & Copier */}
@@ -396,7 +553,17 @@ export const DeveloperTools: React.FC = () => {
       {/* WhatsApp Modals */}
       <WhatsAppSettingsModal
         isOpen={isWaSettingsOpen}
-        onClose={() => setIsWaSettingsOpen(false)}
+        onClose={() => {
+          setIsWaSettingsOpen(false);
+          const current = whatsappService.getSettings();
+          setWaSettings(current);
+          setQuickTokenInput(current.fonnteToken || '');
+        }}
+        onSaved={() => {
+          const current = whatsappService.getSettings();
+          setWaSettings(current);
+          setQuickTokenInput(current.fonnteToken || '');
+        }}
       />
 
       <WhatsAppBroadcastModal

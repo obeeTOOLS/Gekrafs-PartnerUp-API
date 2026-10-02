@@ -4,6 +4,8 @@
  * Mendukung pengiriman ke nomor pribadi peserta dan grup WhatsApp PartnerUp.
  */
 
+import { gasService } from './gasService';
+
 export interface WhatsAppSettings {
   fonnteToken: string;
   pesertaGroupId: string;
@@ -30,7 +32,32 @@ export interface SendResult {
 }
 
 const SETTINGS_KEY = 'gkf_whatsapp_settings_v1';
+const MASTER_TOKEN_KEY = 'gkf_fonnte_token_master';
 const DEDUP_LOG_KEY = 'gkf_wa_dedup_log_v1';
+
+// Dukungan Environment Variable Vercel / Vite (Otomatis Aktif untuk Semua User)
+const ENV_FONNTE_TOKEN = ((import.meta as any).env?.VITE_FONNTE_TOKEN as string) || '';
+const ENV_PESERTA_GROUP = ((import.meta as any).env?.VITE_FONNTE_PESERTA_GROUP_ID as string) || '';
+const ENV_PANITIA_GROUP = ((import.meta as any).env?.VITE_FONNTE_PANITIA_GROUP_ID as string) || '';
+
+function getCookie(name: string): string {
+  try {
+    if (typeof document === 'undefined') return '';
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return decodeURIComponent(parts.pop()?.split(';').shift() || '');
+  } catch {}
+  return '';
+}
+
+function setCookie(name: string, val: string, days = 365) {
+  try {
+    if (typeof document === 'undefined') return;
+    const d = new Date();
+    d.setTime(d.getTime() + days * 24 * 60 * 60 * 1000);
+    document.cookie = `${name}=${encodeURIComponent(val)};expires=${d.toUTCString()};path=/;SameSite=Lax`;
+  } catch {}
+}
 
 export interface WaDedupEntry {
   key: string;
@@ -40,10 +67,10 @@ export interface WaDedupEntry {
 }
 
 export const DEFAULT_WA_SETTINGS: WhatsAppSettings = {
-  fonnteToken: '',
-  pesertaGroupId: '',
+  fonnteToken: ENV_FONNTE_TOKEN,
+  pesertaGroupId: ENV_PESERTA_GROUP,
   pesertaGroupName: '',
-  panitiaGroupId: '',
+  panitiaGroupId: ENV_PANITIA_GROUP,
   panitiaGroupName: '',
   autoSendRegistration: true,
   autoNotifyGroupOnRegister: true,
@@ -135,14 +162,80 @@ class WhatsAppService {
   }
 
   /**
-   * Mengambil konfigurasi WhatsApp dari localStorage
+   * Mengambil konfigurasi WhatsApp secara tahan-banting (Multi-Storage Persistence)
+   * Membaca dari: LocalStorage -> Master Key Backup -> Cookie -> Cloud Settings (gasService) -> Environment Variable
    */
   getSettings(): WhatsAppSettings {
     try {
+      // 1. Baca dari localStorage utama
+      let parsed: Partial<WhatsAppSettings> = {};
       const stored = localStorage.getItem(SETTINGS_KEY);
       if (stored) {
-        return { ...DEFAULT_WA_SETTINGS, ...JSON.parse(stored) };
+        try {
+          parsed = JSON.parse(stored);
+        } catch {}
       }
+
+      // 2. Baca dari Master Key Backup
+      const masterToken = localStorage.getItem(MASTER_TOKEN_KEY) || '';
+
+      // 3. Baca dari Cookie Browser (Tahan pembersihan storage per-domain)
+      const cookieToken = getCookie('gkf_fonnte_token');
+      const cookiePesertaGroup = getCookie('gkf_wa_peserta_group');
+      const cookiePanitiaGroup = getCookie('gkf_wa_panitia_group');
+
+      // 4. Baca dari Cloud / AppSettings gasService
+      let gasToken = '';
+      let gasPeserta = '';
+      let gasPanitia = '';
+      try {
+        const gasS = gasService.getSettings();
+        gasToken = gasS.fonnteToken || '';
+        gasPeserta = gasS.pesertaGroupId || '';
+        gasPanitia = gasS.panitiaGroupId || '';
+      } catch {}
+
+      // Tentukan token terbaik yang ditemukan
+      const resolvedToken = (
+        parsed.fonnteToken ||
+        masterToken ||
+        cookieToken ||
+        gasToken ||
+        ENV_FONNTE_TOKEN
+      ).trim();
+
+      const resolvedPesertaGroup = (
+        parsed.pesertaGroupId ||
+        cookiePesertaGroup ||
+        gasPeserta ||
+        ENV_PESERTA_GROUP
+      ).trim();
+
+      const resolvedPanitiaGroup = (
+        parsed.panitiaGroupId ||
+        cookiePanitiaGroup ||
+        gasPanitia ||
+        ENV_PANITIA_GROUP
+      ).trim();
+
+      const result: WhatsAppSettings = {
+        ...DEFAULT_WA_SETTINGS,
+        ...parsed,
+        fonnteToken: resolvedToken,
+        pesertaGroupId: resolvedPesertaGroup,
+        panitiaGroupId: resolvedPanitiaGroup
+      };
+
+      // Self-healing: jika token ditemukan dari backup tetapi belum ada di storage utama, pulihkan otomatis
+      if (resolvedToken && (!stored || !parsed.fonnteToken)) {
+        try {
+          localStorage.setItem(SETTINGS_KEY, JSON.stringify(result));
+          localStorage.setItem(MASTER_TOKEN_KEY, resolvedToken);
+          setCookie('gkf_fonnte_token', resolvedToken);
+        } catch {}
+      }
+
+      return result;
     } catch (e) {
       console.error('Gagal membaca whatsapp settings:', e);
     }
@@ -150,13 +243,46 @@ class WhatsAppService {
   }
 
   /**
-   * Menyimpan konfigurasi WhatsApp
+   * Menyimpan konfigurasi WhatsApp secara permanen ke seluruh lapisan (LocalStorage + Master Backup + Cookie + Cloud Settings)
    */
   saveSettings(settings: Partial<WhatsAppSettings>): WhatsAppSettings {
     const current = this.getSettings();
-    const updated = { ...current, ...settings };
+    const updated: WhatsAppSettings = {
+      ...current,
+      ...settings,
+      fonnteToken: (settings.fonnteToken !== undefined ? settings.fonnteToken : current.fonnteToken).trim(),
+      pesertaGroupId: (settings.pesertaGroupId !== undefined ? settings.pesertaGroupId : current.pesertaGroupId).trim(),
+      panitiaGroupId: (settings.panitiaGroupId !== undefined ? settings.panitiaGroupId : current.panitiaGroupId).trim()
+    };
+
     try {
+      // 1. Simpan ke LocalStorage Utama
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(updated));
+
+      // 2. Simpan ke Master Token Backup Key
+      if (updated.fonnteToken) {
+        localStorage.setItem(MASTER_TOKEN_KEY, updated.fonnteToken);
+        setCookie('gkf_fonnte_token', updated.fonnteToken);
+      }
+      if (updated.pesertaGroupId) {
+        setCookie('gkf_wa_peserta_group', updated.pesertaGroupId);
+      }
+      if (updated.panitiaGroupId) {
+        setCookie('gkf_wa_panitia_group', updated.panitiaGroupId);
+      }
+
+      // 3. Simpan ke Cloud Settings (gasService) agar ikut tersinkron ke export & sheet
+      try {
+        gasService.saveSettings({
+          fonnteToken: updated.fonnteToken,
+          pesertaGroupId: updated.pesertaGroupId,
+          pesertaGroupName: updated.pesertaGroupName,
+          panitiaGroupId: updated.panitiaGroupId,
+          panitiaGroupName: updated.panitiaGroupName
+        });
+      } catch (err) {
+        console.warn('Gagal sinkron wa settings ke gasService:', err);
+      }
     } catch (e) {
       console.error('Gagal menyimpan whatsapp settings:', e);
     }

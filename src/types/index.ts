@@ -195,4 +195,10 @@ export interface AppSettings {
   gasEndpointUrl: string;
   autoSync: boolean;
   passcode: string;
+  // WhatsApp & Fonnte Gateway Cloud Persistent Settings
+  fonnteToken?: string;
+  pesertaGroupId?: string;
+  pesertaGroupName?: string;
+  panitiaGroupId?: string;
+  panitiaGroupName?: string;
 }
