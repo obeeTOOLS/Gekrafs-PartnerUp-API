@@ -799,6 +799,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <option value="" className="text-slate-800">Semua Sesi</option>
           </select>
 
+          {/* Tombol Cepat Pengaturan Akses & Whitelist */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('pengaturan')}
+            title="Kelola Akses Admin & Whitelist Akun"
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'pengaturan'
+                ? 'bg-amber-400 text-[#001c3c] shadow-md font-black ring-2 ring-amber-300'
+                : 'bg-white/10 hover:bg-white/20 text-amber-300 border border-white/20'
+            }`}
+          >
+            <Settings className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Pengaturan Akses</span>
+          </button>
+
           <button
             onClick={handleLogout}
             className="flex items-center gap-1 px-2.5 py-2 rounded-xl bg-white/10 hover:bg-rose-900/60 active:bg-rose-900/80 border border-white/20 text-xs font-semibold transition-colors"
@@ -822,10 +837,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           { id: 'kehadiran', label: 'Presensi QR', icon: QrCode },
           { id: 'jadwal', label: `Jadwal (${jadwal.length})`, icon: Calendar },
           { id: 'timeline', label: `Timeline (${timeline.length})`, icon: Milestone },
-          { id: 'pengaturan', label: 'Pengaturan', icon: Settings }
+          { id: 'pengaturan', label: '⚙️ Pengaturan Akses', icon: Settings }
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
+          const isPengaturan = tab.id === 'pengaturan';
           return (
             <button
               key={tab.id}
@@ -833,6 +849,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               className={`flex items-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all whitespace-nowrap active:scale-95 ${
                 isActive
                   ? 'bg-[#001c3c] text-white shadow'
+                  : isPengaturan
+                  ? 'bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-300/80'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >

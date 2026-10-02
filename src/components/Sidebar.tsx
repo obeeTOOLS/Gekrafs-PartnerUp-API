@@ -16,7 +16,8 @@ import {
   WifiOff,
   LogOut,
   BarChart3,
-  Store
+  Store,
+  Settings
 } from 'lucide-react';
 import { EngineerSession } from '../services/authService';
 import { UserRole } from '../types';
@@ -225,40 +226,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           );
         })}
 
-        {/* Highlight Card: Direktori Ekraf Batu */}
-        {!isCollapsed && (
-          <div className="pt-2 px-1">
-            <button
-              type="button"
-              onClick={() => setActiveTab('katalog')}
-              className={`w-full p-3 rounded-2xl border text-left transition-all cursor-pointer shadow-sm group ${
-                activeTab === 'katalog'
-                  ? 'bg-amber-400 text-[#001c3c] border-amber-300 shadow-md font-black'
-                  : 'bg-gradient-to-r from-amber-500/20 via-amber-400/10 to-transparent border-amber-400/50 hover:bg-amber-400/20 text-white'
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-amber-400 text-[#001c3c] flex items-center justify-center font-bold flex-shrink-0 group-hover:scale-110 transition-transform">
-                  <Store className="w-4 h-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black tracking-tight text-white group-hover:text-amber-300">
-                      Direktori Ekraf
-                    </span>
-                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-400 text-[#001c3c] uppercase">
-                      BARU
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-slate-300 truncate mt-0.5">
-                    Katalog Brand UMKM Kota Batu
-                  </p>
-                </div>
-              </div>
-            </button>
-          </div>
-        )}
-
         {/* Kurator & Developer Special Section */}
         {canShowAdminTools && (
           <div className="pt-3 mt-3 border-t border-[#003866]/80 space-y-1.5">
@@ -327,6 +294,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-[#001428] text-white text-xs font-bold rounded-lg shadow-xl border border-sky-500/40 whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50">
                   <div className="text-sky-300 font-extrabold">Dashboard Grafik & Radar</div>
                   <div className="text-[10px] text-slate-300">Visualisasi 8 pilar & sebaran omzet</div>
+                </div>
+              )}
+            </button>
+
+            {/* Pengaturan Akses & Akun Admin Whitelist */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('pengaturan')}
+              title={isCollapsed ? 'Pengaturan Akses & Akun Admin' : undefined}
+              className={`w-full flex items-center rounded-xl transition-all group relative cursor-pointer ${
+                isCollapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2.5'
+              } ${
+                activeTab === 'pengaturan'
+                  ? 'bg-amber-400 text-[#001c3c] font-black shadow-md'
+                  : 'text-emerald-200 hover:text-white hover:bg-emerald-500/20'
+              }`}
+            >
+              <Settings className="w-5 h-5 flex-shrink-0 text-emerald-300 group-hover:scale-110 transition-transform" />
+              {!isCollapsed && (
+                <div className="text-left min-w-0">
+                  <div className="text-xs font-bold truncate">Pengaturan Akses</div>
+                  <div className="text-[10px] text-emerald-300/80 truncate">Kelola Akun & Whitelist</div>
+                </div>
+              )}
+
+              {isCollapsed && (
+                <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-[#001428] text-white text-xs font-bold rounded-lg shadow-xl border border-emerald-500/40 whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50">
+                  <div className="text-emerald-300 font-extrabold">Pengaturan Akses</div>
+                  <div className="text-[10px] text-slate-300">Kelola akun admin & whitelist</div>
                 </div>
               )}
             </button>

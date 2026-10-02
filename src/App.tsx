@@ -29,6 +29,7 @@ export default function App() {
     const page = params.get('page');
     if (page === 'admin') return 'admin';
     if (page === 'grafik' || page === 'statistik' || page === 'analytics') return 'grafik';
+    if (page === 'pengaturan' || page === 'settings' || page === 'akses') return 'pengaturan';
     if (page === 'katalog' || page === 'direktori' || page === 'showcase') return 'katalog';
     if (page === 'info') return 'timeline';
     if (page === 'asesmen') return 'asesmen';
@@ -289,6 +290,22 @@ export default function App() {
           {activeTab === 'grafik' && (
             <AdminDashboard 
               initialTab="statistik"
+              userRole={currentPerspective === 'developer' ? 'developer' : 'admin'}
+              engineerSession={engineerSession}
+              onLoginSuccess={handleAdminLoginSuccess}
+              onLogout={handleAdminLogout}
+              onNavigateToPublic={() => setActiveTab('pendaftaran')}
+              onEngineerLogin={(email) => {
+                const sess = authService.getCurrentSession();
+                setEngineerSession(sess);
+                setIsAdminLoggedIn(true);
+              }}
+            />
+          )}
+
+          {activeTab === 'pengaturan' && (
+            <AdminDashboard 
+              initialTab="pengaturan"
               userRole={currentPerspective === 'developer' ? 'developer' : 'admin'}
               engineerSession={engineerSession}
               onLoginSuccess={handleAdminLoginSuccess}

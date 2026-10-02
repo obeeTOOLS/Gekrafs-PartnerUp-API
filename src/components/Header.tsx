@@ -60,6 +60,11 @@ const TAB_TITLES: Record<string, { title: string; subtitle: string; badge?: stri
     subtitle: 'Portal Kurasi, Manajemen Peserta & Laporan',
     badge: 'Internal'
   },
+  pengaturan: {
+    title: 'Pengaturan & Manajemen Akses',
+    subtitle: 'Kontrol Whitelist Email, Akun Admin, Password & Hak Akses',
+    badge: 'Admin'
+  },
   grafik: {
     title: 'Dashboard Grafik & Radar Bisnis',
     subtitle: 'Analitik Visual 8 Pilar, Sebaran Omzet & Ekosistem UMKM Batu',
