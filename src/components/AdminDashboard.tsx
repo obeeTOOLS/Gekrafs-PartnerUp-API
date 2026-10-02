@@ -21,6 +21,8 @@ import { VisualAnalyticsDashboard } from './VisualAnalyticsDashboard';
 import { MentoringTracker } from './MentoringTracker';
 import { LegalitasTracker } from './LegalitasTracker';
 import { SertifikatKelulusanModal } from './SertifikatKelulusanModal';
+import { KatalogDirektori } from './KatalogDirektori';
+import { EditUmkmModal } from './EditUmkmModal';
 import { whatsappService } from '../services/whatsappService';
 import { 
   Milestone, 
@@ -58,7 +60,8 @@ import {
   BookOpen,
   Award,
   ShieldCheck,
-  Bell
+  Bell,
+  Store
 } from 'lucide-react';
 
 import { 
@@ -73,7 +76,7 @@ import {
 interface AdminDashboardProps {
   userRole?: UserRole;
   engineerSession?: EngineerSession | null;
-  initialTab?: 'timeline' | 'jadwal' | 'kehadiran' | 'peserta' | 'statistik' | 'pengaturan' | 'asesmen' | 'kolaborasi' | 'mentoring' | 'legalitas';
+  initialTab?: 'timeline' | 'jadwal' | 'kehadiran' | 'peserta' | 'statistik' | 'pengaturan' | 'asesmen' | 'kolaborasi' | 'mentoring' | 'legalitas' | 'katalog';
   onLogout?: () => void;
   onLoginSuccess?: () => void;
   onNavigateToPublic?: () => void;
@@ -90,10 +93,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onEngineerLogin
 }) => {
   const [activeTab, setActiveTab] = useState<
-    'timeline' | 'jadwal' | 'kehadiran' | 'peserta' | 'statistik' | 'pengaturan' | 'asesmen' | 'kolaborasi' | 'mentoring' | 'legalitas'
+    'timeline' | 'jadwal' | 'kehadiran' | 'peserta' | 'statistik' | 'pengaturan' | 'asesmen' | 'kolaborasi' | 'mentoring' | 'legalitas' | 'katalog'
   >(() => initialTab || 'peserta');
 
   const [sertifikatModalPeserta, setSertifikatModalPeserta] = useState<PesertaItem | null>(null);
+  const [editingUmkmPeserta, setEditingUmkmPeserta] = useState<PesertaItem | null>(null);
 
   useEffect(() => {
     if (initialTab) {
@@ -814,6 +818,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           { id: 'kolaborasi', label: 'Peta Kolaborasi', icon: Network },
           { id: 'mentoring', label: 'Log Mentoring 1-on-1', icon: BookOpen },
           { id: 'legalitas', label: 'Fasilitasi Legalitas', icon: ShieldCheck },
+          { id: 'katalog', label: 'Direktori Ekraf (Katalog)', icon: Store },
           { id: 'kehadiran', label: 'Presensi QR', icon: QrCode },
           { id: 'jadwal', label: `Jadwal (${jadwal.length})`, icon: Calendar },
           { id: 'timeline', label: `Timeline (${timeline.length})`, icon: Milestone },
@@ -949,6 +954,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             className="px-2.5 py-1 rounded bg-[#eaf2fb] text-[#004c80] hover:bg-[#dbe7f7] font-bold text-[11px] cursor-pointer"
                           >
                             Profil
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingUmkmPeserta(p)}
+                            title="Edit Informasi Usaha & Unggah Foto Produk"
+                            className="px-2.5 py-1 rounded bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 font-bold text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
+                          >
+                            <Edit className="w-3 h-3 text-blue-600" />
+                            <span className="hidden xl:inline">Edit</span>
                           </button>
                           <button
                             type="button"
@@ -1285,6 +1299,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* TAB: FASILITASI LEGALITAS (NIB, HALAL, HKI) */}
       {activeTab === 'legalitas' && (
         <LegalitasTracker pesertaList={pesertaList} />
+      )}
+
+      {/* TAB: DIREKTORI & KATALOG EKRAF */}
+      {activeTab === 'katalog' && (
+        <KatalogDirektori pesertaList={pesertaList} />
       )}
 
       {/* TAB 5: PRESENSI KEHADIRAN (QR & MANUAL) */}
@@ -2162,6 +2181,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             (a) => a.namaUsaha.toLowerCase() === sertifikatModalPeserta.namaUsaha.toLowerCase()
           )}
           onClose={() => setSertifikatModalPeserta(null)}
+        />
+      )}
+
+      {/* Edit UMKM & Foto Produk Modal */}
+      {editingUmkmPeserta && (
+        <EditUmkmModal
+          peserta={editingUmkmPeserta}
+          isOpen={!!editingUmkmPeserta}
+          onClose={() => setEditingUmkmPeserta(null)}
+          onSaved={(updated) => {
+            showToast(`Profil & foto produk "${updated.namaUsaha}" berhasil diperbarui!`);
+            setEditingUmkmPeserta(null);
+          }}
         />
       )}
     </div>

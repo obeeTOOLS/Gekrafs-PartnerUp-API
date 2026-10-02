@@ -550,7 +550,9 @@ export const INITIAL_PESERTA: PesertaItem[] = [
     "instagram": "https://www.instagram.com/lalumahendra/",
     "tiktok": "",
     "marketplace": "https://www.instagram.com/lalumahendra/",
-    "deskripsi": "Agency"
+    "deskripsi": "Creative agency, commercial photography, brand campaign & multimedia production.",
+    "produkUnggulan": "Commercial Photography & Brand Visual",
+    "fotoProdukUrl": "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?auto=format&fit=crop&w=800&q=80"
   },
   {
     "row": 3,
@@ -570,7 +572,9 @@ export const INITIAL_PESERTA: PesertaItem[] = [
     "instagram": "https://www.tiktok.com/@dulloch_snack?_r=1&_t=ZS-99RPmnyoAUC",
     "tiktok": "https://www.tiktok.com/@dulloch_snack?_r=1&_t=ZS-99RPmnyoAUC",
     "marketplace": "https://www.tiktok.com/@dulloch_snack?_r=1&_t=ZS-99RPmnyoAUC",
-    "deskripsi": "Usaha yang bergerak di bidang makanan dan minuman yang pengolahan nya masih secara manual"
+    "deskripsi": "Usaha yang bergerak di bidang makanan dan minuman olahan tradisional khas Kota Batu.",
+    "produkUnggulan": "Snack & Keripik Tradisional",
+    "fotoProdukUrl": "https://images.unsplash.com/photo-1599490659213-e2b9527bd087?auto=format&fit=crop&w=800&q=80"
   },
   {
     "row": 4,
@@ -590,7 +594,9 @@ export const INITIAL_PESERTA: PesertaItem[] = [
     "instagram": "https://www.instagram.com/cleopatramanagement?igsi=dnE5OTk2a2Vpa2lx",
     "tiktok": "https://www.tiktok.com/@cleopatra_management?_r=1&_t=ZS-99RSPuYo2sa",
     "marketplace": "",
-    "deskripsi": "Usaha Jasa Biro Perjalanan Wisata, EO dan Konsultan Management"
+    "deskripsi": "Usaha Jasa Biro Perjalanan Wisata, EO dan Konsultan Management.",
+    "produkUnggulan": "Paket Wisata & Event Organizer Kota Batu",
+    "fotoProdukUrl": "https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=800&q=80"
   },
   {
     "row": 5,
@@ -610,7 +616,9 @@ export const INITIAL_PESERTA: PesertaItem[] = [
     "instagram": "https://www.instagram.com/cuka_apel_albariqi?igsi=Y3czbmV6czN1MWdy",
     "tiktok": "https://www.tiktok.com/@cuka_apel_albariqi?_r=1&_t=ZS-99RT8KHPcHM",
     "marketplace": "https://id.shp.ee/ESZ1sgVd",
-    "deskripsi": "HAPPY FOOD memulai perjalanannya pada November 2023 dengan memproduksi Cuka Apel \"Albariqi\", sebuah produk fermentasi alami yang terbuat dari apel pilihan. Berasal dari Kota Batu, yang terkenal dengan kekayaan alamnya, kami berkomitmen untuk menghadirkan produk berkualitas tinggi yang ramah lingkungan dan bermanfaat bagi kesehatan.\n\nMelalui Cuka Apel Albariqi, kami ingin menghidupkan kembali kearifan lokal dan memberikan solusi alami bagi masyarakat untuk menjaga kesehatan secara holistik."
+    "deskripsi": "HAPPY FOOD memproduksi Cuka Apel \"Albariqi\", produk fermentasi alami dari apel pilihan khas Kota Batu.",
+    "produkUnggulan": "Cuka Apel Organik Albariqi",
+    "fotoProdukUrl": "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80"
   },
   {
     "row": 6,

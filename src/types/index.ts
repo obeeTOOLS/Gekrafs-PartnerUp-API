@@ -65,6 +65,8 @@ export interface PesertaItem {
   deskripsi?: string;
   ktpUrl?: string;
   nibUrl?: string;
+  fotoProdukUrl?: string;
+  produkUnggulan?: string;
 }
 
 export interface TimelineItem {

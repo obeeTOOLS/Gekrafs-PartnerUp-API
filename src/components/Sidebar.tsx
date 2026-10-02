@@ -52,24 +52,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenHelp,
   onLogout
 }) => {
-  // Persisted state for collapsed / expanded mode
+  // Selalu default expanded (false) dan bersihkan cache collapsed lama agar menu Direktori Ekraf langsung terlihat jelas
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
     try {
-      const saved = localStorage.getItem('gkf_sidebar_collapsed');
-      return saved !== null ? JSON.parse(saved) : false; // Default to expanded mode so all labels are readable
-    } catch {
-      return false;
-    }
+      localStorage.removeItem('gkf_sidebar_collapsed');
+    } catch {}
+    return false;
   });
 
   const toggleCollapsed = () => {
-    setIsCollapsed(prev => {
-      const next = !prev;
-      try {
-        localStorage.setItem('gkf_sidebar_collapsed', JSON.stringify(next));
-      } catch {}
-      return next;
-    });
+    setIsCollapsed(prev => !prev);
   };
 
   const hasEngineerAccess = !!engineerSession;
@@ -232,6 +224,40 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
           );
         })}
+
+        {/* Highlight Card: Direktori Ekraf Batu */}
+        {!isCollapsed && (
+          <div className="pt-2 px-1">
+            <button
+              type="button"
+              onClick={() => setActiveTab('katalog')}
+              className={`w-full p-3 rounded-2xl border text-left transition-all cursor-pointer shadow-sm group ${
+                activeTab === 'katalog'
+                  ? 'bg-amber-400 text-[#001c3c] border-amber-300 shadow-md font-black'
+                  : 'bg-gradient-to-r from-amber-500/20 via-amber-400/10 to-transparent border-amber-400/50 hover:bg-amber-400/20 text-white'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-amber-400 text-[#001c3c] flex items-center justify-center font-bold flex-shrink-0 group-hover:scale-110 transition-transform">
+                  <Store className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black tracking-tight text-white group-hover:text-amber-300">
+                      Direktori Ekraf
+                    </span>
+                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-400 text-[#001c3c] uppercase">
+                      BARU
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-300 truncate mt-0.5">
+                    Katalog Brand UMKM Kota Batu
+                  </p>
+                </div>
+              </div>
+            </button>
+          </div>
+        )}
 
         {/* Kurator & Developer Special Section */}
         {canShowAdminTools && (

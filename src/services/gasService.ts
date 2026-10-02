@@ -514,6 +514,20 @@ class GasService {
     return { status: 'error', message: 'Peserta tidak ditemukan.' };
   }
 
+  public updatePeserta(row: number, updatedFields: Partial<PesertaItem>): { status: string; message: string } {
+    const index = this.peserta.findIndex((p) => p.row === row);
+    if (index !== -1) {
+      this.peserta[index] = {
+        ...this.peserta[index],
+        ...updatedFields
+      };
+      this.saveToStorage();
+      this.dispatchRemoteAction('updatePeserta', { row, updatedFields });
+      return { status: 'success', message: 'Informasi dan foto produk UMKM berhasil diperbarui!' };
+    }
+    return { status: 'error', message: 'Data peserta tidak ditemukan.' };
+  }
+
   public submitForm(formData: PendaftaranFormData): { status: string; message: string } {
     const cleanEmail = formData.email.toLowerCase().trim();
     const cleanSesi = (formData.sesiPartnerUp || this.settings.sesiAktif).toLowerCase().trim();

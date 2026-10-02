@@ -16,9 +16,13 @@ import {
   Store,
   ChevronRight,
   ShieldCheck,
-  Tag
+  Tag,
+  Camera,
+  Edit3,
+  Plus
 } from 'lucide-react';
 import { SUBSEKTOR_LIST } from '../data/initialData';
+import { EditUmkmModal } from './EditUmkmModal';
 
 interface KatalogDirektoriProps {
   pesertaList: PesertaItem[];
@@ -27,23 +31,30 @@ interface KatalogDirektoriProps {
 }
 
 export const KatalogDirektori: React.FC<KatalogDirektoriProps> = ({
-  pesertaList,
+  pesertaList: initialPesertaList,
   onSelectPeserta,
   onNavigateToRegister
 }) => {
+  const [localPesertaList, setLocalPesertaList] = useState<PesertaItem[]>(initialPesertaList);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubsektor, setSelectedSubsektor] = useState('Semua Subsektor');
   const [activeModalPeserta, setActiveModalPeserta] = useState<PesertaItem | null>(null);
+  const [editingPeserta, setEditingPeserta] = useState<PesertaItem | null>(null);
   const [copiedShare, setCopiedShare] = useState(false);
+
+  // Sync state bila initialPesertaList berubah
+  React.useEffect(() => {
+    setLocalPesertaList(initialPesertaList);
+  }, [initialPesertaList]);
 
   // Ambil peserta yang Diterima (Lolos Kurasi).
   // Jika database masih baru dan peserta 'Diterima' sedikit, sertakan juga pendaftar aktif agar katalog tetap kaya dan bermanfaat
   const curatedList = useMemo(() => {
-    const accepted = pesertaList.filter((p) => p.statusKurasi === 'Diterima');
+    const accepted = localPesertaList.filter((p) => p.statusKurasi === 'Diterima');
     if (accepted.length >= 6) return accepted;
     // Fallback: sertakan juga peserta aktif lain dengan status kurasi apapun untuk showcase contoh
-    return pesertaList;
-  }, [pesertaList]);
+    return localPesertaList;
+  }, [localPesertaList]);
 
   // Filter berdasarkan search query dan subsektor
   const filteredList = useMemo(() => {
@@ -242,6 +253,56 @@ export const KatalogDirektori: React.FC<KatalogDirektoriProps> = ({
                 key={item.namaUsaha + idx}
                 className="bg-white rounded-3xl border border-slate-200 hover:border-blue-300 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col justify-between overflow-hidden group"
               >
+                {/* Hero Photo / Visual Banner */}
+                <div className="relative aspect-[16/10] w-full overflow-hidden bg-gradient-to-br from-slate-800 to-[#001c3c]">
+                  {item.fotoProdukUrl ? (
+                    <img 
+                      src={item.fotoProdukUrl} 
+                      alt={item.namaUsaha} 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center">
+                      <Store className="w-10 h-10 text-amber-400/70 mb-1" />
+                      <span className="text-white text-xs font-black tracking-tight">{item.namaUsaha}</span>
+                      <span className="text-[10px] text-amber-300/80">{item.subsektor}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingPeserta(item);
+                        }}
+                        className="mt-2 px-2.5 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer backdrop-blur-xs"
+                      >
+                        <Camera className="w-3 h-3 text-amber-300" />
+                        <span>Tambah Foto Produk</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Floating Edit Button */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingPeserta(item);
+                    }}
+                    title="Edit Informasi & Foto Produk UMKM"
+                    className="absolute top-3 right-3 px-2 py-1 rounded-xl bg-black/60 hover:bg-black/80 text-white text-xs font-bold backdrop-blur-md transition-all cursor-pointer flex items-center gap-1 shadow-md hover:scale-105"
+                  >
+                    <Edit3 className="w-3 h-3 text-amber-400" />
+                    <span className="text-[10px]">Edit Profil</span>
+                  </button>
+
+                  {/* Produk Unggulan Badge */}
+                  {item.produkUnggulan && (
+                    <div className="absolute bottom-2 left-2 px-2.5 py-1 rounded-lg bg-[#001c3c]/85 text-amber-300 text-[10px] font-bold backdrop-blur-xs flex items-center gap-1 shadow">
+                      <Tag className="w-3 h-3 text-amber-400" />
+                      <span className="truncate max-w-[190px]">{item.produkUnggulan}</span>
+                    </div>
+                  )}
+                </div>
+
                 <div className="p-5 sm:p-6 space-y-3.5">
                   {/* Top Badges */}
                   <div className="flex items-center justify-between gap-2">
@@ -298,10 +359,20 @@ export const KatalogDirektori: React.FC<KatalogDirektoriProps> = ({
                     onClick={() => setActiveModalPeserta(item)}
                     className="text-xs font-bold text-[#001c3c] hover:text-[#004c80] transition-colors cursor-pointer"
                   >
-                    Lihat Profil Lengkap
+                    Lihat Profil
                   </button>
 
                   <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setEditingPeserta(item)}
+                      title="Edit Foto & Informasi"
+                      className="px-2.5 py-1.5 rounded-xl bg-slate-200/80 hover:bg-slate-300 text-slate-700 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                    >
+                      <Edit3 className="w-3 h-3 text-slate-600" />
+                      <span>Edit</span>
+                    </button>
+
                     {item.instagram && (
                       <a
                         href={
@@ -364,6 +435,17 @@ export const KatalogDirektori: React.FC<KatalogDirektoriProps> = ({
               </button>
             </div>
 
+            {/* Photo in Detail Modal */}
+            {activeModalPeserta.fotoProdukUrl && (
+              <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-slate-100 shadow-sm border border-slate-200">
+                <img 
+                  src={activeModalPeserta.fotoProdukUrl} 
+                  alt={activeModalPeserta.namaUsaha} 
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+
             {/* Verification Seal */}
             <div className="p-3.5 bg-emerald-50 rounded-2xl border border-emerald-200 flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center flex-shrink-0">
@@ -378,6 +460,16 @@ export const KatalogDirektori: React.FC<KatalogDirektoriProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* Tombol Edit Profil Langsung */}
+            <button
+              type="button"
+              onClick={() => setEditingPeserta(activeModalPeserta)}
+              className="w-full py-2.5 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#001c3c] font-black text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm"
+            >
+              <Edit3 className="w-4 h-4 text-[#001c3c]" />
+              <span>Edit Informasi & Foto Produk UMKM Ini</span>
+            </button>
 
             {/* Deskripsi */}
             <div className="space-y-1.5">
@@ -437,6 +529,24 @@ export const KatalogDirektori: React.FC<KatalogDirektoriProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* 5. Modal Edit Profil & Unggah Foto Produk UMKM */}
+      {editingPeserta && (
+        <EditUmkmModal
+          peserta={editingPeserta}
+          isOpen={!!editingPeserta}
+          onClose={() => setEditingPeserta(null)}
+          onSaved={(updated) => {
+            setLocalPesertaList((prev) =>
+              prev.map((p) => (p.row === updated.row ? updated : p))
+            );
+            if (activeModalPeserta && activeModalPeserta.row === updated.row) {
+              setActiveModalPeserta(updated);
+            }
+            setEditingPeserta(null);
+          }}
+        />
       )}
     </div>
   );
