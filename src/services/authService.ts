@@ -112,6 +112,15 @@ const DEFAULT_ADMIN_WHITELIST: AdminAccount[] = [
 const STORAGE_SESSION_KEY = 'gkf_engineer_session_v1';
 const STORAGE_WHITELIST_KEY = 'gkf_admin_whitelist_v3';
 const STORAGE_ADMIN_AUTH_KEY = 'gkf_admin_auth';
+const STORAGE_PESERTA_SESSION_KEY = 'gkf_peserta_session_v1';
+
+export interface PesertaSession {
+  namaUsaha: string;
+  whatsapp: string;
+  namaPemilik?: string;
+  isRegistered: boolean;
+  loggedInAt: number;
+}
 
 class AuthService {
   /**
@@ -462,6 +471,7 @@ class AuthService {
 
   /**
    * Mendapatkan sesi engineer aktif saat ini
+   * TIDAK ADA AUTO-LOGIN: Jika belum login, selalu kembalikan null agar diarahkan ke halaman login.
    */
   public getCurrentSession(): EngineerSession | null {
     try {
@@ -475,19 +485,61 @@ class AuthService {
     } catch (e) {
       console.error('Error reading engineer session', e);
     }
+    return null;
+  }
 
-    // Default otomatis untuk environment pengembang:
-    const defaultProfile = AUTHORIZED_ENGINEERS['obeetools@gmail.com'];
-    const initialSession: EngineerSession = {
-      email: defaultProfile.email,
-      name: defaultProfile.name,
-      title: defaultProfile.title,
-      activePerspective: 'developer',
-      canSwitchRoles: defaultProfile.canSwitchRoles,
-      loggedInAt: Date.now()
-    };
-    this.saveSession(initialSession);
-    return initialSession;
+  /**
+   * Mendapatkan sesi admin terautentikasi (whitelist)
+   */
+  public getAdminAuthSession(): { email: string; nama: string; peran: AdminRoleType; expiresAt: number } | null {
+    try {
+      const raw = localStorage.getItem(STORAGE_ADMIN_AUTH_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.expiresAt > Date.now()) {
+          return parsed;
+        }
+      }
+    } catch {}
+    return null;
+  }
+
+  /**
+   * Mendapatkan sesi peserta aktif
+   */
+  public getPesertaSession(): PesertaSession | null {
+    try {
+      const raw = localStorage.getItem(STORAGE_PESERTA_SESSION_KEY);
+      if (raw) {
+        return JSON.parse(raw) as PesertaSession;
+      }
+    } catch {}
+    return null;
+  }
+
+  /**
+   * Menyimpan sesi peserta
+   */
+  public setPesertaSession(session: PesertaSession): void {
+    try {
+      localStorage.setItem(STORAGE_PESERTA_SESSION_KEY, JSON.stringify(session));
+    } catch {}
+  }
+
+  /**
+   * Menghapus sesi peserta
+   */
+  public clearPesertaSession(): void {
+    try {
+      localStorage.removeItem(STORAGE_PESERTA_SESSION_KEY);
+    } catch {}
+  }
+
+  /**
+   * Cek apakah ada pengguna yang sedang login saat ini (Engineer, Admin, atau Peserta)
+   */
+  public isAnyUserLoggedIn(): boolean {
+    return !!(this.getCurrentSession() || this.getAdminAuthSession() || this.getPesertaSession());
   }
 
   /**
@@ -570,12 +622,13 @@ class AuthService {
   }
 
   /**
-   * Logout
+   * Logout (Membersihkan seluruh sesi pengguna)
    */
   public logout(): void {
     try {
       localStorage.removeItem(STORAGE_SESSION_KEY);
       localStorage.removeItem(STORAGE_ADMIN_AUTH_KEY);
+      localStorage.removeItem(STORAGE_PESERTA_SESSION_KEY);
     } catch (e) {
       console.error('Error logging out', e);
     }

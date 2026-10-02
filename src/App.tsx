@@ -14,9 +14,14 @@ import { DeveloperTools } from './components/DeveloperTools';
 import { HelpModal } from './components/HelpModal';
 import { ShareModal } from './components/ShareModal';
 import { EngineerModal } from './components/EngineerModal';
+import { LoginPage } from './components/LoginPage';
 import { Check, Lock, Terminal } from 'lucide-react';
 
 export default function App() {
+  // Cek apakah ada sesi login aktif (Engineer, Admin Whitelist, atau Peserta)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return authService.isAnyUserLoggedIn();
+  });
   // Query param auto-routing (?page=admin, ?page=info, ?page=asesmen, ?page=kehadiran, ?sesi_id=...)
   const [activeTab, setActiveTab] = useState<string>(() => {
     const params = new URLSearchParams(window.location.search);
@@ -128,6 +133,7 @@ export default function App() {
     authService.logout();
     setIsAdminLoggedIn(false);
     setEngineerSession(null);
+    setIsAuthenticated(false);
     setActiveTab('pendaftaran');
     // Remove query param from browser bar gracefully
     window.history.replaceState({}, '', window.location.pathname);
@@ -161,6 +167,35 @@ export default function App() {
     }
   };
 
+  // Gerbang Keamanan Utama: Tanpa login, pengguna tidak bisa masuk ke dalam aplikasi
+  if (!isAuthenticated) {
+    return (
+      <LoginPage 
+        onLoginSuccess={(type, details) => {
+          setIsAuthenticated(true);
+          if (type === 'engineer') {
+            const sess = authService.getCurrentSession();
+            setEngineerSession(sess);
+            setIsAdminLoggedIn(true);
+            setActiveTab('developer');
+          } else if (type === 'admin') {
+            setEngineerSession(null);
+            setIsAdminLoggedIn(true);
+            setActiveTab('admin');
+          } else if (type === 'peserta') {
+            setEngineerSession(null);
+            setIsAdminLoggedIn(false);
+            if (details?.targetTab) {
+              setActiveTab(details.targetTab);
+            } else {
+              setActiveTab('pendaftaran');
+            }
+          }
+        }} 
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen flex bg-[#f0f4f9] text-[#10233d]">
       {/* Desktop Left Sidebar (Icon-Only Mode / Collapsed & Expandable) */}
@@ -177,6 +212,7 @@ export default function App() {
         onRefreshData={handleRefreshData}
         onOpenShare={() => setIsShareOpen(true)}
         onOpenHelp={() => setIsHelpOpen(true)}
+        onLogout={handleAdminLogout}
       />
 
       {/* Main Content Workspace with Sleek Top Header */}

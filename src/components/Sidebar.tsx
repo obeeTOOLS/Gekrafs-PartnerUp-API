@@ -13,7 +13,8 @@ import {
   HelpCircle,
   RefreshCw,
   Wifi,
-  WifiOff
+  WifiOff,
+  LogOut
 } from 'lucide-react';
 import { EngineerSession } from '../services/authService';
 import { UserRole } from '../types';
@@ -31,6 +32,7 @@ interface SidebarProps {
   onRefreshData: () => void;
   onOpenShare: () => void;
   onOpenHelp: () => void;
+  onLogout?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -45,7 +47,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   syncState,
   onRefreshData,
   onOpenShare,
-  onOpenHelp
+  onOpenHelp,
+  onLogout
 }) => {
   // Persisted state for collapsed / expanded mode
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
@@ -450,6 +453,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
           >
             <HelpCircle className="w-4 h-4" />
           </button>
+
+          {onLogout && (
+            <button
+              type="button"
+              onClick={onLogout}
+              title="Keluar dari Akun (Logout)"
+              className="p-1.5 rounded-lg text-rose-400 hover:text-white hover:bg-rose-500/20 transition-colors cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
     </aside>

@@ -9,7 +9,8 @@ import {
   ChevronRight,
   Maximize2,
   Minimize2,
-  Smartphone
+  Smartphone,
+  LogOut
 } from 'lucide-react';
 import { EngineerSession } from '../services/authService';
 import { UserRole } from '../types';
@@ -297,6 +298,17 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <HelpCircle className="w-3.5 h-3.5 text-blue-600" />
               <span className="hidden sm:inline">Bantuan</span>
+            </button>
+
+            {/* Logout Button */}
+            <button
+              type="button"
+              onClick={onAdminLogout}
+              title="Keluar dari Sistem (Logout)"
+              className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5 text-rose-600 flex-shrink-0" />
+              <span className="hidden sm:inline">Keluar</span>
             </button>
 
             {/* Mobile Engineer Access Shortcut */}
