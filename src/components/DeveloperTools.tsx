@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { gasService } from '../services/gasService';
 import { HEADLESS_GAS_CODE } from '../services/headlessGasCode';
 import { whatsappService } from '../services/whatsappService';
+import { authService } from '../services/authService';
 import { WhatsAppSettingsModal } from './WhatsAppSettingsModal';
 import { WhatsAppBroadcastModal } from './WhatsAppBroadcastModal';
 import { 
@@ -103,8 +104,17 @@ export const DeveloperTools: React.FC = () => {
           </div>
           <h1 className="text-2xl font-extrabold mt-1">Headless Google Apps Script Hub</h1>
           <p className="text-slate-300 text-xs sm:text-sm mt-1 leading-relaxed max-w-xl">
-            Kelola arsitektur headless hybrid antara Google Apps Script, Google Sheets, dan frontend React ini.
+            Kelola arsitektur headless hybrid antara Google Apps Script, Google Sheets, dan frontend React ini &middot; <strong className="text-emerald-300">Data langsung tersambung ke Google Spreadsheet</strong>
           </p>
+          {(() => {
+            const sess = authService.getCurrentSession();
+            return sess ? (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/20 text-purple-200 border border-purple-400/30 text-xs mt-2.5 font-medium">
+                <Terminal className="w-3.5 h-3.5 text-amber-300 flex-shrink-0" />
+                <span>Akses Penuh: <strong className="text-white">{sess.name}</strong> ({sess.email}) &middot; {sess.title}</span>
+              </div>
+            ) : null;
+          })()}
         </div>
 
         <a

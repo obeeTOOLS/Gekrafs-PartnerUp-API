@@ -316,8 +316,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Bottom Footer Section: Role Switcher & Profile */}
       <div className="p-2 border-t border-[#003866]/80 bg-[#001730] space-y-2">
-        {/* Quick Role Switcher for obeetools */}
-        {isObeeTools && (
+        {/* Quick Role Switcher for obeetools (Only visible in developer perspective) */}
+        {isObeeTools && (currentPerspective as string) === 'developer' && (
           <div className="p-1 rounded-xl bg-black/40 border border-purple-500/20">
             {!isCollapsed ? (
               <div>
@@ -397,8 +397,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
 
-        {/* Engineer Profile Button */}
-        {hasEngineerAccess && (
+        {/* Engineer Profile Button (Only visible in developer perspective) */}
+        {hasEngineerAccess && currentPerspective === 'developer' && (
           <button
             type="button"
             onClick={onOpenEngineerModal}

@@ -215,13 +215,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     if (result.success) {
       if (result.authType === 'engineer' && result.account) {
         onEngineerLogin?.(result.account.email);
+      } else {
+        onEngineerLogin?.('');
       }
       setIsAuthenticated(true);
       setAuthError(false);
       setAuthErrorMessage(null);
       if (result.account) {
         const accName = 'name' in result.account ? result.account.name : result.account.nama;
-        const accPeran = 'peran' in result.account ? result.account.peran : 'Lead Developer';
+        const accPeran = 'peran' in result.account ? result.account.peran : 'Kurator';
         setActiveAdminProfile({
           email: result.account.email,
           nama: accName,
@@ -232,22 +234,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     } else {
       setAuthError(true);
       setAuthErrorMessage(result.message);
-    }
-  };
-
-  const handleQuickEngineerLogin = (email: string) => {
-    const res = authService.loginWithEmail(email);
-    if (res.success && res.session) {
-      onEngineerLogin?.(email);
-      setIsAuthenticated(true);
-      setAuthError(false);
-      setAuthErrorMessage(null);
-      setActiveAdminProfile({
-        email: res.session.email,
-        nama: res.session.name,
-        peran: 'Lead Developer'
-      });
-      onLoginSuccess?.();
     }
   };
 
@@ -659,44 +645,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               Masuk Dashboard Kurator
             </button>
 
-            {/* Akses Cepat Tim Engineer Terdaftar */}
-            <div className="pt-3 border-t border-slate-100 space-y-2">
-              <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wide flex items-center justify-center gap-1">
-                <Terminal className="w-3.5 h-3.5 text-purple-600" />
-                <span>Akses Cepat Engineer Terdaftar:</span>
-              </div>
-              
-              <div className="grid grid-cols-1 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleQuickEngineerLogin('obeetools@gmail.com')}
-                  className="w-full py-2 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-900 text-xs font-bold transition-all flex items-center justify-between text-left"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-purple-600" />
-                    <span>obeetools@gmail.com</span>
-                  </div>
-                  <span className="text-[10px] bg-purple-200 text-purple-800 px-2 py-0.5 rounded font-semibold">
-                    Lead Developer
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleQuickEngineerLogin('loehendra@gmail.com')}
-                  className="w-full py-2 px-3 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-900 text-xs font-bold transition-all flex items-center justify-between text-left"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-blue-600" />
-                    <span>loehendra@gmail.com</span>
-                  </div>
-                  <span className="text-[10px] bg-blue-200 text-blue-800 px-2 py-0.5 rounded font-semibold">
-                    Engineer
-                  </span>
-                </button>
-              </div>
-            </div>
-
             {onNavigateToPublic && (
               <button
                 type="button"
@@ -749,19 +697,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
           <h1 className="text-lg sm:text-2xl font-black mt-1">Dashboard Kurator & Pimpinan</h1>
           <p className="text-[11px] sm:text-xs text-slate-300 mt-0.5">
-            Sesi Aktif: <strong className="text-white">{settingsForm.sesiAktif}</strong> &middot; Data langsung tersambung ke Google Spreadsheet
+            Sesi Aktif: <strong className="text-white">{settingsForm.sesiAktif}</strong>
+            {userRole === 'developer' && (
+              <span> &middot; Data langsung tersambung ke Google Spreadsheet</span>
+            )}
           </p>
-          {engineerSession ? (
+          {userRole === 'developer' && engineerSession && (
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-200 border border-purple-400/30 text-[11px] mt-1.5 font-medium">
               <Terminal className="w-3 h-3 text-amber-300 flex-shrink-0" />
               <span>Akses Penuh: <strong className="text-white">{engineerSession.name}</strong> ({engineerSession.email}) &middot; {engineerSession.title}</span>
             </div>
-          ) : activeAdminProfile ? (
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-200 border border-blue-400/30 text-[11px] mt-1.5 font-medium">
-              <UserCheck className="w-3 h-3 text-cyan-300 flex-shrink-0" />
-              <span>Login: <strong className="text-white">{activeAdminProfile.nama || activeAdminProfile.email}</strong> &middot; {activeAdminProfile.peran || 'Kurator'}</span>
-            </div>
-          ) : null}
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

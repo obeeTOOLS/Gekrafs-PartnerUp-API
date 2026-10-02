@@ -81,10 +81,26 @@ export default function App() {
 
     checkSync();
 
+    // Rahasia bagi Lead Developer untuk membuka konsol: Ctrl+Shift+D atau URL query ?dev=true
+    if (window.location.search.includes('dev=true') || window.location.search.includes('developer=1')) {
+      setIsEngineerModalOpen(true);
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.shiftKey || e.altKey) && (e.key === 'D' || e.key === 'd')) {
+        e.preventDefault();
+        setIsEngineerModalOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
     const interval = setInterval(() => {
       setSyncState(gasService.getSyncState());
     }, 4000);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   const handleRefreshData = async () => {
@@ -119,6 +135,7 @@ export default function App() {
 
   const handleAdminLoginSuccess = () => {
     setIsAdminLoggedIn(true);
+    setEngineerSession(authService.getCurrentSession());
   };
 
   const handleSwitchPerspective = (role: UserRole) => {
@@ -209,6 +226,7 @@ export default function App() {
 
           {activeTab === 'admin' && (
             <AdminDashboard 
+              userRole={currentPerspective === 'developer' ? 'developer' : 'admin'}
               engineerSession={engineerSession}
               onLoginSuccess={handleAdminLoginSuccess}
               onLogout={handleAdminLogout}
@@ -267,16 +285,18 @@ export default function App() {
                 Developed by Lalu Mahendra &middot; All Rights Reserved
               </span>
 
-              {/* Engineer access console shortcut */}
-              <button
-                type="button"
-                onClick={() => setIsEngineerModalOpen(true)}
-                title="Konsol Hak Akses Engineer & Pemilih Peran"
-                className="text-slate-400 hover:text-purple-600 transition-colors p-1 rounded cursor-pointer"
-                aria-label="Konsol Engineer"
-              >
-                <Terminal className="w-3.5 h-3.5" />
-              </button>
+              {/* Engineer access console shortcut - HANYA tampil jika sedang login sebagai peran Developer */}
+              {engineerSession && currentPerspective === 'developer' && (
+                <button
+                  type="button"
+                  onClick={() => setIsEngineerModalOpen(true)}
+                  title="Konsol Hak Akses Engineer & Pemilih Peran"
+                  className="text-slate-400 hover:text-purple-600 transition-colors p-1 rounded cursor-pointer"
+                  aria-label="Konsol Engineer"
+                >
+                  <Terminal className="w-3.5 h-3.5" />
+                </button>
+              )}
 
               {/* Discreet lock icon for authorized staff to access pass-gate */}
               <button

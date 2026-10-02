@@ -448,6 +448,9 @@ class AuthService {
       })
     );
 
+    // Bersihkan sesi engineer agar admin/kurator tidak dapat mengakses hak peran developer
+    this.clearEngineerSession();
+
     return {
       success: true,
       account: matchedAdmin,
@@ -553,6 +556,17 @@ class AuthService {
     session.activePerspective = newRole;
     this.saveSession(session);
     return session;
+  }
+
+  /**
+   * Bersihkan sesi engineer secara spesifik
+   */
+  public clearEngineerSession(): void {
+    try {
+      localStorage.removeItem(STORAGE_SESSION_KEY);
+    } catch (e) {
+      console.error('Error clearing engineer session', e);
+    }
   }
 
   /**
