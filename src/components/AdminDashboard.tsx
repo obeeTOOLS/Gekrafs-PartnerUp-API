@@ -61,8 +61,12 @@ import {
   Award,
   ShieldCheck,
   Bell,
-  Store
+  Store,
+  Compass
 } from 'lucide-react';
+
+import { StrategicRoadmapReview } from './StrategicRoadmapReview';
+import { taskService } from '../services/taskService';
 
 import { 
   EngineerSession, 
@@ -76,7 +80,7 @@ import {
 interface AdminDashboardProps {
   userRole?: UserRole;
   engineerSession?: EngineerSession | null;
-  initialTab?: 'timeline' | 'jadwal' | 'kehadiran' | 'peserta' | 'statistik' | 'pengaturan' | 'asesmen' | 'kolaborasi' | 'mentoring' | 'legalitas' | 'katalog';
+  initialTab?: 'timeline' | 'jadwal' | 'kehadiran' | 'peserta' | 'statistik' | 'pengaturan' | 'asesmen' | 'kolaborasi' | 'mentoring' | 'legalitas' | 'katalog' | 'tugas';
   onLogout?: () => void;
   onLoginSuccess?: () => void;
   onNavigateToPublic?: () => void;
@@ -93,7 +97,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onEngineerLogin
 }) => {
   const [activeTab, setActiveTab] = useState<
-    'timeline' | 'jadwal' | 'kehadiran' | 'peserta' | 'statistik' | 'pengaturan' | 'asesmen' | 'kolaborasi' | 'mentoring' | 'legalitas' | 'katalog'
+    'timeline' | 'jadwal' | 'kehadiran' | 'peserta' | 'statistik' | 'pengaturan' | 'asesmen' | 'kolaborasi' | 'mentoring' | 'legalitas' | 'katalog' | 'tugas'
   >(() => initialTab || 'peserta');
 
   const [sertifikatModalPeserta, setSertifikatModalPeserta] = useState<PesertaItem | null>(null);
@@ -828,6 +832,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       <div className="flex p-1 bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto scrollbar-none gap-1">
         {[
           { id: 'peserta', label: `Peserta (${pesertaList.length})`, icon: Users },
+          { id: 'tugas', label: `Lembar Aksi (${taskService.getAllTasks().length})`, icon: Compass },
           { id: 'asesmen', label: `Asesmen (${asesmenList.length})`, icon: ClipboardList },
           { id: 'statistik', label: 'Analitik Visual & Radar', icon: BarChart3 },
           { id: 'kolaborasi', label: 'Peta Kolaborasi', icon: Network },
@@ -1737,6 +1742,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* TAB: LEMBAR AKSI & TUGAS KURATOR */}
+      {activeTab === 'tugas' && (
+        <div className="space-y-4">
+          <StrategicRoadmapReview reviewerName={activeAdminProfile?.nama || 'Tim Kurator Gekrafs'} />
         </div>
       )}
 

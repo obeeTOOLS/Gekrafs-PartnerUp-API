@@ -47,6 +47,11 @@ const TAB_TITLES: Record<string, { title: string; subtitle: string; badge?: stri
     title: 'Asesmen Mandiri 5 Pilar',
     subtitle: 'Evaluasi Skala Kesiapan & Potensi UMKM'
   },
+  tugas: {
+    title: 'Lembar Aksi & Peta Jalan Bisnis',
+    subtitle: 'Strategic Intent & Matriks Inovasi Horizon 3x3 Usaha Anda',
+    badge: 'Tugas Sesi'
+  },
   kehadiran: {
     title: 'Presensi & Absensi QR',
     subtitle: 'Verifikasi Kehadiran Sesi Pembinaan'

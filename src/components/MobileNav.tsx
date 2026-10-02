@@ -6,7 +6,8 @@ import {
   QrCode, 
   ShieldCheck,
   Terminal,
-  Store
+  Store,
+  Compass
 } from 'lucide-react';
 import { EngineerSession } from '../services/authService';
 
@@ -31,7 +32,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
   const showDevTab = isEngineer && engineerSession.activePerspective === 'developer';
 
   // Total columns calculation for mobile bottom bar
-  const colCount = showDevTab ? 'grid-cols-7' : showAdminTab ? 'grid-cols-6' : 'grid-cols-5';
+  const colCount = showDevTab ? 'grid-cols-8' : showAdminTab ? 'grid-cols-7' : 'grid-cols-6';
 
   return (
     <nav 
@@ -100,6 +101,25 @@ export const MobileNav: React.FC<MobileNavProps> = ({
           }`}>
             Asesmen
           </span>
+        </button>
+
+        {/* Tab: Lembar Aksi / Peta Jalan */}
+        <button
+          type="button"
+          onClick={() => setActiveTab('tugas')}
+          className={`flex flex-col items-center justify-center h-full min-h-[48px] py-1 transition-all rounded-lg active:scale-95 ${
+            activeTab === 'tugas'
+              ? 'text-amber-600 font-bold'
+              : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <div className="relative">
+            <Compass className={`w-5 h-5 ${activeTab === 'tugas' ? 'stroke-[2.5] text-amber-600' : ''}`} />
+            {activeTab === 'tugas' && (
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-amber-600" />
+            )}
+          </div>
+          <span className="text-[10px] font-medium tracking-tight mt-1 leading-none">Aksi</span>
         </button>
 
         {/* Tab 4: Absensi */}

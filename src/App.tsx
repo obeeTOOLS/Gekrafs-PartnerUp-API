@@ -16,6 +16,7 @@ import { HelpModal } from './components/HelpModal';
 import { ShareModal } from './components/ShareModal';
 import { EngineerModal } from './components/EngineerModal';
 import { LoginPage } from './components/LoginPage';
+import { StrategicRoadmapForm } from './components/StrategicRoadmapForm';
 import { Check, Lock, Terminal } from 'lucide-react';
 
 export default function App() {
@@ -30,6 +31,7 @@ export default function App() {
     if (page === 'admin') return 'admin';
     if (page === 'grafik' || page === 'statistik' || page === 'analytics') return 'grafik';
     if (page === 'pengaturan' || page === 'settings' || page === 'akses') return 'pengaturan';
+    if (page === 'tugas' || page === 'roadmap' || page === 'aksi') return 'tugas';
     if (page === 'katalog' || page === 'direktori' || page === 'showcase') return 'katalog';
     if (page === 'info') return 'timeline';
     if (page === 'asesmen') return 'asesmen';
@@ -258,6 +260,10 @@ export default function App() {
 
           {activeTab === 'asesmen' && (
             <AsesmenMandiri onNavigateToRegister={() => setActiveTab('pendaftaran')} />
+          )}
+
+          {activeTab === 'tugas' && (
+            <StrategicRoadmapForm onBack={() => setActiveTab('pendaftaran')} />
           )}
 
           {activeTab === 'kehadiran' && (

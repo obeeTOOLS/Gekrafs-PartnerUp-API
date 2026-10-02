@@ -17,7 +17,8 @@ import {
   LogOut,
   BarChart3,
   Store,
-  Settings
+  Settings,
+  Compass
 } from 'lucide-react';
 import { EngineerSession } from '../services/authService';
 import { UserRole } from '../types';
@@ -91,6 +92,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       shortLabel: 'Asesmen',
       icon: ClipboardCheck,
       description: 'Penilaian 5 Pilar Usaha'
+    },
+    {
+      id: 'tugas',
+      label: 'Lembar Aksi',
+      shortLabel: 'Peta Aksi',
+      icon: Compass,
+      description: 'Roadmap & Strategi Bisnis'
     },
     {
       id: 'kehadiran',

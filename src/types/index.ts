@@ -244,3 +244,48 @@ export interface CertificateData {
   skorAsesmen: number;
   statusKelulusan: 'Lulus dengan Pujian' | 'Lulus Terverifikasi';
 }
+
+export interface HorizonMatrixItem {
+  recent: string;
+  midTerm: string;
+  longTerm: string;
+}
+
+export interface StrategicInnovationMatrix {
+  problemSolving: HorizonMatrixItem;
+  incremental: HorizonMatrixItem;
+  breakthrough: HorizonMatrixItem;
+}
+
+export interface StrategicCanvasTask {
+  id: string;
+  pesertaId?: string;
+  namaUsaha: string;
+  namaPemilik: string;
+  subsektor?: string;
+  whatsapp: string;
+  email?: string;
+  sesiPartnerUp: string;
+  
+  // Sisi 1: Strategic Intent (Pondasi Arah Usaha)
+  visi: string;
+  misi: string;
+  goal: string;
+  objective: string;
+  nilaiUsaha: string;
+  
+  // Sisi 2: Organizational Capability (Kapasitas Organisasi)
+  keahlianOrganisasi: string;
+  
+  // Sisi 3: Pengembangan Keahlian & Inovasi (Matriks 3x3)
+  matriks: StrategicInnovationMatrix;
+  
+  // Status & Penilaian Kurator
+  status: 'draft' | 'submitted' | 'reviewed' | 'revision';
+  nilai?: number;
+  catatanKurator?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
