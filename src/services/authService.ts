@@ -31,6 +31,7 @@ export interface EngineerSession {
   activePerspective: UserRole;
   canSwitchRoles: boolean;
   loggedInAt: number;
+  epoch?: number;
 }
 
 export type AdminRoleType = 'Kurator' | 'Panitia' | 'Pimpinan' | 'Admin Operasional' | 'Lead Developer';
@@ -109,10 +110,14 @@ const DEFAULT_ADMIN_WHITELIST: AdminAccount[] = [
   }
 ];
 
-const STORAGE_SESSION_KEY = 'gkf_engineer_session_v1';
+export const SYSTEM_BASE_EPOCH = 1759480000000;
+
+const STORAGE_SESSION_KEY = 'gkf_engineer_session_v2';
 const STORAGE_WHITELIST_KEY = 'gkf_admin_whitelist_v3';
-const STORAGE_ADMIN_AUTH_KEY = 'gkf_admin_auth';
-const STORAGE_PESERTA_SESSION_KEY = 'gkf_peserta_session_v1';
+const STORAGE_ADMIN_AUTH_KEY = 'gkf_admin_auth_v2';
+const STORAGE_PESERTA_SESSION_KEY = 'gkf_peserta_session_v2';
+const STORAGE_GLOBAL_EPOCH_KEY = 'gkf_global_auth_epoch_v2';
+export const STORAGE_FORCE_LOGOUT_EVENT = 'gkf_force_logout_event';
 
 export interface PesertaSession {
   namaUsaha: string;
@@ -120,6 +125,7 @@ export interface PesertaSession {
   namaPemilik?: string;
   isRegistered: boolean;
   loggedInAt: number;
+  epoch?: number;
 }
 
 class AuthService {
@@ -445,7 +451,8 @@ class AuthService {
       };
     }
 
-    // Catat sesi admin yang valid
+    // Catat sesi admin yang valid dengan Epoch Global
+    const currentEpoch = this.getGlobalEpoch();
     localStorage.setItem(
       STORAGE_ADMIN_AUTH_KEY,
       JSON.stringify({
@@ -453,6 +460,7 @@ class AuthService {
         nama: matchedAdmin.nama,
         peran: matchedAdmin.peran,
         isDefaultPassword: matchedAdmin.isDefaultPassword,
+        epoch: currentEpoch,
         expiresAt: Date.now() + 12 * 60 * 60 * 1000
       })
     );
@@ -470,18 +478,94 @@ class AuthService {
   }
 
   /**
+   * Mendapatkan Epoch Sesi Global saat ini.
+   * Setiap sesi yang memiliki epoch lebih rendah dari ini akan otomatis hangus (Force Logout).
+   */
+  public getGlobalEpoch(): number {
+    try {
+      const stored = localStorage.getItem(STORAGE_GLOBAL_EPOCH_KEY);
+      if (stored) {
+        const val = Number(stored);
+        if (!isNaN(val) && val > 0) {
+          return val;
+        }
+      }
+    } catch {}
+    return SYSTEM_BASE_EPOCH;
+  }
+
+  /**
+   * TRIGGER GLOBAL FORCE LOGOUT:
+   * Memutus seluruh sesi aktif di SEMUA perangkat & browser secara seketika.
+   * Siapa pun yang membuka aplikasi akan langsung diarahkan ke halaman Login.
+   */
+  public triggerGlobalForceLogout(reason: string = 'Reset sesi global oleh Lead Developer'): { success: boolean; newEpoch: number; message: string } {
+    const newEpoch = Date.now();
+    try {
+      localStorage.setItem(STORAGE_GLOBAL_EPOCH_KEY, String(newEpoch));
+      localStorage.setItem(
+        STORAGE_FORCE_LOGOUT_EVENT,
+        JSON.stringify({ epoch: newEpoch, reason, timestamp: newEpoch })
+      );
+
+      // Bersihkan sesi lokal di perangkat saat ini
+      this.clearAllSessions();
+
+      // Dispatch custom event untuk window lokal
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('gkf-force-logout', { detail: { epoch: newEpoch, reason } }));
+      }
+    } catch (e) {
+      console.error('Error triggering global force logout', e);
+    }
+
+    return {
+      success: true,
+      newEpoch,
+      message: 'Seluruh sesi pengguna di semua perangkat berhasil diputus dan di-reset. Semua pengguna sekarang wajib login ulang dengan email & PIN terdaftar.'
+    };
+  }
+
+  /**
    * Mendapatkan sesi engineer aktif saat ini
-   * TIDAK ADA AUTO-LOGIN: Jika belum login, selalu kembalikan null agar diarahkan ke halaman login.
+   * Ketat memeriksa Whitelist + Epoch Global + Email Resmi
    */
   public getCurrentSession(): EngineerSession | null {
     try {
+      // Bersihkan token legacy
+      localStorage.removeItem('gkf_engineer_session_v1');
+
       const raw = localStorage.getItem(STORAGE_SESSION_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed && parsed.email && AUTHORIZED_ENGINEERS[parsed.email.toLowerCase()]) {
-          return parsed as EngineerSession;
-        }
+      if (!raw) return null;
+
+      const parsed = JSON.parse(raw);
+      if (!parsed || !parsed.email) {
+        localStorage.removeItem(STORAGE_SESSION_KEY);
+        return null;
       }
+
+      // Validasi Epoch Global
+      const currentGlobalEpoch = this.getGlobalEpoch();
+      if (!parsed.epoch || parsed.epoch < currentGlobalEpoch) {
+        localStorage.removeItem(STORAGE_SESSION_KEY);
+        return null;
+      }
+
+      const cleanEmail = parsed.email.toLowerCase().trim();
+      if (!AUTHORIZED_ENGINEERS[cleanEmail]) {
+        localStorage.removeItem(STORAGE_SESSION_KEY);
+        return null;
+      }
+
+      // Pastikan engineer juga berstatus 'Aktif' di whitelist
+      const whitelist = this.getAdminWhitelist();
+      const matched = whitelist.find(a => a.email.toLowerCase() === cleanEmail);
+      if (!matched || matched.status !== 'Aktif') {
+        localStorage.removeItem(STORAGE_SESSION_KEY);
+        return null;
+      }
+
+      return parsed as EngineerSession;
     } catch (e) {
       console.error('Error reading engineer session', e);
     }
@@ -490,16 +574,50 @@ class AuthService {
 
   /**
    * Mendapatkan sesi admin terautentikasi (whitelist)
+   * WAJIB MEMVALIDASI:
+   * 1. Token versi baru (v2) dengan epoch valid
+   * 2. Expiration time belum lewat
+   * 3. EMAIL WAJIB TERDAFTAR DI WHITELIST DAN STATUS 'Aktif'
    */
-  public getAdminAuthSession(): { email: string; nama: string; peran: AdminRoleType; expiresAt: number } | null {
+  public getAdminAuthSession(): { email: string; nama: string; peran: AdminRoleType; expiresAt: number; epoch?: number } | null {
     try {
+      // Hapus token legacy tidak aman jika ada
+      localStorage.removeItem('gkf_admin_auth');
+
       const raw = localStorage.getItem(STORAGE_ADMIN_AUTH_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed && parsed.expiresAt > Date.now()) {
-          return parsed;
-        }
+      if (!raw) return null;
+
+      const parsed = JSON.parse(raw);
+      if (!parsed || !parsed.email) {
+        localStorage.removeItem(STORAGE_ADMIN_AUTH_KEY);
+        return null;
       }
+
+      // 1. Validasi Epoch Sesi Global
+      const currentGlobalEpoch = this.getGlobalEpoch();
+      if (!parsed.epoch || parsed.epoch < currentGlobalEpoch) {
+        localStorage.removeItem(STORAGE_ADMIN_AUTH_KEY);
+        return null;
+      }
+
+      // 2. Validasi Expiration
+      if (parsed.expiresAt <= Date.now()) {
+        localStorage.removeItem(STORAGE_ADMIN_AUTH_KEY);
+        return null;
+      }
+
+      // 3. KRUSIAL: Validasi email WAJIB TERDAFTAR DI WHITELIST DAN STATUS 'Aktif'
+      const cleanEmail = parsed.email.trim().toLowerCase();
+      const whitelist = this.getAdminWhitelist();
+      const matched = whitelist.find(a => a.email.toLowerCase() === cleanEmail);
+
+      if (!matched || matched.status !== 'Aktif') {
+        // Email ini sudah dicabut atau tidak terdaftar di whitelist!
+        localStorage.removeItem(STORAGE_ADMIN_AUTH_KEY);
+        return null;
+      }
+
+      return parsed;
     } catch {}
     return null;
   }
@@ -509,10 +627,26 @@ class AuthService {
    */
   public getPesertaSession(): PesertaSession | null {
     try {
+      // Hapus token legacy
+      localStorage.removeItem('gkf_peserta_session_v1');
+
       const raw = localStorage.getItem(STORAGE_PESERTA_SESSION_KEY);
-      if (raw) {
-        return JSON.parse(raw) as PesertaSession;
+      if (!raw) return null;
+
+      const parsed = JSON.parse(raw);
+      if (!parsed || !parsed.namaUsaha || !parsed.whatsapp) {
+        localStorage.removeItem(STORAGE_PESERTA_SESSION_KEY);
+        return null;
       }
+
+      // Validasi Epoch
+      const currentGlobalEpoch = this.getGlobalEpoch();
+      if (!parsed.epoch || parsed.epoch < currentGlobalEpoch) {
+        localStorage.removeItem(STORAGE_PESERTA_SESSION_KEY);
+        return null;
+      }
+
+      return parsed as PesertaSession;
     } catch {}
     return null;
   }
@@ -522,6 +656,8 @@ class AuthService {
    */
   public setPesertaSession(session: PesertaSession): void {
     try {
+      const currentEpoch = this.getGlobalEpoch();
+      session.epoch = currentEpoch;
       localStorage.setItem(STORAGE_PESERTA_SESSION_KEY, JSON.stringify(session));
     } catch {}
   }
@@ -532,6 +668,7 @@ class AuthService {
   public clearPesertaSession(): void {
     try {
       localStorage.removeItem(STORAGE_PESERTA_SESSION_KEY);
+      localStorage.removeItem('gkf_peserta_session_v1');
     } catch {}
   }
 
@@ -547,6 +684,8 @@ class AuthService {
    */
   public saveSession(session: EngineerSession): void {
     try {
+      const currentEpoch = this.getGlobalEpoch();
+      session.epoch = currentEpoch;
       localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(session));
       localStorage.setItem(
         STORAGE_ADMIN_AUTH_KEY,
@@ -554,6 +693,7 @@ class AuthService {
           email: session.email,
           nama: session.name,
           peran: 'Lead Developer',
+          epoch: currentEpoch,
           expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000, 
           engineer: session.email 
         })
@@ -577,12 +717,14 @@ class AuthService {
       };
     }
 
+    const currentEpoch = this.getGlobalEpoch();
     const session: EngineerSession = {
       email: profile.email,
       name: profile.name,
       title: profile.title,
       activePerspective: 'developer',
       canSwitchRoles: profile.canSwitchRoles,
+      epoch: currentEpoch,
       loggedInAt: Date.now()
     };
 
@@ -616,8 +758,27 @@ class AuthService {
   public clearEngineerSession(): void {
     try {
       localStorage.removeItem(STORAGE_SESSION_KEY);
+      localStorage.removeItem('gkf_engineer_session_v1');
     } catch (e) {
       console.error('Error clearing engineer session', e);
+    }
+  }
+
+  /**
+   * Membersihkan seluruh sesi di browser ini (Local Logout)
+   */
+  public clearAllSessions(): void {
+    try {
+      localStorage.removeItem(STORAGE_SESSION_KEY);
+      localStorage.removeItem(STORAGE_ADMIN_AUTH_KEY);
+      localStorage.removeItem(STORAGE_PESERTA_SESSION_KEY);
+      // Legacy cleanup
+      localStorage.removeItem('gkf_admin_auth');
+      localStorage.removeItem('gkf_engineer_session_v1');
+      localStorage.removeItem('gkf_peserta_session_v1');
+      localStorage.removeItem('gkf_admin_logged_in');
+    } catch (e) {
+      console.error('Error clearing all sessions', e);
     }
   }
 
@@ -625,13 +786,7 @@ class AuthService {
    * Logout (Membersihkan seluruh sesi pengguna)
    */
   public logout(): void {
-    try {
-      localStorage.removeItem(STORAGE_SESSION_KEY);
-      localStorage.removeItem(STORAGE_ADMIN_AUTH_KEY);
-      localStorage.removeItem(STORAGE_PESERTA_SESSION_KEY);
-    } catch (e) {
-      console.error('Error logging out', e);
-    }
+    this.clearAllSessions();
   }
 
   /**

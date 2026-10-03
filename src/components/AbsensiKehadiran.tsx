@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { gasService } from '../services/gasService';
-import { formatTanggalIndonesia, generateQrSvgUrl } from '../utils/qrUtils';
+import { formatTanggalIndonesia, generateQrSvgUrl, downloadBrandedQrPngFile } from '../utils/qrUtils';
 import { UserRole } from '../types';
-import { QrCode, Calendar, Clock, User, CheckCircle2, AlertCircle, Sparkles, Copy, Check } from 'lucide-react';
+import { QrCode, Calendar, Clock, User, CheckCircle2, AlertCircle, Sparkles, Copy, Check, Lock, ShieldCheck, Download } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { authService } from '../services/authService';
 
 interface AbsensiKehadiranProps {
   initialSesiId?: string;
@@ -14,15 +15,26 @@ export const AbsensiKehadiran: React.FC<AbsensiKehadiranProps> = ({ initialSesiI
   const jadwal = gasService.getJadwal();
   const registeredNames = gasService.getRegisteredBusinessNames();
 
+  const pesertaSession = authService.getPesertaSession();
+  const isPesertaLoggedIn = !!pesertaSession;
+
   const [selectedSesiId, setSelectedSesiId] = useState<string>(
     initialSesiId || (jadwal.length ? jadwal[0].idSesi : '')
   );
-  const [namaUsaha, setNamaUsaha] = useState('');
-  const [whatsapp, setWhatsapp] = useState('');
+  const [namaUsaha, setNamaUsaha] = useState(() => pesertaSession?.namaUsaha || '');
+  const [whatsapp, setWhatsapp] = useState(() => pesertaSession?.whatsapp || '');
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error' | 'already'; text: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [checkinSuccess, setCheckinSuccess] = useState<{ namaUsaha: string; topik: string } | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [isDownloadingQr, setIsDownloadingQr] = useState(false);
+
+  // Sinkronisasi jika initialSesiId berubah dari URL
+  React.useEffect(() => {
+    if (initialSesiId && initialSesiId !== selectedSesiId) {
+      setSelectedSesiId(initialSesiId);
+    }
+  }, [initialSesiId]);
 
   const selectedSesi = jadwal.find((j) => j.idSesi === selectedSesiId);
 
@@ -191,47 +203,66 @@ export const AbsensiKehadiran: React.FC<AbsensiKehadiranProps> = ({ initialSesiI
 
           {/* Form */}
           <form onSubmit={handleCheckin} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                Nama Usaha <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                list="namaUsahaDatalist"
-                placeholder="Ketik atau pilih nama usaha..."
-                value={namaUsaha}
-                onChange={(e) => setNamaUsaha(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-[#004c80] outline-none"
-              />
-              <datalist id="namaUsahaDatalist">
-                {registeredNames.map((name) => (
-                  <option key={name} value={name} />
-                ))}
-              </datalist>
-              <span className="text-[11px] text-slate-500">
-                Pilih dari daftar pendaftar atau ketik sesuai nama saat mendaftar
-              </span>
-            </div>
+            {isPesertaLoggedIn ? (
+              <div className="p-3.5 bg-gradient-to-r from-blue-50/90 to-amber-50/40 rounded-xl border border-blue-200 space-y-1">
+                <div className="text-[10px] font-bold text-blue-900 uppercase tracking-wider flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Lock className="w-3 h-3 text-blue-700" />
+                    Identitas Akun Peserta Anda
+                  </span>
+                  <span className="text-[10px] text-emerald-800 font-bold bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3 text-emerald-700" />
+                    Terkunci Otomatis
+                  </span>
+                </div>
+                <div className="text-base font-black text-[#001c3c]">{namaUsaha}</div>
+                <div className="text-xs text-slate-600 font-medium">WhatsApp: {whatsapp}</div>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    Nama Usaha <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    list="namaUsahaDatalist"
+                    placeholder="Ketik atau pilih nama usaha..."
+                    value={namaUsaha}
+                    onChange={(e) => setNamaUsaha(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-[#004c80] outline-none"
+                  />
+                  <datalist id="namaUsahaDatalist">
+                    {registeredNames.map((name) => (
+                      <option key={name} value={name} />
+                    ))}
+                  </datalist>
+                  <span className="text-[11px] text-slate-500">
+                    Pilih dari daftar pendaftar atau ketik sesuai nama saat mendaftar
+                  </span>
+                </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                Nomor WhatsApp <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="Nomor WhatsApp terdaftar (contoh: 081234567890)"
-                value={whatsapp}
-                onChange={(e) => setWhatsapp(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-[#004c80] outline-none"
-              />
-            </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    Nomor WhatsApp <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Nomor WhatsApp terdaftar (contoh: 081234567890)"
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-[#004c80] outline-none"
+                  />
+                </div>
+              </>
+            )}
 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#001c3c] to-[#004c80] text-white font-extrabold text-sm hover:opacity-95 transition-opacity shadow-md disabled:opacity-50"
+              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#001c3c] to-[#004c80] text-white font-extrabold text-sm hover:opacity-95 transition-opacity shadow-md disabled:opacity-50 cursor-pointer"
             >
               {isSubmitting ? 'Memeriksa Kehadiran...' : '✅ Catat Kehadiran Saya'}
             </button>
@@ -239,27 +270,81 @@ export const AbsensiKehadiran: React.FC<AbsensiKehadiranProps> = ({ initialSesiI
 
           {/* QR Code section for on-site display / sharing */}
           <div className="pt-4 border-t border-slate-100 text-center">
-            <details className="text-xs text-slate-600">
-              <summary className="cursor-pointer font-bold text-[#004c80] hover:underline">
-                Tampilkan QR Code & Tautan Check-in Sesi Ini
+            <details className="text-xs text-slate-600 group">
+              <summary className="cursor-pointer font-bold text-[#004c80] hover:underline flex items-center justify-center gap-1.5">
+                <QrCode className="w-3.5 h-3.5" />
+                <span>Tampilkan QR Code & Download Poster Presensi Sesi Ini</span>
               </summary>
-              <div className="mt-3 flex flex-col items-center p-4 bg-slate-50 rounded-xl border border-slate-200">
-                <img
-                  src={generateQrSvgUrl(checkinUrl, 160)}
-                  alt="QR Absensi Sesi"
-                  className="w-36 h-36 bg-white p-2 rounded-xl shadow-sm border border-slate-200"
-                />
+              <div className="mt-3 flex flex-col items-center p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                {/* Branded Card Mini Preview */}
+                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm relative text-center max-w-xs w-full">
+                  <div className="text-[10px] font-extrabold text-[#001c3c] mb-1">
+                    {selectedSesi?.topik || 'Presensi Sesi Pelatihan'}
+                  </div>
+
+                  <div className="relative inline-block mx-auto">
+                    <img
+                      src={generateQrSvgUrl(checkinUrl, 180)}
+                      alt="QR Absensi Sesi"
+                      className="w-36 h-36 bg-white p-1.5 rounded-xl border border-slate-200"
+                    />
+                    {/* Badge Tema di Tengah */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="w-10 h-10 rounded-lg bg-[#001c3c] border-2 border-[#ffc72c] ring-2 ring-white flex flex-col items-center justify-center shadow-md text-center">
+                        <span className="text-[6px] font-black text-white leading-tight">EKRAF</span>
+                        <span className="text-[5px] font-bold text-[#ffc72c]">BATU</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Di Bawah QR: Tulisan PartnerUp */}
+                  <div className="mt-2 pt-1 border-t border-slate-100">
+                    <span className="text-xs font-black text-[#001c3c] tracking-tight">PartnerUp</span>
+                  </div>
+                </div>
+
                 <p className="mt-2 text-[11px] text-slate-500 max-w-xs">
-                  Scan QR di atas dengan kamera HP peserta untuk langsung membuka halaman ini.
+                  Scan QR di atas dengan kamera HP peserta atau download file PNG untuk dicetak / dipajang di proyektor.
                 </p>
-                <button
-                  type="button"
-                  onClick={handleCopyLink}
-                  className="mt-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-300 font-bold text-slate-700 hover:bg-slate-100 text-xs"
-                >
-                  {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedLink ? 'Link Tersalin!' : 'Salin Tautan Check-in'}</span>
-                </button>
+
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-2 w-full max-w-xs">
+                  <button
+                    type="button"
+                    disabled={isDownloadingQr}
+                    onClick={async () => {
+                      if (!selectedSesi) return;
+                      const sesiIdx = jadwal.findIndex((j) => j.idSesi === selectedSesiId) + 1;
+                      setIsDownloadingQr(true);
+                      try {
+                        await downloadBrandedQrPngFile({
+                          url: checkinUrl,
+                          topik: selectedSesi.topik,
+                          nomorSesi: sesiIdx || undefined,
+                          tanggal: selectedSesi.tanggal ? formatTanggalIndonesia(selectedSesi.tanggal) : undefined,
+                          waktu: selectedSesi.waktu,
+                          pemateri: selectedSesi.pemateri
+                        });
+                      } catch (e) {
+                        console.error('Error downloading QR PNG', e);
+                      } finally {
+                        setIsDownloadingQr(false);
+                      }
+                    }}
+                    className="flex-1 min-w-[130px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold text-xs shadow-sm cursor-pointer disabled:opacity-50"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>{isDownloadingQr ? 'Menyiapkan...' : 'Download PNG'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleCopyLink}
+                    className="flex-1 min-w-[130px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-300 font-bold text-slate-700 hover:bg-slate-100 text-xs cursor-pointer"
+                  >
+                    {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedLink ? 'Link Tersalin!' : 'Salin Tautan'}</span>
+                  </button>
+                </div>
               </div>
             </details>
           </div>

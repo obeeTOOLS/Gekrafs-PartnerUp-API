@@ -17,10 +17,14 @@ import {
   Layers, 
   RefreshCw,
   FileText,
-  ChevronDown
+  ChevronDown,
+  Lock,
+  ShieldCheck,
+  ShieldAlert
 } from 'lucide-react';
 import { taskService } from '../services/taskService';
 import { gasService } from '../services/gasService';
+import { authService } from '../services/authService';
 import { StrategicCanvasTask, StrategicInnovationMatrix, PesertaItem } from '../types';
 
 interface StrategicRoadmapFormProps {
@@ -36,12 +40,34 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
 }) => {
   const registeredPeserta: PesertaItem[] = gasService.getPeserta();
 
+  // Deteksi sesi login aktif untuk pengamanan identitas peserta
+  const pesertaSession = authService.getPesertaSession();
+  const adminSession = authService.getAdminAuthSession();
+  const engineerSession = authService.getCurrentSession();
+  const isPrivilegedAdmin = !!(adminSession || (engineerSession && engineerSession.activePerspective !== 'peserta'));
+  const isPesertaLoggedIn = !!pesertaSession && !isPrivilegedAdmin;
+
   const [selectedNamaUsaha, setSelectedNamaUsaha] = useState<string>(() => {
+    if (isPesertaLoggedIn && pesertaSession?.namaUsaha) {
+      return pesertaSession.namaUsaha;
+    }
     return userNamaUsaha || (registeredPeserta.length > 0 ? registeredPeserta[0].namaUsaha : '');
   });
 
-  const [namaPemilik, setNamaPemilik] = useState('');
-  const [whatsapp, setWhatsapp] = useState(userWhatsapp || '');
+  const [namaPemilik, setNamaPemilik] = useState<string>(() => {
+    if (isPesertaLoggedIn && pesertaSession?.namaPemilik) {
+      return pesertaSession.namaPemilik;
+    }
+    return '';
+  });
+
+  const [whatsapp, setWhatsapp] = useState<string>(() => {
+    if (isPesertaLoggedIn && pesertaSession?.whatsapp) {
+      return pesertaSession.whatsapp;
+    }
+    return userWhatsapp || '';
+  });
+
   const [subsektor, setSubsektor] = useState('Kuliner');
   const [sesiPartnerUp, setSesiPartnerUp] = useState('Sesi 2');
 
@@ -339,64 +365,109 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
         
         {/* Identitas Usaha Peserta */}
         <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-4">
-          <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
-            <Building2 className="w-5 h-5 text-amber-500" />
-            <h2 className="text-sm font-extrabold text-[#001c3c] uppercase tracking-wider">
-              1. Identitas Usaha & Peserta
-            </h2>
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-2.5">
+              <Building2 className="w-5 h-5 text-amber-500" />
+              <h2 className="text-sm font-extrabold text-[#001c3c] uppercase tracking-wider">
+                1. Identitas Usaha & Peserta
+              </h2>
+            </div>
+            {isPesertaLoggedIn ? (
+              <span className="px-2.5 py-1 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 text-[10px] font-black flex items-center gap-1.5 shadow-2xs">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
+                Akun Terverifikasi & Terkunci
+              </span>
+            ) : isPrivilegedAdmin ? (
+              <span className="px-2.5 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-[10px] font-black flex items-center gap-1.5 shadow-2xs">
+                <ShieldAlert className="w-3.5 h-3.5 text-amber-700" />
+                Mode Kurator / Admin
+              </span>
+            ) : null}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            {/* Nama Usaha Selector / Input */}
-            <div className="sm:col-span-2 space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                <span>Nama Usaha UMKM *</span>
-                <span className="text-[10px] text-slate-400 font-normal">Pilih atau ketik</span>
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  list="registered-umkm-list"
-                  value={selectedNamaUsaha}
-                  onChange={(e) => setSelectedNamaUsaha(e.target.value)}
-                  placeholder="Contoh: Kripik Apel Batu Mandiri"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-[#001c3c] focus:outline-none focus:ring-2 focus:ring-amber-400"
-                  required
-                />
-                <datalist id="registered-umkm-list">
-                  {registeredPeserta.map((p, idx) => (
-                    <option key={idx} value={p.namaUsaha}>
-                      {p.namaPemilik} ({p.subsektor})
-                    </option>
-                  ))}
-                </datalist>
+          {isPesertaLoggedIn ? (
+            /* Tampilan Terkunci Khusus Peserta Login (Mencegah Salah Input / Overwrite Orang Lain) */
+            <div className="p-4 bg-gradient-to-r from-blue-50/90 via-slate-50 to-amber-50/40 rounded-2xl border border-blue-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-1.5">
+                <div className="text-[10px] font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1">
+                  <Lock className="w-3 h-3 text-blue-700" />
+                  <span>Identitas Usaha Resmi Anda:</span>
+                </div>
+                <div className="text-xl font-black text-[#001c3c] flex items-center gap-2">
+                  <span>{selectedNamaUsaha}</span>
+                  <span className="px-2 py-0.5 rounded-md bg-[#001c3c] text-amber-400 text-[10px] font-bold">
+                    {sesiPartnerUp}
+                  </span>
+                </div>
+                <div className="text-xs text-slate-600 font-medium flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5">
+                  <span>Pemilik: <strong className="text-slate-900">{namaPemilik || pesertaSession?.namaPemilik || 'Founder'}</strong></span>
+                  <span>•</span>
+                  <span>WhatsApp: <strong className="text-slate-900">{whatsapp || pesertaSession?.whatsapp}</strong></span>
+                  <span>•</span>
+                  <span>Subsektor: <strong className="text-amber-800">{subsektor}</strong></span>
+                </div>
+              </div>
+
+              <div className="text-[11px] text-slate-600 bg-white/90 p-3 rounded-xl border border-slate-200 shadow-2xs max-w-sm leading-relaxed">
+                🔒 <strong>Perlindungan Data:</strong> Formulir ini terkunci otomatis untuk akun usaha Anda. Tugas yang Anda simpan atau kirim tidak akan tertukar dengan peserta lain.
               </div>
             </div>
+          ) : (
+            /* Mode Kurator / Admin: Dapat Memilih UMKM Peserta */
+            <div className="space-y-3">
+              <div className="text-[11px] text-amber-900 bg-amber-50 p-2.5 rounded-xl border border-amber-200">
+                Pilih atau cari UMKM peserta yang ingin dilihat, dibantu pengisiannya, atau direview lembar aksinya:
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="sm:col-span-2 space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                    <span>Nama Usaha UMKM *</span>
+                    <span className="text-[10px] text-slate-400 font-normal">Pilih UMKM</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      list="registered-umkm-list"
+                      value={selectedNamaUsaha}
+                      onChange={(e) => setSelectedNamaUsaha(e.target.value)}
+                      placeholder="Contoh: Kripik Apel Batu Mandiri"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-[#001c3c] focus:outline-none focus:ring-2 focus:ring-amber-400"
+                      required
+                    />
+                    <datalist id="registered-umkm-list">
+                      {registeredPeserta.map((p, idx) => (
+                        <option key={idx} value={p.namaUsaha}>
+                          {p.namaPemilik} ({p.subsektor})
+                        </option>
+                      ))}
+                    </datalist>
+                  </div>
+                </div>
 
-            {/* Nama Pemilik */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">Nama Pemilik / Founder</label>
-              <input
-                type="text"
-                value={namaPemilik}
-                onChange={(e) => setNamaPemilik(e.target.value)}
-                placeholder="Nama Lengkap"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
-              />
-            </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">Nama Pemilik / Founder</label>
+                  <input
+                    type="text"
+                    value={namaPemilik}
+                    onChange={(e) => setNamaPemilik(e.target.value)}
+                    placeholder="Nama Lengkap"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  />
+                </div>
 
-            {/* WhatsApp */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">WhatsApp Aktif</label>
-              <input
-                type="text"
-                value={whatsapp}
-                onChange={(e) => setWhatsapp(e.target.value)}
-                placeholder="0812xxxx"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
-              />
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">WhatsApp Aktif</label>
+                  <input
+                    type="text"
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(e.target.value)}
+                    placeholder="0812xxxx"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  />
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* BAGIAN 1: PONDASI STRATEGIS (STRATEGIC INTENT - SESUAI GAMBAR 1) */}

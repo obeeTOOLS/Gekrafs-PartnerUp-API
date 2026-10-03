@@ -11,7 +11,8 @@ import {
   formatTanggalIndonesia, 
   formatTanggalPendek, 
   generateQrSvgUrl, 
-  toWaLink 
+  toWaLink,
+  downloadBrandedQrPngFile
 } from '../utils/qrUtils';
 import { ProfileModal } from './ProfileModal';
 import { PdfExportModal } from './PdfExportModal';
@@ -62,7 +63,9 @@ import {
   ShieldCheck,
   Bell,
   Store,
-  Compass
+  Compass,
+  AlertTriangle,
+  Download
 } from 'lucide-react';
 
 import { StrategicRoadmapReview } from './StrategicRoadmapReview';
@@ -117,29 +120,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [newAdminNama, setNewAdminNama] = useState('');
   const [newAdminPeran, setNewAdminPeran] = useState<AdminRoleType>('Kurator');
   const [activeAdminProfile, setActiveAdminProfile] = useState<{ email?: string; nama?: string; peran?: string } | null>(() => {
-    try {
-      const raw = localStorage.getItem('gkf_admin_auth');
-      if (raw) return JSON.parse(raw);
-    } catch {}
-    return null;
+    if (engineerSession) {
+      return {
+        email: engineerSession.email,
+        nama: engineerSession.name,
+        peran: 'Lead Developer'
+      };
+    }
+    return authService.getAdminAuthSession();
   });
 
-  // Strict Auth gate state - requires valid admin passcode OR active authorized engineer
+  // Strict Auth gate state - requires valid admin whitelist session OR active authorized engineer
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     // If already authenticated as authorized engineer, bypass immediately!
     if (engineerSession && authService.isAuthorizedEngineer(engineerSession.email)) {
       return true;
     }
-    const session = localStorage.getItem('gkf_admin_auth');
-    if (session) {
-      try {
-        const data = JSON.parse(session);
-        return data.expiresAt > Date.now();
-      } catch {
-        return false;
-      }
-    }
-    return false;
+    return authService.getAdminAuthSession() !== null;
   });
 
   // Login form state (Email + Password)
@@ -168,9 +165,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [pesertaSearch, setPesertaSearch] = useState('');
   const [selectedPesertaForModal, setSelectedPesertaForModal] = useState<PesertaItem | null>(null);
 
+  // Global Force Logout Modal State
+  const [isForceLogoutModalOpen, setIsForceLogoutModalOpen] = useState(false);
+  const [forceLogoutToast, setForceLogoutToast] = useState<string | null>(null);
+
+  const handleTriggerGlobalForceLogout = () => {
+    const actor = engineerSession?.email || activeAdminProfile?.email || 'Lead Developer';
+    const res = authService.triggerGlobalForceLogout(`Force logout global oleh ${actor}`);
+    setForceLogoutToast(res.message);
+    setIsForceLogoutModalOpen(false);
+    setTimeout(() => {
+      onLogout?.();
+      window.location.reload();
+    }, 1500);
+  };
+
   // WhatsApp Broadcast & Settings modals
   const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
   const [isWhatsAppSettingsModalOpen, setIsWhatsAppSettingsModalOpen] = useState(false);
+  const [isDownloadingQr, setIsDownloadingQr] = useState(false);
 
   // Forms states
   const [timelineForm, setTimelineForm] = useState<Partial<TimelineItem>>({
@@ -1357,34 +1370,108 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </select>
               </div>
 
-              {selectedKehadiranSesiId && (
-                <div className="text-center space-y-3">
-                  <img
-                    src={generateQrSvgUrl(
-                      `${window.location.origin}?page=kehadiran&sesi_id=${selectedKehadiranSesiId}`,
-                      220
-                    )}
-                    alt="QR Code"
-                    className="w-48 h-48 mx-auto bg-white p-2 rounded-xl border border-slate-200 shadow-sm"
-                  />
-                  <div className="text-xs font-mono text-slate-500 truncate max-w-full">
-                    {window.location.origin}?page=kehadiran&sesi_id={selectedKehadiranSesiId}
+              {selectedKehadiranSesiId && (() => {
+                const currentSesiObj = jadwal.find((s) => s.idSesi === selectedKehadiranSesiId);
+                const currentSesiIdx = jadwal.findIndex((s) => s.idSesi === selectedKehadiranSesiId) + 1;
+                const checkinUrl = `${window.location.origin}?page=kehadiran&sesi_id=${selectedKehadiranSesiId}`;
+
+                return (
+                  <div className="text-center space-y-3 animate-in fade-in">
+                    {/* Branded QR Code Container */}
+                    <div className="bg-white p-4 rounded-2xl border-2 border-slate-200 shadow-md relative group">
+                      {/* Badge Sesi di atas QR */}
+                      <div className="mb-2.5">
+                        <span className="text-[10px] font-black uppercase tracking-wider bg-[#001c3c] text-[#ffc72c] px-3 py-0.5 rounded-full inline-block shadow-xs">
+                          {currentSesiIdx ? `SESI ${currentSesiIdx}` : 'PELATIHAN RESMI'}
+                        </span>
+                        <h4 className="text-xs font-extrabold text-[#001c3c] mt-1 line-clamp-1">
+                          {currentSesiObj?.topik || 'Presensi Pelatihan'}
+                        </h4>
+                      </div>
+
+                      {/* Gambar QR Code dengan Lencana Tema di Tengah */}
+                      <div className="relative inline-block mx-auto">
+                        <img
+                          src={generateQrSvgUrl(checkinUrl, 260)}
+                          alt="QR Code Presensi"
+                          className="w-48 h-48 sm:w-52 sm:h-52 mx-auto bg-white p-2 rounded-xl border border-slate-200 shadow-inner"
+                        />
+                        {/* Lencana Tema Pelatihan di Tengah QR */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="w-14 h-14 rounded-2xl bg-[#001c3c] border-2 border-[#ffc72c] ring-4 ring-white flex flex-col items-center justify-center shadow-lg text-center px-1">
+                            <span className="text-[7px] font-bold text-[#ffc72c] uppercase tracking-tighter">PELATIHAN</span>
+                            <span className="text-[9px] font-black text-white leading-tight line-clamp-1">
+                              {currentSesiIdx ? `SESI ${currentSesiIdx}` : 'EKRAF'}
+                            </span>
+                            <span className="text-[6px] font-semibold text-slate-300">BATU</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Di Bawah QR: Tulisan PartnerUp */}
+                      <div className="mt-3 pt-2.5 border-t border-slate-100">
+                        <div className="text-lg font-black text-[#001c3c] tracking-tight flex items-center justify-center gap-1">
+                          <span>PartnerUp</span>
+                          <span className="w-2 h-2 rounded-full bg-[#ffc72c]" />
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-medium">
+                          Arahkan kamera HP ke QR Code untuk mencatat kehadiran
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-[11px] font-mono text-slate-500 truncate max-w-full px-1">
+                      {checkinUrl}
+                    </div>
+
+                    {/* Tombol Aksi: Download PNG & Salin Tautan */}
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        disabled={isDownloadingQr}
+                        onClick={async () => {
+                          if (!currentSesiObj) return;
+                          setIsDownloadingQr(true);
+                          try {
+                            await downloadBrandedQrPngFile({
+                              url: checkinUrl,
+                              topik: currentSesiObj.topik,
+                              nomorSesi: currentSesiIdx || undefined,
+                              tanggal: currentSesiObj.tanggal ? formatTanggalIndonesia(currentSesiObj.tanggal) : undefined,
+                              waktu: currentSesiObj.waktu,
+                              pemateri: currentSesiObj.pemateri,
+                              lokasi: currentSesiObj.lokasi
+                            });
+                            showToast('QR Code format PNG berhasil di-download!');
+                          } catch (e) {
+                            console.error('Error downloading QR PNG', e);
+                            showToast('Gagal men-download QR Code.');
+                          } finally {
+                            setIsDownloadingQr(false);
+                          }
+                        }}
+                        className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 active:scale-98 text-white text-xs font-black rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span>{isDownloadingQr ? 'Menyiapkan File PNG...' : 'Download QR Code (PNG)'}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(checkinUrl);
+                          setCopiedLink(true);
+                          setTimeout(() => setCopiedLink(false), 2000);
+                        }}
+                        className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                        <span>{copiedLink ? 'Tautan Tersalin' : 'Salin Tautan Check-in'}</span>
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(
-                        `${window.location.origin}?page=kehadiran&sesi_id=${selectedKehadiranSesiId}`
-                      );
-                      setCopiedLink(true);
-                      setTimeout(() => setCopiedLink(false), 2000);
-                    }}
-                    className="w-full py-2 bg-[#001c3c] hover:bg-[#004c80] text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5"
-                  >
-                    {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{copiedLink ? 'Tautan Tersalin' : 'Salin Tautan Check-in'}</span>
-                  </button>
-                </div>
-              )}
+                );
+              })()}
             </div>
 
             <div className="md:col-span-2 space-y-4">
@@ -1840,6 +1927,45 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           {/* SECTION MODEL 2: KONTROL WHITELIST EMAIL ADMIN */}
           <div className="pt-6 border-t border-slate-200 space-y-5">
+            {/* Global Force Logout & Session Invalidation Card */}
+            <div className="bg-gradient-to-r from-rose-50 via-amber-50/40 to-rose-50/70 border border-rose-200/90 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse" />
+                  <span className="text-xs font-black text-rose-900 uppercase tracking-wider">
+                    Sistem Keamanan Sesi Global
+                  </span>
+                  <span className="text-[10px] bg-rose-100 text-rose-800 font-mono font-bold px-2 py-0.5 rounded-full border border-rose-200">
+                    Whitelist Enforced
+                  </span>
+                </div>
+                <h4 className="text-sm font-extrabold text-[#001c3c]">
+                  Reset Sesi & Keluarkan Semua Pengguna (Force Logout Global)
+                </h4>
+                <p className="text-xs text-slate-600 max-w-2xl leading-relaxed">
+                  Jika terdapat pengguna atau perangkat lama yang masih membuka aplikasi, Anda dapat memutus dan mengeluarkan (force logout) seluruh sesi login di semua HP & laptop secara seketika. Seluruh pengguna wajib masuk ulang menggunakan <strong>Email & Password/PIN</strong> akun terdaftar.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsForceLogoutModalOpen(true)}
+                  className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white text-xs font-black rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Force Logout Semua Perangkat</span>
+                </button>
+              </div>
+            </div>
+
+            {forceLogoutToast && (
+              <div className="p-3 bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-bold rounded-xl flex items-center gap-2 animate-in fade-in">
+                <Check className="w-4 h-4 text-emerald-600" />
+                <span>{forceLogoutToast}</span>
+              </div>
+            )}
+
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-[#eaf2fb] p-4 rounded-xl border border-blue-200">
               <div>
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#004c80]">
@@ -2226,6 +2352,47 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             setEditingUmkmPeserta(null);
           }}
         />
+      )}
+
+      {/* Modal Konfirmasi Force Logout Global */}
+      {isForceLogoutModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-rose-200 space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+
+            <div className="text-center space-y-2">
+              <h3 className="text-base font-extrabold text-[#001c3c]">
+                Reset Sesi & Putus Semua Akses?
+              </h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Tindakan ini akan <strong>mencabut seluruh sesi login</strong> di semua HP dan laptop pengguna. Siapa pun yang sedang membuka aplikasi akan langsung diarahkan keluar ke halaman Login dan harus memasukkan <strong>Email & Password/PIN</strong> akun terdaftar.
+              </p>
+              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-left text-[11px] text-amber-900 font-medium">
+                💡 <strong>Catatan:</strong> Hanya <strong>{adminWhitelist.filter(a => a.status === 'Aktif').length} akun admin aktif</strong> yang ada di whitelist saat ini yang akan bisa login kembali.
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setIsForceLogoutModalOpen(false)}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleTriggerGlobalForceLogout}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black shadow-md transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Ya, Force Logout Semua Sekarang</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

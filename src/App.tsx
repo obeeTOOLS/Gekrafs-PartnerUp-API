@@ -58,14 +58,7 @@ export default function App() {
     if (authService.getCurrentSession()) {
       return true;
     }
-    try {
-      const session = localStorage.getItem('gkf_admin_auth');
-      if (session) {
-        const data = JSON.parse(session);
-        return data.expiresAt > Date.now();
-      }
-    } catch {}
-    return false;
+    return authService.getAdminAuthSession() !== null;
   });
 
   const [syncState, setSyncState] = useState(gasService.getSyncState());
@@ -76,6 +69,31 @@ export default function App() {
 
   // Auto-sync interval and initial pull if local storage is fresh
   useEffect(() => {
+    // Sinkronisasi Sesi Global: Tangani Force Logout dari perangkat lain
+    const handleForceLogoutEvent = () => {
+      setIsAuthenticated(false);
+      setIsAdminLoggedIn(false);
+      setEngineerSession(null);
+    };
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (
+        e.key === 'gkf_global_auth_epoch_v2' || 
+        e.key === 'gkf_force_logout_event' || 
+        e.key === 'gkf_admin_auth_v2' ||
+        e.key === 'gkf_engineer_session_v2' ||
+        e.key === 'gkf_peserta_session_v2'
+      ) {
+        const anyUser = authService.isAnyUserLoggedIn();
+        setIsAuthenticated(anyUser);
+        setIsAdminLoggedIn(!!authService.getCurrentSession() || !!authService.getAdminAuthSession());
+        setEngineerSession(authService.getCurrentSession());
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('gkf-force-logout', handleForceLogoutEvent);
+
     const checkSync = async () => {
       const lastSync = localStorage.getItem('gkf_last_sync_v2');
       if (!lastSync) {
@@ -111,6 +129,8 @@ export default function App() {
     return () => {
       clearInterval(interval);
       window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('gkf-force-logout', handleForceLogoutEvent);
     };
   }, []);
 
@@ -135,7 +155,6 @@ export default function App() {
   };
 
   const handleAdminLogout = () => {
-    localStorage.removeItem('gkf_admin_auth');
     authService.logout();
     setIsAdminLoggedIn(false);
     setEngineerSession(null);
