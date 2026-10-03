@@ -24,6 +24,7 @@ import { LegalitasTracker } from './LegalitasTracker';
 import { SertifikatKelulusanModal } from './SertifikatKelulusanModal';
 import { KatalogDirektori } from './KatalogDirektori';
 import { EditUmkmModal } from './EditUmkmModal';
+import { IndonesianDatePicker } from './IndonesianDatePicker';
 import { whatsappService } from '../services/whatsappService';
 import { 
   Milestone, 
@@ -1570,11 +1571,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Tanggal</label>
-              <input
-                type="date"
+              <IndonesianDatePicker
                 value={jadwalForm.tanggal}
-                onChange={(e) => setJadwalForm({ ...jadwalForm, tanggal: e.target.value })}
-                className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg outline-none"
+                onChange={(val) => setJadwalForm({ ...jadwalForm, tanggal: val })}
               />
             </div>
             <div>
@@ -1739,20 +1738,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Tanggal Mulai</label>
-              <input
-                type="date"
+              <IndonesianDatePicker
                 value={timelineForm.tanggalMulai}
-                onChange={(e) => setTimelineForm({ ...timelineForm, tanggalMulai: e.target.value })}
-                className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg outline-none"
+                onChange={(val) => setTimelineForm({ ...timelineForm, tanggalMulai: val })}
               />
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Tanggal Selesai</label>
-              <input
-                type="date"
+              <IndonesianDatePicker
                 value={timelineForm.tanggalSelesai}
-                onChange={(e) => setTimelineForm({ ...timelineForm, tanggalSelesai: e.target.value })}
-                className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg outline-none"
+                onChange={(val) => setTimelineForm({ ...timelineForm, tanggalSelesai: val })}
               />
             </div>
           </div>
@@ -1866,11 +1861,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
                 Batas Akhir Pendaftaran
               </label>
-              <input
-                type="date"
+              <IndonesianDatePicker
                 value={settingsForm.registrationDeadline}
-                onChange={(e) => setSettingsForm({ ...settingsForm, registrationDeadline: e.target.value })}
-                className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg outline-none"
+                onChange={(val) => setSettingsForm({ ...settingsForm, registrationDeadline: val })}
               />
             </div>
           </div>
@@ -1880,11 +1873,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
                 Tanggal Buka Asesmen Mandiri
               </label>
-              <input
-                type="date"
+              <IndonesianDatePicker
                 value={settingsForm.assessmentOpenDate}
-                onChange={(e) => setSettingsForm({ ...settingsForm, assessmentOpenDate: e.target.value })}
-                className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg outline-none"
+                onChange={(val) => setSettingsForm({ ...settingsForm, assessmentOpenDate: val })}
               />
             </div>
 
@@ -1892,11 +1883,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
                 Tanggal Tutup Asesmen Mandiri
               </label>
-              <input
-                type="date"
+              <IndonesianDatePicker
                 value={settingsForm.assessmentCloseDate}
-                onChange={(e) => setSettingsForm({ ...settingsForm, assessmentCloseDate: e.target.value })}
-                className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg outline-none"
+                onChange={(val) => setSettingsForm({ ...settingsForm, assessmentCloseDate: val })}
               />
             </div>
           </div>
