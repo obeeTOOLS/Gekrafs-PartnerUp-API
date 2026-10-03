@@ -197,6 +197,30 @@ function doPost(e) {
       case 'setModeUjicoba':
         return createJsonResponse(setModeUjicoba(payload.aktif));
 
+      case 'setSettings':
+        const s = payload.settings || {};
+        if (s.sesiAktif) setSesiAktif(s.sesiAktif);
+        if (s.registrationDeadline) {
+          setRegistrationDeadline(s.registrationDeadline);
+          try {
+            const tlSheet = getSpreadsheet().getSheetByName(SHEET_TIMELINE);
+            if (tlSheet) {
+              const tlRows = tlSheet.getDataRange().getValues();
+              for (let r = 1; r < tlRows.length; r++) {
+                if (String(tlRows[r][1] || '').toLowerCase().includes('pendaftaran') || Number(tlRows[r][0]) === 1) {
+                  tlSheet.getRange(r + 1, 4).setValue(s.registrationDeadline);
+                  break;
+                }
+              }
+            }
+          } catch (e) {}
+        }
+        if (s.assessmentOpenDate || s.assessmentCloseDate) {
+          setAssessmentWindow(s.assessmentOpenDate, s.assessmentCloseDate);
+        }
+        if (s.modeUjicoba !== undefined) setModeUjicoba(s.modeUjicoba);
+        return createJsonResponse({ status: 'success', message: 'Pengaturan dan sheet Timeline berhasil diselaraskan.' });
+
       default:
         return createJsonResponse({ status: 'error', message: 'Aksi tidak dikenali: ' + action });
     }

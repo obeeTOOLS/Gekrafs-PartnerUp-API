@@ -345,7 +345,8 @@ class GasService {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      // Memberikan waktu hingga 20 detik untuk cold-start Apps Script & eksekusi spreadsheet lock
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
 
       const response = await fetch(this.settings.gasEndpointUrl, {
         method: 'POST',
@@ -997,9 +998,22 @@ class GasService {
 
   public saveSettings(newSettings: Partial<AppSettings>): { status: string; message: string } {
     this.settings = { ...this.settings, ...newSettings };
+
+    // Jika batas akhir pendaftaran diubah, selaraskan otomatis dengan baris Timeline "Pendaftaran"
+    if (newSettings.registrationDeadline) {
+      const regDate = newSettings.registrationDeadline;
+      const targetTimeline = this.timeline.find(
+        (t) => t.tahapan.toLowerCase().includes('pendaftaran') || Number(t.urutan) === 1
+      );
+      if (targetTimeline) {
+        targetTimeline.tanggalSelesai = regDate;
+        this.dispatchRemoteAction('saveTimelineItem', { item: targetTimeline });
+      }
+    }
+
     this.saveToStorage();
     this.dispatchRemoteAction('setSettings', { settings: this.settings });
-    return { status: 'success', message: 'Pengaturan berhasil disimpan!' };
+    return { status: 'success', message: 'Pengaturan berhasil disimpan dan diselaraskan ke Google Sheets!' };
   }
 
   // --- Backup / Export Methods ---
