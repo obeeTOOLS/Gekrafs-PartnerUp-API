@@ -244,9 +244,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                     />
                     <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
                   </div>
-                  <span className="text-[10px] text-slate-400 mt-1 block">
-                    Lead Dev: <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-600">obeetools@gmail.com</code>
-                  </span>
                 </div>
 
                 <div>
