@@ -54,6 +54,12 @@ const BAGIAN_3_KATEGORI = [
 ];
 
 function getSpreadsheet() {
+  try {
+    const active = SpreadsheetApp.getActiveSpreadsheet();
+    if (active && active.getId()) {
+      return active;
+    }
+  } catch (e) {}
   return SpreadsheetApp.openById(SPREADSHEET_ID);
 }
 
@@ -379,15 +385,31 @@ function getTimeline() {
 
 function saveTimelineItem(item) {
   const sheet = getOrCreateSheet(SHEET_TIMELINE);
-  if (item.row && item.row >= 2) {
-    sheet.getRange(item.row, 1, 1, 5).setValues([[
+  const rows = sheet.getDataRange().getValues();
+  let targetRow = item.row ? Number(item.row) : 0;
+
+  // Jika row tidak valid atau tidak cocok, cari baris berdasarkan urutan atau nama tahapan
+  if (!targetRow || targetRow < 2 || targetRow > rows.length) {
+    for (let i = 1; i < rows.length; i++) {
+      if (
+        (item.urutan !== undefined && Number(rows[i][0]) === Number(item.urutan)) ||
+        (item.tahapan && String(rows[i][1] || '').toLowerCase().trim() === String(item.tahapan).toLowerCase().trim())
+      ) {
+        targetRow = i + 1;
+        break;
+      }
+    }
+  }
+
+  if (targetRow >= 2 && targetRow <= sheet.getLastRow()) {
+    sheet.getRange(targetRow, 1, 1, 5).setValues([[
       item.urutan || 1,
       item.tahapan || '',
       item.tanggalMulai || '',
       item.tanggalSelesai || '',
       item.keterangan || ''
     ]]);
-    return { status: 'success', message: 'Tahapan timeline berhasil diperbarui.' };
+    return { status: 'success', message: 'Tahapan timeline baris ' + targetRow + ' berhasil diperbarui.' };
   } else {
     sheet.appendRow([
       item.urutan || sheet.getLastRow(),

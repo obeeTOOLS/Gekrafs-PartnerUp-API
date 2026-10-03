@@ -69,7 +69,8 @@ import {
   AlertTriangle,
   Download,
   FileText,
-  FileEdit
+  FileEdit,
+  AlertCircle
 } from 'lucide-react';
 
 import { StrategicRoadmapReview } from './StrategicRoadmapReview';
@@ -200,6 +201,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     keterangan: ''
   });
   const [editingTimelineRow, setEditingTimelineRow] = useState<number | null>(null);
+  const [isSavingTimeline, setIsSavingTimeline] = useState(false);
+  const [timelineFeedback, setTimelineFeedback] = useState<{ type: 'success' | 'warning' | 'error'; message: string } | null>(null);
 
   const [jadwalForm, setJadwalForm] = useState<Partial<JadwalItem>>({
     tanggal: '',
@@ -389,24 +392,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   // Timeline Handlers
-  const handleSaveTimeline = () => {
+  const handleSaveTimeline = async () => {
     if (!timelineForm.tahapan) {
       alert('Nama tahapan wajib diisi.');
       return;
     }
-    const res = gasService.saveTimelineItem({
-      ...timelineForm,
-      row: editingTimelineRow || undefined
-    });
-    showToast(res.message);
-    setTimelineForm({ urutan: 1, tahapan: '', tanggalMulai: '', tanggalSelesai: '', keterangan: '' });
-    setEditingTimelineRow(null);
+    setIsSavingTimeline(true);
+    setTimelineFeedback(null);
+    try {
+      const res = await gasService.saveTimelineItem({
+        ...timelineForm,
+        row: editingTimelineRow || undefined
+      });
+      showToast(res.message);
+      setTimelineFeedback({
+        type: res.status as any,
+        message: res.message
+      });
+      setTimelineForm({ urutan: 1, tahapan: '', tanggalMulai: '', tanggalSelesai: '', keterangan: '' });
+      setEditingTimelineRow(null);
+    } catch (err: any) {
+      setTimelineFeedback({
+        type: 'error',
+        message: `Gagal mengirim ke Google Apps Script: ${err.message || 'Error jaringan'}`
+      });
+    } finally {
+      setIsSavingTimeline(false);
+    }
   };
 
-  const handleDeleteTimeline = (row?: number) => {
+  const handleDeleteTimeline = async (row?: number) => {
     if (!row) return;
     if (confirm('Hapus tahapan timeline ini?')) {
-      const res = gasService.deleteTimelineItem(row);
+      const res = await gasService.deleteTimelineItem(row);
       showToast(res.message);
     }
   };
@@ -1729,11 +1747,57 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* TAB 7: TIMELINE (CRUD) */}
       {activeTab === 'timeline' && (
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-6">
-          <div className="border-b border-slate-100 pb-3">
-            <h2 className="text-base font-extrabold text-[#001c3c]">
-              {editingTimelineRow ? 'Edit Tahapan Timeline' : 'Tambah Tahapan Timeline'}
-            </h2>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div>
+              <h2 className="text-base font-extrabold text-[#001c3c]">
+                {editingTimelineRow ? 'Edit Tahapan Timeline' : 'Tambah Tahapan Timeline'}
+              </h2>
+              <p className="text-xs text-slate-500">
+                Setiap perubahan tahapan disinkronkan langsung ke sheet <strong>Timeline</strong> di Google Spreadsheet.
+              </p>
+            </div>
+
+            {/* Target GAS URL Indicator */}
+            <div className="flex items-center gap-2 text-[11px] bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-slate-600 font-mono truncate max-w-[220px]" title={gasService.getSettings().gasEndpointUrl || 'Belum diatur'}>
+                {gasService.getSettings().gasEndpointUrl ? 'Tersambung ke GAS' : 'URL GAS Belum Diatur'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setActiveTab('dev' as any)}
+                className="text-[#004c80] hover:underline font-bold ml-1 cursor-pointer"
+              >
+                Cek Endpoint
+              </button>
+            </div>
           </div>
+
+          {/* Sync Feedback Alert */}
+          {timelineFeedback && (
+            <div
+              className={`p-3.5 rounded-xl text-xs flex items-center gap-2.5 animate-in fade-in font-medium ${
+                timelineFeedback.type === 'success'
+                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                  : timelineFeedback.type === 'error'
+                  ? 'bg-rose-50 text-rose-800 border border-rose-200'
+                  : 'bg-amber-50 text-amber-800 border border-amber-200'
+              }`}
+            >
+              {timelineFeedback.type === 'success' ? (
+                <Check className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+              )}
+              <div className="flex-1">{timelineFeedback.message}</div>
+              <button
+                onClick={() => setTimelineFeedback(null)}
+                className="text-slate-400 hover:text-slate-600 text-sm font-bold px-1"
+              >
+                &times;
+              </button>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div>
@@ -1784,9 +1848,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <div className="flex gap-2">
             <button
               onClick={handleSaveTimeline}
-              className="px-4 py-2 bg-[#001c3c] hover:bg-[#004c80] text-white text-xs font-bold rounded-lg transition-colors"
+              disabled={isSavingTimeline}
+              className="px-4 py-2 bg-[#001c3c] hover:bg-[#004c80] disabled:bg-slate-400 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5"
             >
-              {editingTimelineRow ? 'Perbarui Tahapan' : 'Simpan Tahapan'}
+              {isSavingTimeline && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+              <span>
+                {isSavingTimeline
+                  ? 'Menyinkronkan ke Google Sheet...'
+                  : editingTimelineRow
+                  ? 'Perbarui Tahapan'
+                  : 'Simpan Tahapan'}
+              </span>
             </button>
             {editingTimelineRow && (
               <button
@@ -1794,7 +1866,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   setEditingTimelineRow(null);
                   setTimelineForm({ urutan: 1, tahapan: '', tanggalMulai: '', tanggalSelesai: '', keterangan: '' });
                 }}
-                className="px-3 py-2 bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg"
+                disabled={isSavingTimeline}
+                className="px-3 py-2 bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-300 disabled:opacity-50"
               >
                 Batal Edit
               </button>

@@ -340,13 +340,18 @@ class GasService {
   // --- Remote Call Helper (Non-blocking background sync) ---
   private async dispatchRemoteAction(action: string, payload: any = {}): Promise<any> {
     if (!this.settings.autoSync || !this.settings.gasEndpointUrl) {
+      console.warn('[GAS Sync] Sinkronisasi otomatis mati atau URL endpoint belum diisi.', {
+        autoSync: this.settings.autoSync,
+        gasEndpointUrl: this.settings.gasEndpointUrl
+      });
       return null;
     }
 
     try {
+      console.log(`[GAS Sync] Mengirim aksi '${action}' ke:`, this.settings.gasEndpointUrl, payload);
       const controller = new AbortController();
-      // Memberikan waktu hingga 20 detik untuk cold-start Apps Script & eksekusi spreadsheet lock
-      const timeoutId = setTimeout(() => controller.abort(), 20000);
+      // Memberikan waktu hingga 25 detik untuk cold-start Apps Script & eksekusi spreadsheet lock
+      const timeoutId = setTimeout(() => controller.abort(), 25000);
 
       const response = await fetch(this.settings.gasEndpointUrl, {
         method: 'POST',
@@ -361,11 +366,15 @@ class GasService {
 
       if (response.ok) {
         const json = await response.json();
+        console.log(`[GAS Sync] Respon sukses untuk aksi '${action}':`, json);
         this.syncStatus = 'online';
-        this.syncMessage = 'Sinkron ke GAS';
+        this.syncMessage = 'Sinkron ke GAS Berhasil';
         return json;
+      } else {
+        console.error(`[GAS Sync] Server merespon dengan status ${response.status}`);
       }
-    } catch {
+    } catch (err: any) {
+      console.error(`[GAS Sync] Gagal mengirim aksi '${action}':`, err);
       this.syncStatus = 'offline';
       this.syncMessage = 'Mode Cache Lokal (Offline)';
     }
@@ -408,32 +417,56 @@ class GasService {
     return [...this.timeline].sort((a, b) => Number(a.urutan) - Number(b.urutan));
   }
 
-  public saveTimelineItem(item: Partial<TimelineItem>): { status: string; message: string } {
+  public async saveTimelineItem(item: Partial<TimelineItem>): Promise<{ status: string; message: string; remoteResult?: any }> {
+    let savedItem: TimelineItem;
     if (item.row) {
       const index = this.timeline.findIndex((t) => t.row === item.row);
       if (index !== -1) {
         this.timeline[index] = { ...this.timeline[index], ...item } as TimelineItem;
+        savedItem = this.timeline[index];
+      } else {
+        savedItem = item as TimelineItem;
       }
     } else {
       const newRow = this.timeline.length ? Math.max(...this.timeline.map((t) => t.row || 0)) + 1 : 2;
-      this.timeline.push({
+      savedItem = {
         row: newRow,
         urutan: item.urutan || this.timeline.length + 1,
         tahapan: item.tahapan || 'Tahapan Baru',
         tanggalMulai: item.tanggalMulai || '',
         tanggalSelesai: item.tanggalSelesai || '',
         keterangan: item.keterangan || ''
-      });
+      };
+      this.timeline.push(savedItem);
     }
     this.saveToStorage();
-    this.dispatchRemoteAction('saveTimelineItem', { item });
-    return { status: 'success', message: 'Tahapan timeline berhasil disimpan!' };
+
+    const remoteRes = await this.dispatchRemoteAction('saveTimelineItem', { item: savedItem });
+    if (remoteRes && remoteRes.status === 'success') {
+      return {
+        status: 'success',
+        message: `Tahapan timeline berhasil disimpan & disinkronkan ke Google Sheet! (${remoteRes.message || 'OK'})`,
+        remoteResult: remoteRes
+      };
+    } else if (remoteRes && remoteRes.status === 'error') {
+      return {
+        status: 'error',
+        message: `Tersimpan di lokal, tapi Google Sheet merespon error: ${remoteRes.message}`,
+        remoteResult: remoteRes
+      };
+    } else {
+      return {
+        status: 'warning',
+        message: `Tersimpan di cache lokal. Belum ada konfirmasi dari Google Apps Script (Periksa URL & koneksi).`,
+        remoteResult: null
+      };
+    }
   }
 
-  public deleteTimelineItem(row: number): { status: string; message: string } {
+  public async deleteTimelineItem(row: number): Promise<{ status: string; message: string }> {
     this.timeline = this.timeline.filter((t) => t.row !== row);
     this.saveToStorage();
-    this.dispatchRemoteAction('deleteTimelineItem', { row });
+    await this.dispatchRemoteAction('deleteTimelineItem', { row });
     return { status: 'success', message: 'Tahapan timeline dihapus.' };
   }
 
