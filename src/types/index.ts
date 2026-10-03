@@ -257,6 +257,29 @@ export interface StrategicInnovationMatrix {
   breakthrough: HorizonMatrixItem;
 }
 
+export interface TaskQuestionDef {
+  id: string;
+  kategori?: string;
+  label: string;
+  petunjuk?: string;
+  placeholder?: string;
+  tipe: 'textarea' | 'text';
+  wajib: boolean;
+}
+
+export interface TaskModuleDef {
+  id: string;
+  nomorPelatihan: number;
+  judulModul: string;
+  subJudul?: string;
+  keterangan: string;
+  aktif: boolean;
+  includeMatrix3x3: boolean;
+  pertanyaan: TaskQuestionDef[];
+  tanggalDibuat?: string;
+  diperbaruiOleh?: string;
+}
+
 export interface StrategicCanvasTask {
   id: string;
   pesertaId?: string;
@@ -266,6 +289,8 @@ export interface StrategicCanvasTask {
   whatsapp: string;
   email?: string;
   sesiPartnerUp: string;
+  moduleId?: string;
+  jawabanDinamis?: Record<string, string>;
   
   // Sisi 1: Strategic Intent (Pondasi Arah Usaha)
   visi: string;

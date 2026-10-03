@@ -24,11 +24,13 @@ import { StrategicCanvasTask } from '../types';
 interface StrategicRoadmapReviewProps {
   reviewerName?: string;
   onOpenPesertaForm?: (namaUsaha: string) => void;
+  onOpenQuestionEditor?: () => void;
 }
 
 export const StrategicRoadmapReview: React.FC<StrategicRoadmapReviewProps> = ({
   reviewerName = 'Tim Kurator Gekrafs',
-  onOpenPesertaForm
+  onOpenPesertaForm,
+  onOpenQuestionEditor
 }) => {
   const [tasks, setTasks] = useState<StrategicCanvasTask[]>(() => taskService.getAllTasks());
   const [searchQuery, setSearchQuery] = useState('');
@@ -109,6 +111,27 @@ export const StrategicRoadmapReview: React.FC<StrategicRoadmapReviewProps> = ({
           {toast}
         </div>
       )}
+
+      {/* Header Info & Action */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs">
+        <div>
+          <h2 className="text-base font-extrabold text-[#001c3c]">
+            Review & Penilaian Lembar Aksi Peserta
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Periksa hasil tugas peserta, berikan skor kelulusan, dan kirimkan umpan balik via WhatsApp.
+          </p>
+        </div>
+        {onOpenQuestionEditor && (
+          <button
+            type="button"
+            onClick={onOpenQuestionEditor}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 text-xs font-bold transition-all cursor-pointer whitespace-nowrap self-start"
+          >
+            <span>📝 Kelola & Tambah Soal Tugas</span>
+          </button>
+        )}
+      </div>
 
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

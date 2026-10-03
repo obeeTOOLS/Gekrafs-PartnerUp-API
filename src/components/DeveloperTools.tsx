@@ -12,6 +12,7 @@ import { WhatsAppSettingsModal } from './WhatsAppSettingsModal';
 import { WhatsAppBroadcastModal } from './WhatsAppBroadcastModal';
 import { ExecutiveDossier } from './ExecutiveDossier';
 import { PanduanHakAksesPdfModal } from './PanduanHakAksesPdfModal';
+import { TaskQuestionEditor } from './TaskQuestionEditor';
 import { 
   Terminal, 
   Copy, 
@@ -27,6 +28,7 @@ import {
   FileSpreadsheet,
   FileCheck,
   FileText,
+  FileEdit,
   MessageSquare,
   Settings,
   Smartphone,
@@ -45,7 +47,7 @@ import {
 } from 'lucide-react';
 
 export const DeveloperTools: React.FC = () => {
-  const [devView, setDevView] = useState<'accounts' | 'dossier' | 'tools'>('accounts');
+  const [devView, setDevView] = useState<'accounts' | 'questions' | 'dossier' | 'tools'>('accounts');
   const [copiedCode, setCopiedCode] = useState(false);
   const [testUrl, setTestUrl] = useState(gasService.getSettings().gasEndpointUrl);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; latency?: number } | null>(null);
@@ -280,7 +282,20 @@ export const DeveloperTools: React.FC = () => {
           }`}
         >
           <Shield className="w-4 h-4 text-purple-400" />
-          <span>Akun Developer & Kelola PIN</span>
+          <span>Akun Developer & PIN</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setDevView('questions')}
+          className={`flex-1 py-3 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            devView === 'questions'
+              ? 'bg-[#001c3c] text-white shadow-md'
+              : 'text-slate-700 hover:bg-white/60'
+          }`}
+        >
+          <FileEdit className="w-4 h-4 text-blue-400" />
+          <span>Kelola Soal Tugas</span>
         </button>
 
         <button
@@ -293,7 +308,7 @@ export const DeveloperTools: React.FC = () => {
           }`}
         >
           <BookOpen className="w-4 h-4 text-amber-400" />
-          <span>Panduan Eksekutif & SOP</span>
+          <span>Panduan Eksekutif</span>
         </button>
 
         <button
@@ -306,7 +321,7 @@ export const DeveloperTools: React.FC = () => {
           }`}
         >
           <Wrench className="w-4 h-4 text-emerald-400" />
-          <span>Endpoint GAS & Live Sync</span>
+          <span>Endpoint GAS & Sync</span>
         </button>
       </div>
 
@@ -451,6 +466,12 @@ export const DeveloperTools: React.FC = () => {
               </p>
             </div>
           </div>
+        </div>
+      )}
+
+      {devView === 'questions' && (
+        <div className="space-y-4 animate-in fade-in">
+          <TaskQuestionEditor userRole="developer" />
         </div>
       )}
 

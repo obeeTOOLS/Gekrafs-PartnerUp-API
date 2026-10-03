@@ -23,9 +23,10 @@ import {
   ShieldAlert
 } from 'lucide-react';
 import { taskService } from '../services/taskService';
+import { taskConfigService } from '../services/taskConfigService';
 import { gasService } from '../services/gasService';
 import { authService } from '../services/authService';
-import { StrategicCanvasTask, StrategicInnovationMatrix, PesertaItem } from '../types';
+import { StrategicCanvasTask, StrategicInnovationMatrix, PesertaItem, TaskModuleDef, TaskQuestionDef } from '../types';
 
 interface StrategicRoadmapFormProps {
   onBack?: () => void;
@@ -39,6 +40,11 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
   userWhatsapp = ''
 }) => {
   const registeredPeserta: PesertaItem[] = gasService.getPeserta();
+
+  // Modul & Pertanyaan Tugas Dinamis dari taskConfigService
+  const [modules, setModules] = useState<TaskModuleDef[]>(() => taskConfigService.getModules());
+  const [activeModule, setActiveModule] = useState<TaskModuleDef>(() => taskConfigService.getActiveModule());
+  const [jawabanDinamis, setJawabanDinamis] = useState<Record<string, string>>({});
 
   // Deteksi sesi login aktif untuk pengamanan identitas peserta
   const pesertaSession = authService.getPesertaSession();
@@ -98,6 +104,16 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
   const [lastSaved, setLastSaved] = useState<string>('');
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
+  // Sync dengan perubahan konfigurasi soal dari Portal Kurator
+  useEffect(() => {
+    const handleConfigUpdate = () => {
+      setModules(taskConfigService.getModules());
+      setActiveModule(taskConfigService.getActiveModule());
+    };
+    window.addEventListener('gkf-task-config-updated', handleConfigUpdate);
+    return () => window.removeEventListener('gkf-task-config-updated', handleConfigUpdate);
+  }, []);
+
   // Load existing task data when selectedNamaUsaha changes
   useEffect(() => {
     if (!selectedNamaUsaha) return;
@@ -128,6 +144,18 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
       if (existing.matriks) {
         setMatriks(existing.matriks);
       }
+      if (existing.jawabanDinamis) {
+        setJawabanDinamis(existing.jawabanDinamis);
+      } else {
+        setJawabanDinamis({
+          visi: existing.visi || '',
+          misi: existing.misi || '',
+          goal: existing.goal || '',
+          objective: existing.objective || '',
+          nilaiUsaha: existing.nilaiUsaha || '',
+          keahlianOrganisasi: existing.keahlianOrganisasi || ''
+        });
+      }
       setCurrentStatus(existing.status);
       setNilai(existing.nilai);
       setCatatanKurator(existing.catatanKurator || '');
@@ -147,12 +175,23 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
         incremental: { recent: '', midTerm: '', longTerm: '' },
         breakthrough: { recent: '', midTerm: '', longTerm: '' }
       });
+      setJawabanDinamis({});
       setCurrentStatus('draft');
       setNilai(undefined);
       setCatatanKurator('');
       setReviewedBy('');
     }
   }, [selectedNamaUsaha]);
+
+  const handleAnswerChange = (questionId: string, val: string) => {
+    setJawabanDinamis(prev => ({ ...prev, [questionId]: val }));
+    if (questionId === 'visi') setVisi(val);
+    if (questionId === 'misi') setMisi(val);
+    if (questionId === 'goal') setGoal(val);
+    if (questionId === 'objective') setObjective(val);
+    if (questionId === 'nilaiUsaha') setNilaiUsaha(val);
+    if (questionId === 'keahlianOrganisasi') setKeahlianOrganisasi(val);
+  };
 
   const handleMatrixChange = (
     row: 'problemSolving' | 'incremental' | 'breakthrough',
@@ -181,12 +220,14 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
       whatsapp,
       subsektor,
       sesiPartnerUp,
-      visi,
-      misi,
-      goal,
-      objective,
-      nilaiUsaha,
-      keahlianOrganisasi,
+      moduleId: activeModule.id,
+      jawabanDinamis,
+      visi: jawabanDinamis['visi'] || visi,
+      misi: jawabanDinamis['misi'] || misi,
+      goal: jawabanDinamis['goal'] || goal,
+      objective: jawabanDinamis['objective'] || objective,
+      nilaiUsaha: jawabanDinamis['nilaiUsaha'] || nilaiUsaha,
+      keahlianOrganisasi: jawabanDinamis['keahlianOrganisasi'] || keahlianOrganisasi,
       matriks
     });
 
@@ -205,10 +246,17 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
       return;
     }
 
-    if (!visi.trim() || !misi.trim() || !goal.trim() || !objective.trim()) {
+    // Validasi pertanyaan wajib dari activeModule
+    const missing = activeModule.pertanyaan.filter(q => {
+      if (!q.wajib) return false;
+      const val = (jawabanDinamis[q.id] || (q.id === 'visi' ? visi : q.id === 'misi' ? misi : q.id === 'goal' ? goal : q.id === 'objective' ? objective : ''))?.trim();
+      return !val;
+    });
+
+    if (missing.length > 0) {
       setNotification({ 
         type: 'error', 
-        message: 'Mohon lengkapi minimal Visi, Misi, Goal, dan Objective SMART sebelum mengirimkan ke kurator.' 
+        message: `Mohon lengkapi pertanyaan wajib: "${missing[0].label}" sebelum mengirimkan ke kurator.` 
       });
       return;
     }
@@ -220,12 +268,14 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
       whatsapp,
       subsektor,
       sesiPartnerUp,
-      visi,
-      misi,
-      goal,
-      objective,
-      nilaiUsaha,
-      keahlianOrganisasi,
+      moduleId: activeModule.id,
+      jawabanDinamis,
+      visi: jawabanDinamis['visi'] || visi,
+      misi: jawabanDinamis['misi'] || misi,
+      goal: jawabanDinamis['goal'] || goal,
+      objective: jawabanDinamis['objective'] || objective,
+      nilaiUsaha: jawabanDinamis['nilaiUsaha'] || nilaiUsaha,
+      keahlianOrganisasi: jawabanDinamis['keahlianOrganisasi'] || keahlianOrganisasi,
       matriks
     });
 
@@ -265,13 +315,13 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 text-xs font-extrabold uppercase tracking-wider border border-amber-400/30">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Modul Aksi: Fondasi Strategi Bisnis</span>
+              <span>{activeModule.judulModul}</span>
             </div>
             <h1 className="text-xl sm:text-3xl font-extrabold text-white tracking-tight">
-              Lembar Kerja & Peta Jalan Bisnis
+              {activeModule.subJudul || 'Lembar Kerja & Peta Jalan Bisnis'}
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
-              Formulasikan arah masa depan usaha Anda melalui pendekatan <strong>Strategic Intent</strong> dan <strong>Innovation Horizon Matrix 3x3</strong> sesuai bimbingan kurator resmi GEKRAFS Kota Batu.
+              {activeModule.keterangan}
             </p>
           </div>
 
@@ -470,141 +520,89 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
           )}
         </div>
 
-        {/* BAGIAN 1: PONDASI STRATEGIS (STRATEGIC INTENT - SESUAI GAMBAR 1) */}
-        <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-5">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <div className="flex items-center gap-2.5">
-              <Compass className="w-5 h-5 text-[#001c3c]" />
-              <div>
-                <h2 className="text-sm font-extrabold text-[#001c3c] uppercase tracking-wider">
-                  2. Fondasi Arah Usaha (Strategic Intent)
-                </h2>
-                <p className="text-[11px] text-slate-500">Definisikan masa depan, alasan berdiri, dan target 90 hari usaha Anda.</p>
+        {/* PERTANYAAN TUGAS MODUL DINAMIS */}
+        {(() => {
+          // Kelompokkan pertanyaan berdasarkan kategori
+          const groups: Record<string, TaskQuestionDef[]> = {};
+          activeModule.pertanyaan.forEach((q) => {
+            const kat = q.kategori || 'Pertanyaan & Lembar Kerja';
+            if (!groups[kat]) groups[kat] = [];
+            groups[kat].push(q);
+          });
+
+          return Object.entries(groups).map(([kategoriName, qList], groupIdx) => (
+            <div key={kategoriName} className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-5">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2.5">
+                  <Compass className="w-5 h-5 text-[#001c3c]" />
+                  <div>
+                    <h2 className="text-sm font-extrabold text-[#001c3c] uppercase tracking-wider">
+                      {groupIdx + 2}. {kategoriName}
+                    </h2>
+                    <p className="text-[11px] text-slate-500">
+                      Jawab pertanyaan tugas berikut sesuai kondisi dan target usaha Anda.
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold px-2.5 py-1 bg-amber-100 text-amber-900 rounded-lg">
+                  Bagian {groupIdx + 1}
+                </span>
+              </div>
+
+              <div className="space-y-4">
+                {qList.map((q) => {
+                  const val = jawabanDinamis[q.id] !== undefined
+                    ? jawabanDinamis[q.id]
+                    : (q.id === 'visi' ? visi : q.id === 'misi' ? misi : q.id === 'goal' ? goal : q.id === 'objective' ? objective : q.id === 'nilaiUsaha' ? nilaiUsaha : q.id === 'keahlianOrganisasi' ? keahlianOrganisasi : '');
+
+                  return (
+                    <div key={q.id} className="space-y-1.5">
+                      <label className="text-xs font-black text-[#001c3c] flex items-center justify-between">
+                        <span>
+                          {q.label} {q.wajib && <span className="text-rose-600 font-bold">*</span>}
+                        </span>
+                        {q.petunjuk && (
+                          <span className="text-[10px] text-slate-400 font-normal hidden sm:inline">
+                            {q.petunjuk}
+                          </span>
+                        )}
+                      </label>
+
+                      {q.tipe === 'textarea' ? (
+                        <textarea
+                          value={val}
+                          onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+                          rows={3}
+                          placeholder={q.placeholder || 'Tuliskan jawaban Anda di sini...'}
+                          className="w-full p-3 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400 leading-relaxed bg-white font-medium"
+                          required={q.wajib}
+                        />
+                      ) : (
+                        <input
+                          type="text"
+                          value={val}
+                          onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+                          placeholder={q.placeholder || 'Tuliskan jawaban Anda di sini...'}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white font-medium"
+                          required={q.wajib}
+                        />
+                      )}
+
+                      {q.petunjuk && (
+                        <p className="text-[10px] text-slate-400 italic">
+                          💡 Tips: {q.petunjuk}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
-            <span className="text-[10px] font-bold px-2.5 py-1 bg-amber-100 text-amber-900 rounded-lg">
-              Lembar 1
-            </span>
-          </div>
+          ));
+        })()}
 
-          <div className="space-y-4">
-            {/* Visi */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-black text-[#001c3c] flex items-center justify-between">
-                <span>Visi : Gambaran Masa Depan *</span>
-                <span className="text-[10px] text-slate-400 font-normal">Arah jangka panjang 3-5 tahun</span>
-              </label>
-              <textarea
-                value={visi}
-                onChange={(e) => setVisi(e.target.value)}
-                rows={3}
-                placeholder="Contoh: Menjadi produsen camilan olahan apel sehat dan higienis nomor satu di Jawa Timur pada tahun 2028."
-                className="w-full p-3 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400 leading-relaxed"
-                required
-              />
-              <p className="text-[10px] text-slate-400 italic">
-                💡 Tips: Bayangkan posisi terbaik bisnis Anda 3-5 tahun dari sekarang.
-              </p>
-            </div>
-
-            {/* Misi */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-black text-[#001c3c] flex items-center justify-between">
-                <span>Misi : Apa yang Dilakukan & Kepada Siapa *</span>
-                <span className="text-[10px] text-slate-400 font-normal">Pemberian nilai tambah</span>
-              </label>
-              <textarea
-                value={misi}
-                onChange={(e) => setMisi(e.target.value)}
-                rows={3}
-                placeholder="Contoh: Mengolah buah apel petani lokal Kota Batu menjadi produk bernilai tambah tinggi yang lezat, higienis, dan aman dikonsumsi seluruh keluarga."
-                className="w-full p-3 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400 leading-relaxed"
-                required
-              />
-              <p className="text-[10px] text-slate-400 italic">
-                💡 Tips: Jelaskan produk/layanan yang Anda kerjakan dan segmen siapa yang Anda bantu.
-              </p>
-            </div>
-
-            {/* Goal / Sasaran */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-black text-[#001c3c] flex items-center justify-between">
-                <span>Goal / Sasaran : Target yang Menentukan Arah *</span>
-                <span className="text-[10px] text-slate-400 font-normal">Arah capaian besar</span>
-              </label>
-              <textarea
-                value={goal}
-                onChange={(e) => setGoal(e.target.value)}
-                rows={2}
-                placeholder="Contoh: Membangun ekosistem pasokan apel stabil 2 ton/bulan dan jaringan distribusi ke 20 toko oleh-oleh se-Malang Raya."
-                className="w-full p-3 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400 leading-relaxed"
-                required
-              />
-            </div>
-
-            {/* Objective SMART */}
-            <div className="space-y-1.5 bg-amber-50/60 p-4 rounded-xl border border-amber-200">
-              <label className="text-xs font-black text-[#001c3c] flex items-center justify-between">
-                <span className="text-amber-900">Objective : Target Eksekusi (SMART, 3 Bulan) *</span>
-                <span className="text-[10px] text-amber-700 font-bold">Target Konkret 90 Hari</span>
-              </label>
-              <textarea
-                value={objective}
-                onChange={(e) => setObjective(e.target.value)}
-                rows={3}
-                placeholder="Contoh: Meningkatkan omzet sebesar 25% dalam 90 hari dengan membuka 5 mitra reseller baru dan meluncurkan kemasan baru bersertifikasi Halal."
-                className="w-full p-3 rounded-xl border border-amber-300 bg-white text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 leading-relaxed font-medium"
-                required
-              />
-              <p className="text-[10px] text-amber-800 leading-relaxed">
-                🎯 <strong>Format SMART:</strong> Spesifik (apa produknya), Terukur (angka % atau rupiah), Dapat Dicapai, Relevan dengan pasar, dan Berbatas Waktu (3 bulan).
-              </p>
-            </div>
-
-            {/* Nilai-nilai dalam Usaha */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-black text-[#001c3c] flex items-center justify-between">
-                <span>Nilai-nilai dalam Usaha (Core Values)</span>
-                <span className="text-[10px] text-slate-400 font-normal">Prinsip & etika kerja</span>
-              </label>
-              <textarea
-                value={nilaiUsaha}
-                onChange={(e) => setNilaiUsaha(e.target.value)}
-                rows={2}
-                placeholder="Contoh: Kemitraan Petani Lokal, Kualitas Tanpa Pengawet, Kejujuran Timbangan, Pelayanan Ramah & Amanah."
-                className="w-full p-3 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400 leading-relaxed"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* BAGIAN 2: KAPASITAS ORGANISASI & KEAHLIAN (SESUAI GAMBAR 2) */}
-        <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-4">
-          <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
-            <User className="w-5 h-5 text-indigo-600" />
-            <div>
-              <h2 className="text-sm font-extrabold text-[#001c3c] uppercase tracking-wider">
-                3. Keahlian Organisasi (Organizational Capability)
-              </h2>
-              <p className="text-[11px] text-slate-500">Kekuatan dan kompetensi kunci yang sudah dimiliki tim Anda saat ini.</p>
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-black text-[#001c3c]">
-              Keahlian Organisasi Saat Ini:
-            </label>
-            <textarea
-              value={keahlianOrganisasi}
-              onChange={(e) => setKeahlianOrganisasi(e.target.value)}
-              rows={3}
-              placeholder="Contoh: Penguasaan teknik vacuum frying suhu rendah, jaringan paguyuban petani apel di Desa Tulungrejo, dan kemampuan produksi konten video TikTok harian."
-              className="w-full p-3 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400 leading-relaxed"
-            />
-          </div>
-        </div>
-
-        {/* BAGIAN 3: MATRIKS PENGEMBANGAN KEAHLIAN & INOVASI 3x3 (SESUAI GAMBAR 2) */}
+        {/* BAGIAN MATRIKS PENGEMBANGAN KEAHLIAN & INOVASI 3x3 (JIKA AKTIF DI MODUL INI) */}
+        {activeModule.includeMatrix3x3 && (
         <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
             <div className="flex items-center gap-2.5">
@@ -828,6 +826,7 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
             </div>
           </div>
         </div>
+        )}
 
         {/* BOTTOM ACTION BAR */}
         <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-3 sticky bottom-4 z-20">

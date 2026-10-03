@@ -68,10 +68,12 @@ import {
   Compass,
   AlertTriangle,
   Download,
-  FileText
+  FileText,
+  FileEdit
 } from 'lucide-react';
 
 import { StrategicRoadmapReview } from './StrategicRoadmapReview';
+import { TaskQuestionEditor } from './TaskQuestionEditor';
 import { taskService } from '../services/taskService';
 
 import { 
@@ -86,7 +88,7 @@ import {
 interface AdminDashboardProps {
   userRole?: UserRole;
   engineerSession?: EngineerSession | null;
-  initialTab?: 'timeline' | 'jadwal' | 'kehadiran' | 'peserta' | 'statistik' | 'pengaturan' | 'asesmen' | 'kolaborasi' | 'mentoring' | 'legalitas' | 'katalog' | 'tugas';
+  initialTab?: 'timeline' | 'jadwal' | 'kehadiran' | 'peserta' | 'statistik' | 'pengaturan' | 'asesmen' | 'kolaborasi' | 'mentoring' | 'legalitas' | 'katalog' | 'tugas' | 'kelola_soal';
   onLogout?: () => void;
   onLoginSuccess?: () => void;
   onNavigateToPublic?: () => void;
@@ -103,7 +105,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onEngineerLogin
 }) => {
   const [activeTab, setActiveTab] = useState<
-    'timeline' | 'jadwal' | 'kehadiran' | 'peserta' | 'statistik' | 'pengaturan' | 'asesmen' | 'kolaborasi' | 'mentoring' | 'legalitas' | 'katalog' | 'tugas'
+    'timeline' | 'jadwal' | 'kehadiran' | 'peserta' | 'statistik' | 'pengaturan' | 'asesmen' | 'kolaborasi' | 'mentoring' | 'legalitas' | 'katalog' | 'tugas' | 'kelola_soal'
   >(() => initialTab || 'peserta');
 
   const [sertifikatModalPeserta, setSertifikatModalPeserta] = useState<PesertaItem | null>(null);
@@ -863,6 +865,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {[
           { id: 'peserta', label: `Peserta (${pesertaList.length})`, icon: Users },
           { id: 'tugas', label: `Lembar Aksi (${taskService.getAllTasks().length})`, icon: Compass },
+          { id: 'kelola_soal', label: '📝 Kelola Soal Tugas', icon: FileEdit },
           { id: 'asesmen', label: `Asesmen (${asesmenList.length})`, icon: ClipboardList },
           { id: 'statistik', label: 'Analitik Visual & Radar', icon: BarChart3 },
           { id: 'kolaborasi', label: 'Peta Kolaborasi', icon: Network },
@@ -1846,8 +1849,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* TAB: LEMBAR AKSI & TUGAS KURATOR */}
       {activeTab === 'tugas' && (
         <div className="space-y-4">
-          <StrategicRoadmapReview reviewerName={activeAdminProfile?.nama || 'Tim Kurator Gekrafs'} />
+          <StrategicRoadmapReview 
+            reviewerName={activeAdminProfile?.nama || 'Tim Kurator Gekrafs'} 
+            onOpenQuestionEditor={() => setActiveTab('kelola_soal')}
+          />
         </div>
+      )}
+
+      {/* TAB: KELOLA SOAL & MODUL TUGAS PELATIHAN */}
+      {activeTab === 'kelola_soal' && (
+        <TaskQuestionEditor 
+          userRole={userRole} 
+          onPreviewTask={onNavigateToPublic}
+        />
       )}
 
       {/* TAB 8: PENGATURAN */}
