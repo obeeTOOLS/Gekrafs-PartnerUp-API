@@ -2,10 +2,16 @@ import React, { useState } from 'react';
 import { gasService } from '../services/gasService';
 import { HEADLESS_GAS_CODE } from '../services/headlessGasCode';
 import { whatsappService } from '../services/whatsappService';
-import { authService } from '../services/authService';
+import { 
+  authService, 
+  AUTHORIZED_ENGINEERS, 
+  DEFAULT_DEVELOPER_PASSWORD, 
+  AdminAccount 
+} from '../services/authService';
 import { WhatsAppSettingsModal } from './WhatsAppSettingsModal';
 import { WhatsAppBroadcastModal } from './WhatsAppBroadcastModal';
 import { ExecutiveDossier } from './ExecutiveDossier';
+import { PanduanHakAksesPdfModal } from './PanduanHakAksesPdfModal';
 import { 
   Terminal, 
   Copy, 
@@ -20,11 +26,16 @@ import {
   CloudDownload,
   FileSpreadsheet,
   FileCheck,
+  FileText,
   MessageSquare,
   Settings,
   Smartphone,
   ExternalLink,
   Key,
+  KeyRound,
+  Shield,
+  ShieldCheck,
+  Mail,
   Clipboard,
   Eye,
   EyeOff,
@@ -34,7 +45,7 @@ import {
 } from 'lucide-react';
 
 export const DeveloperTools: React.FC = () => {
-  const [devView, setDevView] = useState<'dossier' | 'tools'>('dossier');
+  const [devView, setDevView] = useState<'accounts' | 'dossier' | 'tools'>('accounts');
   const [copiedCode, setCopiedCode] = useState(false);
   const [testUrl, setTestUrl] = useState(gasService.getSettings().gasEndpointUrl);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; latency?: number } | null>(null);
@@ -42,9 +53,19 @@ export const DeveloperTools: React.FC = () => {
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [autoSync, setAutoSync] = useState(gasService.getSettings().autoSync);
 
+  // Developer Accounts & PIN states
+  const [devAccounts, setDevAccounts] = useState<AdminAccount[]>(() => authService.getDeveloperAccounts());
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [selectedDevEmail, setSelectedDevEmail] = useState<string>('obeetools@gmail.com');
+  const [newPinInput, setNewPinInput] = useState('');
+  const [confirmPinInput, setConfirmPinInput] = useState('');
+  const [showPin, setShowPin] = useState(false);
+  const [pinFeedback, setPinFeedback] = useState<{ success: boolean; message: string } | null>(null);
+
   // WhatsApp states
   const [isWaSettingsOpen, setIsWaSettingsOpen] = useState(false);
   const [isWaBroadcastOpen, setIsWaBroadcastOpen] = useState(false);
+  const [isPanduanPdfOpen, setIsPanduanPdfOpen] = useState(false);
   const [waSettings, setWaSettings] = useState(whatsappService.getSettings());
   const [quickTokenInput, setQuickTokenInput] = useState(waSettings.fonnteToken || '');
   const [showQuickToken, setShowQuickToken] = useState(false);
@@ -103,6 +124,39 @@ export const DeveloperTools: React.FC = () => {
       const res = gasService.resetToDefaultData();
       setResetMessage(res.message);
       setTimeout(() => setResetMessage(null), 3000);
+    }
+  };
+
+  const handleSavePin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPinInput || newPinInput.trim().length < 4) {
+      setPinFeedback({ success: false, message: 'PIN / Password developer minimal harus 4 karakter atau angka.' });
+      return;
+    }
+    if (newPinInput !== confirmPinInput) {
+      setPinFeedback({ success: false, message: 'Konfirmasi PIN / password tidak cocok.' });
+      return;
+    }
+    const res = authService.updateDeveloperPin(selectedDevEmail, newPinInput);
+    if (res.success) {
+      setDevAccounts(authService.getDeveloperAccounts());
+      setPinFeedback({ success: true, message: res.message });
+      setTimeout(() => {
+        setIsPinModalOpen(false);
+        setPinFeedback(null);
+        setNewPinInput('');
+        setConfirmPinInput('');
+      }, 1500);
+    } else {
+      setPinFeedback({ success: false, message: res.message });
+    }
+  };
+
+  const handleResetPin = (email: string) => {
+    if (confirm(`Yakin ingin mengembalikan PIN/password akun ini ke bawaan default (${DEFAULT_DEVELOPER_PASSWORD})?`)) {
+      const res = authService.resetDeveloperPin(email);
+      setDevAccounts(authService.getDeveloperAccounts());
+      alert(res.message);
     }
   };
 
@@ -190,45 +244,215 @@ export const DeveloperTools: React.FC = () => {
           })()}
         </div>
 
-        <a
-          href="/laporan-verifikasi.html"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex-shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-[#001c3c] font-black text-xs shadow-md transition-all group"
-          title="Buka & Unduh Laporan Resmi Audit Verifikasi Sistem (Format Cetak PDF)"
-        >
-          <FileCheck className="w-4 h-4 text-[#001c3c] group-hover:scale-110 transition-transform" />
-          <span>Unduh Laporan Verifikasi (PDF)</span>
-        </a>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setIsPanduanPdfOpen(true)}
+            className="flex-shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs shadow-md transition-all group cursor-pointer"
+            title="Buka & Cetak Buku Panduan Hak Akses & SOP Login (Format PDF)"
+          >
+            <FileText className="w-4 h-4 text-amber-300 group-hover:scale-110 transition-transform" />
+            <span>Panduan Hak Akses (PDF)</span>
+          </button>
+
+          <a
+            href="/laporan-verifikasi.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-[#001c3c] font-black text-xs shadow-md transition-all group"
+            title="Buka & Unduh Laporan Resmi Audit Verifikasi Sistem (Format Cetak PDF)"
+          >
+            <FileCheck className="w-4 h-4 text-[#001c3c] group-hover:scale-110 transition-transform" />
+            <span>Unduh Laporan Verifikasi (PDF)</span>
+          </a>
+        </div>
       </div>
 
       {/* Subtab Selector */}
-      <div className="flex p-1.5 bg-slate-200/80 rounded-2xl gap-2 shadow-inner">
+      <div className="flex flex-wrap p-1.5 bg-slate-200/80 rounded-2xl gap-2 shadow-inner">
+        <button
+          type="button"
+          onClick={() => setDevView('accounts')}
+          className={`flex-1 py-3 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            devView === 'accounts'
+              ? 'bg-[#001c3c] text-white shadow-md'
+              : 'text-slate-700 hover:bg-white/60'
+          }`}
+        >
+          <Shield className="w-4 h-4 text-purple-400" />
+          <span>Akun Developer & Kelola PIN</span>
+        </button>
+
         <button
           type="button"
           onClick={() => setDevView('dossier')}
-          className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+          className={`flex-1 py-3 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
             devView === 'dossier'
               ? 'bg-[#001c3c] text-white shadow-md'
               : 'text-slate-700 hover:bg-white/60'
           }`}
         >
           <BookOpen className="w-4 h-4 text-amber-400" />
-          <span>Panduan Eksekutif & Ringkasan Presentasi Pimpinan</span>
+          <span>Panduan Eksekutif & SOP</span>
         </button>
+
         <button
           type="button"
           onClick={() => setDevView('tools')}
-          className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+          className={`flex-1 py-3 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
             devView === 'tools'
               ? 'bg-[#001c3c] text-white shadow-md'
               : 'text-slate-700 hover:bg-white/60'
           }`}
         >
           <Wrench className="w-4 h-4 text-emerald-400" />
-          <span>Konsol Endpoint GAS, Live Sync & Data Engine</span>
+          <span>Endpoint GAS & Live Sync</span>
         </button>
       </div>
+
+      {devView === 'accounts' && (
+        <div className="space-y-6 animate-in fade-in">
+          <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+              <div>
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-purple-700">
+                  <Shield className="w-4 h-4" />
+                  <span>Manajemen Akses Khusus Pengembang</span>
+                </div>
+                <h2 className="text-lg sm:text-xl font-black text-[#001c3c] mt-0.5">
+                  Daftar Akun Developer & Pengaturan PIN Khusus
+                </h2>
+                <p className="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
+                  Kedua akun pengembang inti di bawah ini telah dipisahkan dari daftar kurator umum. Anda dapat melakukan penggantian PIN atau password khusus untuk masing-masing akun developer di sini.
+                </p>
+              </div>
+              <span className="text-[11px] bg-purple-100 text-purple-900 border border-purple-200 font-bold px-3 py-1 rounded-full whitespace-nowrap self-start">
+                2 Akun Core Systems
+              </span>
+            </div>
+
+            {/* Tabel Akun Developer */}
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-[#001c3c] text-white font-bold">
+                  <tr>
+                    <th className="p-3.5">Akun & Profil Pengembang</th>
+                    <th className="p-3.5">Hak Akses</th>
+                    <th className="p-3.5">Status</th>
+                    <th className="p-3.5">Status PIN / Sandi</th>
+                    <th className="p-3.5 text-center">Aksi Penggantian PIN</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {devAccounts.map((acc) => {
+                    const profile = AUTHORIZED_ENGINEERS[acc.email];
+                    return (
+                      <tr key={acc.email} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="p-3.5">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-xl bg-gradient-to-tr ${profile?.avatarColor || 'from-purple-600 to-indigo-700'} text-white font-black flex items-center justify-center text-sm shadow flex-shrink-0`}>
+                              {acc.nama.charAt(0)}
+                            </div>
+                            <div>
+                              <div className="font-extrabold text-sm text-[#001c3c] flex items-center gap-1.5">
+                                <span>{acc.nama}</span>
+                                <span className="text-[10px] bg-purple-100 text-purple-800 font-bold px-1.5 py-0.5 rounded border border-purple-200">
+                                  {profile?.badge || 'Developer'}
+                                </span>
+                              </div>
+                              <div className="text-xs text-slate-500 font-mono mt-0.5 flex items-center gap-1">
+                                <Mail className="w-3 h-3 text-slate-400" />
+                                <span>{acc.email}</span>
+                              </div>
+                              <div className="text-[11px] text-slate-500 mt-0.5">
+                                {profile?.title || 'Lead Architect & Systems Engineer'}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="p-3.5">
+                          <span className="text-[11px] font-bold text-purple-900 bg-purple-50 border border-purple-200 px-2.5 py-1 rounded-full inline-block">
+                            Super Admin Level 10
+                          </span>
+                        </td>
+
+                        <td className="p-3.5">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                            <span>Aktif</span>
+                          </span>
+                        </td>
+
+                        <td className="p-3.5">
+                          {acc.isDefaultPassword !== false ? (
+                            <span className="text-[11px] bg-amber-50 text-amber-900 border border-amber-200 px-2 py-1 rounded-lg font-mono font-semibold inline-block">
+                              Bawaan Dev ({DEFAULT_DEVELOPER_PASSWORD})
+                            </span>
+                          ) : (
+                            <span className="text-[11px] bg-emerald-50 text-emerald-900 border border-emerald-200 px-2 py-1 rounded-lg font-bold inline-flex items-center gap-1">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>PIN Khusus Aktif</span>
+                            </span>
+                          )}
+                          {acc.lastPasswordChange && (
+                            <div className="text-[10px] text-slate-400 mt-1">
+                              Diubah: {acc.lastPasswordChange}
+                            </div>
+                          )}
+                        </td>
+
+                        <td className="p-3.5 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedDevEmail(acc.email);
+                                setNewPinInput('');
+                                setConfirmPinInput('');
+                                setPinFeedback(null);
+                                setIsPinModalOpen(true);
+                              }}
+                              className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 active:scale-95 text-white text-xs font-bold shadow transition-all flex items-center gap-1.5 cursor-pointer"
+                              title={`Ganti PIN khusus untuk akun ${acc.nama}`}
+                            >
+                              <Key className="w-3.5 h-3.5 text-amber-300" />
+                              <span>Ganti PIN / Sandi</span>
+                            </button>
+
+                            {acc.isDefaultPassword === false && (
+                              <button
+                                type="button"
+                                onClick={() => handleResetPin(acc.email)}
+                                className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                                title="Reset kembali ke default Gekrafs2026!"
+                              >
+                                <RotateCcw className="w-3 h-3 text-slate-500" />
+                                <span>Reset Default</span>
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Petunjuk Keamanan Box */}
+            <div className="bg-purple-50/70 border border-purple-200 rounded-xl p-4 text-xs text-purple-950 space-y-1">
+              <div className="font-bold flex items-center gap-1.5 text-purple-900">
+                <ShieldCheck className="w-4 h-4 text-purple-700" />
+                <span>Petunjuk Keamanan PIN Khusus Developer:</span>
+              </div>
+              <p className="leading-relaxed text-slate-700">
+                PIN atau sandi yang Anda atur di sini akan langsung berlaku untuk login kedua akun developer tersebut. Anda dapat menggunakan angka (seperti PIN 6-digit) atau kata sandi alfanumerik. Akun developer ini tidak dapat dihapus atau dicabut dari Portal Kurator.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {devView === 'dossier' && (
         <ExecutiveDossier />
@@ -614,6 +838,108 @@ export const DeveloperTools: React.FC = () => {
           setIsWaSettingsOpen(true);
         }}
       />
+
+      {/* Modal Cetak Dokumen Panduan Hak Akses & SOP Login (PDF) */}
+      <PanduanHakAksesPdfModal
+        isOpen={isPanduanPdfOpen}
+        onClose={() => setIsPanduanPdfOpen(false)}
+      />
+
+      {/* Modal Penggantian PIN / Password Khusus Developer */}
+      {isPinModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-purple-700 text-[#ffc72c] flex items-center justify-center font-bold shadow">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm sm:text-base text-[#001c3c]">
+                    Ganti PIN / Password Khusus Developer
+                  </h3>
+                  <p className="text-xs text-slate-500 font-mono">
+                    {selectedDevEmail}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPinModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 text-xl font-bold p-1 cursor-pointer"
+              >
+                &times;
+              </button>
+            </div>
+
+            {pinFeedback && (
+              <div className={`p-3 mb-4 rounded-xl text-xs font-semibold border ${
+                pinFeedback.success
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                  : 'bg-rose-50 border-rose-200 text-rose-700'
+              }`}>
+                {pinFeedback.message}
+              </div>
+            )}
+
+            <form onSubmit={handleSavePin} className="space-y-3.5">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                  PIN / Password Baru (Minimal 4 Karakter / Angka) *
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPin ? 'text' : 'password'}
+                    required
+                    value={newPinInput}
+                    onChange={(e) => setNewPinInput(e.target.value)}
+                    placeholder="Contoh PIN: 123456 atau Sandi Baru"
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg outline-none pr-9 font-mono bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPin(!showPin)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                  Ulangi Konfirmasi PIN / Password *
+                </label>
+                <input
+                  type={showPin ? 'text' : 'password'}
+                  required
+                  value={confirmPinInput}
+                  onChange={(e) => setConfirmPinInput(e.target.value)}
+                  placeholder="Ketik ulang PIN / password baru"
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg outline-none font-mono bg-white"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsPinModalOpen(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg cursor-pointer transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 text-white text-xs font-black rounded-lg shadow cursor-pointer transition-all flex items-center gap-1.5"
+                >
+                  <Key className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Simpan PIN Baru</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

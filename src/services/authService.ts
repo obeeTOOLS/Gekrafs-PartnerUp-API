@@ -297,6 +297,74 @@ class AuthService {
   }
 
   /**
+   * Mendapatkan akun khusus Developer / Core Engineer
+   */
+  public getDeveloperAccounts(): AdminAccount[] {
+    const list = this.getAdminWhitelist();
+    return list.filter(
+      a => a.isProtected || a.email === 'obeetools@gmail.com' || a.email === 'loehendra@gmail.com' || a.peran === 'Lead Developer'
+    );
+  }
+
+  /**
+   * Penggantian PIN / Password khusus untuk akun Developer / Engineer
+   */
+  public updateDeveloperPin(
+    email: string, 
+    newPin: string
+  ): { success: boolean; message: string; newPin?: string } {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPin = newPin.trim();
+
+    if (!cleanPin || cleanPin.length < 4) {
+      return { success: false, message: 'PIN / Password developer minimal harus 4 karakter/angka.' };
+    }
+
+    const list = this.getAdminWhitelist();
+    const target = list.find(a => a.email.toLowerCase() === cleanEmail);
+
+    if (!target) {
+      return { success: false, message: 'Akun developer tidak ditemukan.' };
+    }
+
+    target.password = cleanPin;
+    target.isDefaultPassword = false;
+    target.lastPasswordChange = new Date().toISOString().split('T')[0];
+
+    this.saveAdminWhitelist([...list]);
+
+    return {
+      success: true,
+      message: `PIN / Password khusus untuk ${target.nama} (${cleanEmail}) berhasil diperbarui!`,
+      newPin: cleanPin
+    };
+  }
+
+  /**
+   * Reset PIN akun Developer ke default
+   */
+  public resetDeveloperPin(email: string): { success: boolean; message: string } {
+    const cleanEmail = email.trim().toLowerCase();
+    const list = this.getAdminWhitelist();
+    const target = list.find(a => a.email.toLowerCase() === cleanEmail);
+
+    if (!target) {
+      return { success: false, message: 'Akun developer tidak ditemukan.' };
+    }
+
+    target.password = DEFAULT_DEVELOPER_PASSWORD;
+    target.isDefaultPassword = true;
+    target.lastPasswordChange = undefined;
+
+    this.saveAdminWhitelist([...list]);
+
+    return {
+      success: true,
+      message: `PIN / Password untuk ${target.nama} telah dikembalikan ke bawaan standar (${DEFAULT_DEVELOPER_PASSWORD}).`
+    };
+  }
+
+  /**
    * Menghapus email admin dari whitelist
    */
   public removeAdminFromWhitelist(email: string): { success: boolean; message: string } {
@@ -403,11 +471,14 @@ class AuthService {
       const engAccount = whitelist.find(a => a.email.toLowerCase() === cleanEmail);
       const expectedPwd = engAccount?.password || DEFAULT_DEVELOPER_PASSWORD;
 
-      if (cleanPassword !== expectedPwd && cleanPassword !== DEFAULT_DEVELOPER_PASSWORD) {
+      const isMatch = cleanPassword === expectedPwd || 
+                      (engAccount?.isDefaultPassword && (cleanPassword === DEFAULT_DEVELOPER_PASSWORD || cleanPassword === '123456'));
+
+      if (!isMatch) {
         return {
           success: false,
           authType: 'engineer',
-          message: 'Password akun engineer salah. Pastikan menggunakan password yang benar.'
+          message: 'Password / PIN akun engineer salah. Pastikan menggunakan PIN atau password yang telah diatur.'
         };
       }
 

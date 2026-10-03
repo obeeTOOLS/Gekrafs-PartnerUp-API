@@ -25,6 +25,7 @@ import { SertifikatKelulusanModal } from './SertifikatKelulusanModal';
 import { KatalogDirektori } from './KatalogDirektori';
 import { EditUmkmModal } from './EditUmkmModal';
 import { IndonesianDatePicker } from './IndonesianDatePicker';
+import { PanduanHakAksesPdfModal } from './PanduanHakAksesPdfModal';
 import { whatsappService } from '../services/whatsappService';
 import { 
   Milestone, 
@@ -66,7 +67,8 @@ import {
   Store,
   Compass,
   AlertTriangle,
-  Download
+  Download,
+  FileText
 } from 'lucide-react';
 
 import { StrategicRoadmapReview } from './StrategicRoadmapReview';
@@ -185,6 +187,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
   const [isWhatsAppSettingsModalOpen, setIsWhatsAppSettingsModalOpen] = useState(false);
   const [isDownloadingQr, setIsDownloadingQr] = useState(false);
+  const [isPanduanPdfOpen, setIsPanduanPdfOpen] = useState(false);
 
   // Forms states
   const [timelineForm, setTimelineForm] = useState<Partial<TimelineItem>>({
@@ -788,6 +791,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           >
             <Settings className="w-4 h-4 text-slate-300 hover:text-white" />
           </button>
+
+          {/* Tombol Khusus Peran Developer / Engineer: Panduan Hak Akses & SOP Login (PDF) */}
+          {(userRole === 'developer' || !!engineerSession) && (
+            <button
+              type="button"
+              onClick={() => setIsPanduanPdfOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 active:scale-95 text-white text-xs font-bold shadow transition-all cursor-pointer"
+              title="Buku Panduan Resmi Hak Akses & SOP Login Sistem (Format PDF)"
+            >
+              <FileText className="w-3.5 h-3.5 text-amber-300" />
+              <span>Panduan Akses (PDF)</span>
+            </button>
+          )}
 
           {/* Tombol Ganti Password */}
           <button
@@ -1936,7 +1952,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
+                {(userRole === 'developer' || !!engineerSession) && (
+                  <button
+                    type="button"
+                    onClick={() => setIsPanduanPdfOpen(true)}
+                    className="px-4 py-2.5 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 active:scale-95 text-white text-xs font-black rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                    title="Buka & Cetak Buku Panduan Hak Akses & SOP Login (Format PDF)"
+                  >
+                    <FileText className="w-4 h-4 text-amber-300" />
+                    <span>Cetak Panduan Hak Akses (PDF)</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={() => setIsForceLogoutModalOpen(true)}
@@ -1962,15 +1990,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <span>Kontrol Hak Akses: Whitelist Email Admin (Model 2)</span>
                 </div>
                 <h3 className="text-base font-extrabold text-[#001c3c] mt-0.5">
-                  Daftar Akun Admin & Kurator yang Diizinkan Login
+                  Daftar Akun Tim Kurator & Panitia Pelaksana
                 </h3>
                 <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                  Hanya email di bawah ini yang dapat login ke Dashboard Admin. Anda dapat menambah atau mencabut hak akses panitia sewaktu-waktu.
+                  Hanya email tim kurator dan panitia di bawah ini yang dapat login ke Portal Kurator. Akun teknis Developer dikelola secara eksklusif di tab <strong>Developer Tools</strong>.
                 </p>
               </div>
               <div className="text-right">
                 <span className="text-[11px] bg-[#001c3c] text-[#ffc72c] font-bold px-2.5 py-1 rounded-full whitespace-nowrap">
-                  {adminWhitelist.filter(a => a.status === 'Aktif').length} Admin Aktif
+                  {adminWhitelist.filter(a => a.status === 'Aktif' && !a.isProtected && a.email !== 'obeetools@gmail.com' && a.email !== 'loehendra@gmail.com').length} Kurator Aktif
                 </span>
               </div>
             </div>
@@ -2069,18 +2097,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {adminWhitelist.map((adm) => {
-                    const isProtected = adm.isProtected || adm.email === 'obeetools@gmail.com' || adm.email === 'loehendra@gmail.com';
-                    return (
+                  {(() => {
+                    const kuratorWhitelist = adminWhitelist.filter(
+                      (adm) =>
+                        !adm.isProtected &&
+                        adm.email !== 'obeetools@gmail.com' &&
+                        adm.email !== 'loehendra@gmail.com' &&
+                        adm.peran !== 'Lead Developer'
+                    );
+
+                    if (kuratorWhitelist.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={6} className="p-8 text-center text-slate-400">
+                            Belum ada akun tim kurator / panitia yang didaftarkan. Gunakan formulir di atas untuk menambahkan akun kurator baru.
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    return kuratorWhitelist.map((adm) => (
                       <tr key={adm.email} className="hover:bg-slate-50/80 transition-colors">
                         <td className="p-3">
-                          <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
-                            <span>{adm.nama}</span>
-                            {isProtected && (
-                              <span className="text-[10px] bg-purple-100 text-purple-800 font-bold px-1.5 py-0.2 rounded border border-purple-200">
-                                Developer
-                              </span>
-                            )}
+                          <div className="font-bold text-slate-900 text-xs">
+                            {adm.nama}
                           </div>
                           <div className="text-[11px] text-slate-500 font-mono flex items-center gap-1 mt-0.5">
                             <Mail className="w-3 h-3 text-slate-400" />
@@ -2089,9 +2129,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </td>
                         <td className="p-3">
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            adm.peran === 'Lead Developer'
-                              ? 'bg-purple-100 text-purple-800 border border-purple-200'
-                              : adm.peran === 'Kurator'
+                            adm.peran === 'Kurator'
                               ? 'bg-blue-100 text-blue-800 border border-blue-200'
                               : adm.peran === 'Pimpinan'
                               ? 'bg-amber-100 text-amber-800 border border-amber-200'
@@ -2103,14 +2141,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <td className="p-3">
                           <button
                             type="button"
-                            disabled={isProtected}
                             onClick={() => handleToggleAdminStatus(adm.email)}
-                            title={isProtected ? 'Akun pengembang inti selalu aktif' : 'Klik untuk mengubah status aktif/nonaktif'}
-                            className={`px-2 py-0.5 rounded text-[11px] font-bold flex items-center gap-1 transition-all ${
+                            title="Klik untuk mengubah status aktif/nonaktif"
+                            className={`px-2 py-0.5 rounded text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
                               adm.status === 'Aktif'
                                 ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
                                 : 'bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-300'
-                            } ${isProtected ? 'cursor-default opacity-90' : 'cursor-pointer'}`}
+                            }`}
                           >
                             <span className={`w-1.5 h-1.5 rounded-full ${adm.status === 'Aktif' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
                             <span>{adm.status}</span>
@@ -2133,37 +2170,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <div className="text-[10px] text-slate-400">oleh {adm.ditambahkanOleh.split('@')[0]}</div>
                         </td>
                         <td className="p-3 text-center">
-                          {isProtected ? (
-                            <span className="text-[10px] text-slate-400 font-semibold italic">
-                              Akun Terlindungi
-                            </span>
-                          ) : (
-                            <div className="flex items-center justify-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => handleResetPassword(adm.email)}
-                                title={`Reset password ke bawaan developer (${DEFAULT_DEVELOPER_PASSWORD})`}
-                                className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded text-[11px] font-bold transition-colors inline-flex items-center gap-1 cursor-pointer"
-                              >
-                                <RotateCcw className="w-3 h-3 text-amber-600" />
-                                <span>Reset PIN</span>
-                              </button>
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleResetPassword(adm.email)}
+                              title={`Reset password ke bawaan developer (${DEFAULT_DEVELOPER_PASSWORD})`}
+                              className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded text-[11px] font-bold transition-colors inline-flex items-center gap-1 cursor-pointer"
+                            >
+                              <RotateCcw className="w-3 h-3 text-amber-600" />
+                              <span>Reset PIN</span>
+                            </button>
 
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveAdmin(adm.email)}
-                                title="Cabut Akses Admin"
-                                className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 border border-rose-200 rounded text-[11px] font-bold transition-colors inline-flex items-center gap-1 cursor-pointer"
-                              >
-                                <Trash2 className="w-3 h-3 text-rose-600" />
-                                <span>Cabut</span>
-                              </button>
-                            </div>
-                          )}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveAdmin(adm.email)}
+                              title="Cabut Akses Admin"
+                              className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 border border-rose-200 rounded text-[11px] font-bold transition-colors inline-flex items-center gap-1 cursor-pointer"
+                            >
+                              <Trash2 className="w-3 h-3 text-rose-600" />
+                              <span>Cabut</span>
+                            </button>
+                          </div>
                         </td>
                       </tr>
-                    );
-                  })}
+                    ));
+                  })()}
                 </tbody>
               </table>
             </div>
@@ -2188,6 +2219,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       >
         {pdfModalContent}
       </PdfExportModal>
+
+      {/* Dokumen PDF Khusus Peran Developer / Engineer */}
+      <PanduanHakAksesPdfModal
+        isOpen={isPanduanPdfOpen}
+        onClose={() => setIsPanduanPdfOpen(false)}
+      />
 
       {/* Change Password Modal */}
       {isChangePasswordModalOpen && (

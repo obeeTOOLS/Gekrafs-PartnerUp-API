@@ -24,7 +24,7 @@ interface LoginPageProps {
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
-  const [activePortalTab, setActivePortalTab] = useState<'admin' | 'peserta'>('admin');
+  const [activePortalTab, setActivePortalTab] = useState<'admin' | 'peserta'>('peserta');
 
   // Admin / Staff Login State
   const [adminEmail, setAdminEmail] = useState('');
@@ -173,22 +173,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
           {/* Portal Switcher Tabs */}
           <div className="grid grid-cols-2 bg-slate-100/90 p-1.5 border-b border-slate-200">
-            <button
-              type="button"
-              onClick={() => {
-                setActivePortalTab('admin');
-                setAdminError(null);
-              }}
-              className={`py-2.5 px-3 rounded-2xl text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                activePortalTab === 'admin'
-                  ? 'bg-white text-[#001c3c] shadow-sm'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              <ShieldCheck className={`w-4 h-4 ${activePortalTab === 'admin' ? 'text-amber-500' : 'text-slate-400'}`} />
-              <span>Staff & Kurator</span>
-            </button>
-
+            {/* Tombol Kiri: Peserta UMKM (Default) */}
             <button
               type="button"
               onClick={() => {
@@ -204,6 +189,23 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             >
               <Users className={`w-4 h-4 ${activePortalTab === 'peserta' ? 'text-emerald-600' : 'text-slate-400'}`} />
               <span>Peserta UMKM</span>
+            </button>
+
+            {/* Tombol Kanan: Staff & Kurator */}
+            <button
+              type="button"
+              onClick={() => {
+                setActivePortalTab('admin');
+                setAdminError(null);
+              }}
+              className={`py-2.5 px-3 rounded-2xl text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                activePortalTab === 'admin'
+                  ? 'bg-white text-[#001c3c] shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <ShieldCheck className={`w-4 h-4 ${activePortalTab === 'admin' ? 'text-amber-500' : 'text-slate-400'}`} />
+              <span>Staff & Kurator</span>
             </button>
           </div>
 

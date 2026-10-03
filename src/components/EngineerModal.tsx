@@ -16,8 +16,10 @@ import {
   CheckCircle2, 
   Sparkles,
   Layers,
-  ArrowRight
+  ArrowRight,
+  FileText
 } from 'lucide-react';
+import { PanduanHakAksesPdfModal } from './PanduanHakAksesPdfModal';
 
 interface EngineerModalProps {
   isOpen: boolean;
@@ -39,6 +41,7 @@ export const EngineerModal: React.FC<EngineerModalProps> = ({
   );
   const [customEmail, setCustomEmail] = useState('');
   const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
+  const [isPanduanPdfOpen, setIsPanduanPdfOpen] = useState(false);
 
   if (!isOpen) return null;
 
@@ -350,6 +353,18 @@ export const EngineerModal: React.FC<EngineerModalProps> = ({
             </div>
           )}
 
+          {/* Tombol Cetak / Simpan Panduan Hak Akses (PDF) */}
+          <div className="pt-2 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setIsPanduanPdfOpen(true)}
+              className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 hover:from-purple-600 hover:to-indigo-600 text-white font-extrabold text-xs shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all"
+            >
+              <FileText className="w-4 h-4 text-amber-300" />
+              <span>📘 Cetak / Simpan Buku Panduan Hak Akses & SOP (PDF)</span>
+            </button>
+          </div>
+
           {/* Action buttons at bottom */}
           <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
             {session ? (
@@ -373,6 +388,12 @@ export const EngineerModal: React.FC<EngineerModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Dokumen PDF Panduan Hak Akses */}
+      <PanduanHakAksesPdfModal
+        isOpen={isPanduanPdfOpen}
+        onClose={() => setIsPanduanPdfOpen(false)}
+      />
     </div>
   );
 };
