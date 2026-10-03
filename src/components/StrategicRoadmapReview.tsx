@@ -23,6 +23,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { taskService } from '../services/taskService';
+import { getAiRoadmapReview, AiReviewResult } from '../services/aiReviewService';
 import { StrategicCanvasTask } from '../types';
 
 interface StrategicRoadmapReviewProps {
@@ -49,14 +50,7 @@ export const StrategicRoadmapReview: React.FC<StrategicRoadmapReviewProps> = ({
 
   // AI Assistant state
   const [isAnalyzingAi, setIsAnalyzingAi] = useState(false);
-  const [aiAnalysisResult, setAiAnalysisResult] = useState<{
-    recommendedScore: number;
-    recommendedStatus: 'reviewed' | 'revision';
-    summary: string;
-    strengths: string[];
-    improvements: string[];
-    draftMentorNotes: string;
-  } | null>(null);
+  const [aiAnalysisResult, setAiAnalysisResult] = useState<AiReviewResult | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
 
   const refreshTasks = () => {
@@ -91,16 +85,7 @@ export const StrategicRoadmapReview: React.FC<StrategicRoadmapReviewProps> = ({
     setIsAnalyzingAi(true);
     setAiError(null);
     try {
-      const response = await fetch('/api/ai/review-roadmap', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ task: selectedTask })
-      });
-      if (!response.ok) {
-        const errJson = await response.json().catch(() => ({}));
-        throw new Error(errJson.error || `Server merespon dengan status ${response.status}`);
-      }
-      const data = await response.json();
+      const data = await getAiRoadmapReview(selectedTask);
       setAiAnalysisResult(data);
     } catch (err: any) {
       console.error('AI Analysis failed:', err);
