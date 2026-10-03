@@ -16,7 +16,11 @@ import {
   Sparkles,
   Phone,
   Printer,
-  ChevronRight
+  ChevronRight,
+  Bot,
+  ArrowDown,
+  Check,
+  RefreshCw
 } from 'lucide-react';
 import { taskService } from '../services/taskService';
 import { StrategicCanvasTask } from '../types';
@@ -43,6 +47,18 @@ export const StrategicRoadmapReview: React.FC<StrategicRoadmapReviewProps> = ({
   const [reviewStatus, setReviewStatus] = useState<'reviewed' | 'revision'>('reviewed');
   const [toast, setToast] = useState<string | null>(null);
 
+  // AI Assistant state
+  const [isAnalyzingAi, setIsAnalyzingAi] = useState(false);
+  const [aiAnalysisResult, setAiAnalysisResult] = useState<{
+    recommendedScore: number;
+    recommendedStatus: 'reviewed' | 'revision';
+    summary: string;
+    strengths: string[];
+    improvements: string[];
+    draftMentorNotes: string;
+  } | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+
   const refreshTasks = () => {
     setTasks(taskService.getAllTasks());
   };
@@ -66,6 +82,41 @@ export const StrategicRoadmapReview: React.FC<StrategicRoadmapReviewProps> = ({
     setReviewScore(task.nilai !== undefined ? task.nilai : 85);
     setCatatan(task.catatanKurator || '');
     setReviewStatus(task.status === 'revision' ? 'revision' : 'reviewed');
+    setAiAnalysisResult(null);
+    setAiError(null);
+  };
+
+  const handleRunAiAnalysis = async () => {
+    if (!selectedTask) return;
+    setIsAnalyzingAi(true);
+    setAiError(null);
+    try {
+      const response = await fetch('/api/ai/review-roadmap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task: selectedTask })
+      });
+      if (!response.ok) {
+        const errJson = await response.json().catch(() => ({}));
+        throw new Error(errJson.error || `Server merespon dengan status ${response.status}`);
+      }
+      const data = await response.json();
+      setAiAnalysisResult(data);
+    } catch (err: any) {
+      console.error('AI Analysis failed:', err);
+      setAiError(err.message || 'Gagal memproses analisis AI.');
+    } finally {
+      setIsAnalyzingAi(false);
+    }
+  };
+
+  const handleApplyAiRecommendation = () => {
+    if (!aiAnalysisResult) return;
+    setReviewScore(aiAnalysisResult.recommendedScore);
+    setReviewStatus(aiAnalysisResult.recommendedStatus);
+    setCatatan(aiAnalysisResult.draftMentorNotes);
+    setToast('Rekomendasi skor & draf umpan balik AI berhasil disalin ke formulir mentor di bawah!');
+    setTimeout(() => setToast(null), 3500);
   };
 
   const handleSaveReview = () => {
@@ -412,6 +463,153 @@ export const StrategicRoadmapReview: React.FC<StrategicRoadmapReviewProps> = ({
                     </tbody>
                   </table>
                 </div>
+              </div>
+
+              {/* Asisten AI Kurator (Gemini AI) */}
+              <div className="bg-gradient-to-br from-indigo-50/80 via-purple-50/50 to-white p-4 sm:p-5 rounded-2xl border-2 border-indigo-200 space-y-4 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-indigo-100">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-sm">
+                      <Sparkles className="w-4 h-4 animate-pulse" />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-xs sm:text-sm text-indigo-950 flex items-center gap-1.5">
+                        <span>Asisten Analisis & Rekomendasi Skor AI</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 uppercase tracking-wider">
+                          Gemini AI
+                        </span>
+                      </h4>
+                      <p className="text-[11px] text-slate-600">
+                        Analisis otomatis ketajaman visi, misi, pilar, dan matriks inovasi untuk membantu kurator.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleRunAiAnalysis}
+                    disabled={isAnalyzingAi}
+                    className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white text-xs font-black shadow-sm transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+                  >
+                    {isAnalyzingAi ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Menganalisis Roadmap...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>{aiAnalysisResult ? 'Analisis Ulang AI' : 'Minta Analisis & Skor AI'}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Error message if any */}
+                {aiError && (
+                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-600" />
+                    <span>{aiError}</span>
+                  </div>
+                )}
+
+                {/* Hasil Analisis AI */}
+                {aiAnalysisResult && (
+                  <div className="space-y-3.5 animate-in fade-in duration-200">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {/* Skor Rekomendasi */}
+                      <div className="p-3 rounded-xl bg-white border border-indigo-100 shadow-xs flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 font-black text-lg flex items-center justify-center border border-emerald-200">
+                          {aiAnalysisResult.recommendedScore}
+                        </div>
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-500 block">Rekomendasi Skor AI</span>
+                          <span className="text-xs font-bold text-slate-800">
+                            {aiAnalysisResult.recommendedScore >= 75 ? 'Memenuhi Syarat Kelulusan' : 'Disarankan Perbaikan'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Status Keputusan */}
+                      <div className="p-3 rounded-xl bg-white border border-indigo-100 shadow-xs flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl font-bold flex items-center justify-center border ${
+                          aiAnalysisResult.recommendedStatus === 'reviewed'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-rose-50 text-rose-700 border-rose-200'
+                        }`}>
+                          {aiAnalysisResult.recommendedStatus === 'reviewed' ? '✓' : '!'}
+                        </div>
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-500 block">Status Rekomendasi</span>
+                          <span className={`text-xs font-bold ${
+                            aiAnalysisResult.recommendedStatus === 'reviewed' ? 'text-emerald-700' : 'text-rose-700'
+                          }`}>
+                            {aiAnalysisResult.recommendedStatus === 'reviewed' ? 'Disetujui (Lulus)' : 'Perlu Revisi'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Tombol Terapkan ke Formulir */}
+                      <div className="sm:col-span-1 flex items-center">
+                        <button
+                          type="button"
+                          onClick={handleApplyAiRecommendation}
+                          className="w-full h-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-sm flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
+                        >
+                          <ArrowDown className="w-4 h-4" />
+                          <span>Terapkan ke Formulir Mentor</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Ringkasan & Poin Analisis */}
+                    <div className="p-3.5 rounded-xl bg-white/90 border border-indigo-100 space-y-2.5 text-xs">
+                      <p className="text-slate-800 font-medium italic">
+                        "{aiAnalysisResult.summary}"
+                      </p>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-slate-100">
+                        <div>
+                          <span className="font-bold text-emerald-800 text-[11px] block mb-1">
+                            ✓ Kekuatan Strategis:
+                          </span>
+                          <ul className="space-y-1">
+                            {aiAnalysisResult.strengths?.map((str, idx) => (
+                              <li key={idx} className="text-[11px] text-slate-600 flex items-start gap-1.5">
+                                <span className="text-emerald-600 font-bold">•</span>
+                                <span>{str}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        <div>
+                          <span className="font-bold text-amber-800 text-[11px] block mb-1">
+                            ⚠ Area Penajaman / Masukan:
+                          </span>
+                          <ul className="space-y-1">
+                            {aiAnalysisResult.improvements?.map((imp, idx) => (
+                              <li key={idx} className="text-[11px] text-slate-600 flex items-start gap-1.5">
+                                <span className="text-amber-600 font-bold">•</span>
+                                <span>{imp}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+
+                      {/* Draf Catatan Mentor */}
+                      <div className="pt-2 border-t border-slate-100">
+                        <span className="font-bold text-indigo-950 text-[11px] block mb-1">
+                          Draf Catatan Masukan Mentor (Siap Pakai):
+                        </span>
+                        <div className="p-2.5 rounded-lg bg-indigo-50/60 border border-indigo-100 text-[11px] text-slate-700 leading-relaxed font-mono">
+                          {aiAnalysisResult.draftMentorNotes}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Panel Input Penilaian Kurator */}
