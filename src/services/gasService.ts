@@ -30,6 +30,7 @@ import {
 } from '../data/initialData';
 
 import { fetchSheetCsv } from '../utils/csvParser';
+import { taskService } from './taskService';
 
 const DEFAULT_SPREADSHEET_ID = '183uoyYw6opnr3w7T6oljvwuy5Rzs7GZE7fM3vi_pwm4';
 
@@ -310,6 +311,16 @@ class GasService {
       if (newAsesmenList.length > 0) this.asesmen = newAsesmenList;
       if (newTimelineList.length > 0) this.timeline = newTimelineList;
       if (newJadwalList.length > 0) this.jadwal = newJadwalList;
+
+      // 6. Ambil data Tugas Peserta (jika tab 'Tugas' sudah ada di spreadsheet)
+      try {
+        const tugasRaw = await fetchSheetCsv(spreadsheetId, 'Tugas');
+        if (tugasRaw && tugasRaw.length > 1) {
+          taskService.syncFromSpreadsheetRows(tugasRaw);
+        }
+      } catch (tugasErr) {
+        // Tab 'Tugas' belum dibuat di spreadsheet atau belum ada baris, abaikan secara graceful
+      }
 
       const now = new Date();
       this.lastSyncTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} WIB`;

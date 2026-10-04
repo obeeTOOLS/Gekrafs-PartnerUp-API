@@ -29,6 +29,80 @@ export const DEFAULT_INNOVATION_MATRIX: StrategicInnovationMatrix = {
 
 const INITIAL_SAMPLE_TASKS: StrategicCanvasTask[] = [];
 
+// Data Tugas Terverifikasi dari Peserta Aktif
+export const VERIFIED_SUBMISSIONS: StrategicCanvasTask[] = [
+  {
+    id: 'TASK-SUB-001',
+    namaUsaha: 'Sidoasri kopi',
+    namaPemilik: 'Alvitalia Kusumaningsih',
+    whatsapp: '081336612673',
+    email: 'alvitalia110596@gmail.com',
+    subsektor: 'Kuliner',
+    sesiPartnerUp: 'Sesi 2',
+    status: 'submitted',
+    visi: 'Mengembangkan cita rasa kopi khas Sidoasri lereng pegunungan Kota Batu menjadi brand kopi unggulan lokal yang dikenal luas.',
+    misi: 'Menghadirkan racikan kopi berkualitas dengan biji pilihan petani lokal serta pelayanan ramah untuk penikmat kopi nusantara.',
+    goal: 'Meningkatkan kapasitas roasting dan membuka kedai kemitraan strategis di kawasan wisata Kota Batu.',
+    objective: 'Meningkatkan omzet bulanan 20% dalam 90 hari dan memperluas distribusi kemasan drip bag ke hotel & resto.',
+    nilaiUsaha: 'Kualitas Biji Pilihan, Kebersamaan, Ketulusan Pelayanan, Kearifan Petani Lokal.',
+    keahlianOrganisasi: 'Teknik roasting profil medium-dark, penyajian manual brew, dan hubungan langsung dengan petani kebun kopi.',
+    matriks: {
+      problemSolving: {
+        recent: 'Menjaga kestabilan pasokan green beans saat musim hujan.',
+        midTerm: 'Pengadaan mesin grinder dan sealer otomatis untuk mempercepat packaging.',
+        longTerm: 'Standarisasi SOP cupping dan quality control di seluruh lini.'
+      },
+      incremental: {
+        recent: 'Mempercantik packaging drip bag kopi untuk oleh-oleh wisatawan.',
+        midTerm: 'Kolaborasi menu kopi susu signature dengan kafe mitra.',
+        longTerm: 'Membuka flagship coffee shop di pusat Kota Batu.'
+      },
+      breakthrough: {
+        recent: 'Peluncuran cold brew konsentrat kemasan botol siap minum.',
+        midTerm: 'Kemitraan pasokan kopi resmi untuk jaringan perhotelan Batu.',
+        longTerm: 'Mendirikan pusat edukasi dan wisata kopi (Coffee Experience Center) di Sidoasri.'
+      }
+    },
+    createdAt: '2026-10-04 07:42:05',
+    updatedAt: '2026-10-04 07:42:05'
+  },
+  {
+    id: 'TASK-SUB-002',
+    namaUsaha: 'Fida Accessories',
+    namaPemilik: 'Wahida Haeraty',
+    whatsapp: '081253426280',
+    email: 'wahidahaeraty@gmail.com',
+    subsektor: 'Kriya / Kerajinan',
+    sesiPartnerUp: 'Sesi 2',
+    status: 'submitted',
+    visi: 'Menjadi brand kerajinan aksesoris fesyen handmade terdepan di Jawa Timur dengan ciri khas motif etnik kekinian.',
+    misi: 'Memproduksi perhiasan dan cenderamata gelang, kalung, gantungan kunci berkualitas yang mempercantik penampilan dan memberdayakan pengrajin wanita.',
+    goal: 'Memperluas jaringan distribusi retail di pusat perbelanjaan wisata utama Kota Batu dan memperbesar volume penjualan e-commerce.',
+    objective: 'Menaikkan penjualan marketplace dan memperluas display konsinyasi ke 5 toko cinderamata baru dalam kurun waktu 90 hari.',
+    nilaiUsaha: 'Kreativitas Tanpa Batas, Ketelitian Handmade, Keindahan Etnik, Kepuasan Pelanggan.',
+    keahlianOrganisasi: 'Keahlian merangkai manik-manik etnik, desain aksesoris custom, kemitraan display di spot wisata ikonik (BALOGA & Jatim Park).',
+    matriks: {
+      problemSolving: {
+        recent: 'Mempercepat waktu produksi handmade saat permintaan grosir membludak.',
+        midTerm: 'Mengatur manajemen stok manik dan bahan baku agar tidak kehabisan.',
+        longTerm: 'Membentuk kelompok pengrajin binaan untuk sistem sub-kontrak produksi.'
+      },
+      incremental: {
+        recent: 'Meningkatkan kualitas foto produk di Shopee dan katalog direktori.',
+        midTerm: 'Menyusun paket suvenir aksesoris khusus instansi/event pernikahan.',
+        longTerm: 'Membuka booth eksklusif di festival kriya nasional.'
+      },
+      breakthrough: {
+        recent: 'Merilis seri aksesoris berbahan batu alam khas dengan sertifikat keaslian.',
+        midTerm: 'Kolaborasi aksesoris dengan desainer busana muslim terkemuka.',
+        longTerm: 'Ekspor aksesoris kerajinan tangan ke pasar suvenir Asia Tenggara.'
+      }
+    },
+    createdAt: '2026-10-04 08:21:40',
+    updatedAt: '2026-10-04 08:21:40'
+  }
+];
+
 class TaskService {
   private tasks: StrategicCanvasTask[] = [];
 
@@ -42,19 +116,94 @@ class TaskService {
       if (data) {
         const parsed: StrategicCanvasTask[] = JSON.parse(data);
         // Bersihkan tugas dummy lama dari penyimpanan lokal browser
-        this.tasks = parsed.filter(t => 
+        const cleaned = parsed.filter(t => 
           t.id !== 'TASK-2026-001' && 
           t.id !== 'TASK-2026-002' &&
           t.namaUsaha.toLowerCase().trim() !== 'kripik apel batu mandiri' &&
           t.namaUsaha.toLowerCase().trim() !== 'batik among tani creative'
         );
+
+        // Pastikan submission peserta terverifikasi ada di daftar
+        const existingNames = new Set(cleaned.map(p => p.namaUsaha.toLowerCase().trim()));
+        for (const sub of VERIFIED_SUBMISSIONS) {
+          if (!existingNames.has(sub.namaUsaha.toLowerCase().trim())) {
+            cleaned.push(sub);
+          }
+        }
+        this.tasks = cleaned;
         this.saveToStorage();
       } else {
-        this.tasks = [];
+        this.tasks = [...VERIFIED_SUBMISSIONS];
+        this.saveToStorage();
       }
     } catch (e) {
       console.error('Failed to load tasks from storage:', e);
-      this.tasks = [];
+      this.tasks = [...VERIFIED_SUBMISSIONS];
+    }
+  }
+
+  /**
+   * Menyinkronkan baris tab 'Tugas' dari live Google Sheets
+   */
+  public syncFromSpreadsheetRows(rows: string[][]) {
+    if (!rows || rows.length <= 1) return;
+    const newTasks: StrategicCanvasTask[] = [];
+
+    for (let i = 1; i < rows.length; i++) {
+      const r = rows[i];
+      if (!r[2]) continue;
+
+      let fullTask: StrategicCanvasTask | null = null;
+      try {
+        if (r[19]) fullTask = JSON.parse(r[19]);
+      } catch {}
+
+      if (fullTask && fullTask.namaUsaha) {
+        newTasks.push(fullTask);
+      } else {
+        let ps = { recent: '', midTerm: '', longTerm: '' };
+        let inc = { recent: '', midTerm: '', longTerm: '' };
+        let bt = { recent: '', midTerm: '', longTerm: '' };
+        try { if (r[16]) ps = JSON.parse(r[16]); } catch {}
+        try { if (r[17]) inc = JSON.parse(r[17]); } catch {}
+        try { if (r[18]) bt = JSON.parse(r[18]); } catch {}
+
+        newTasks.push({
+          id: r[1] || `TASK-${i}`,
+          namaUsaha: r[2],
+          namaPemilik: r[3] || '',
+          whatsapp: r[4] || '',
+          subsektor: r[5] || 'Kuliner',
+          sesiPartnerUp: r[6] || 'Sesi 2',
+          status: (r[7] as any) || 'submitted',
+          nilai: r[8] ? Number(r[8]) : undefined,
+          catatanKurator: r[9] || '',
+          visi: r[10] || '',
+          misi: r[11] || '',
+          goal: r[12] || '',
+          objective: r[13] || '',
+          nilaiUsaha: r[14] || '',
+          keahlianOrganisasi: r[15] || '',
+          matriks: {
+            problemSolving: ps,
+            incremental: inc,
+            breakthrough: bt
+          },
+          createdAt: r[0] || new Date().toISOString(),
+          updatedAt: r[0] || ''
+        });
+      }
+    }
+
+    if (newTasks.length > 0) {
+      const map = new Map<string, StrategicCanvasTask>();
+      this.tasks.forEach(t => map.set(t.namaUsaha.toLowerCase().trim(), t));
+      newTasks.forEach(t => map.set(t.namaUsaha.toLowerCase().trim(), t));
+      this.tasks = Array.from(map.values());
+      this.saveToStorage();
+      try {
+        window.dispatchEvent(new CustomEvent('gkf-tasks-updated'));
+      } catch {}
     }
   }
 
