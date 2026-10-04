@@ -1,0 +1,1157 @@
+[
+  {
+    "id": "TASK-SUB-001",
+    "namaUsaha": "Sidoasri kopi",
+    "namaPemilik": "Alvitalia Kusumaningsih",
+    "whatsapp": "081336612673",
+    "email": "alvitalia110596@gmail.com",
+    "subsektor": "Kuliner",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Mengembangkan cita rasa kopi khas Sidoasri lereng pegunungan Kota Batu menjadi brand kopi unggulan lokal yang dikenal luas.",
+    "misi": "Menghadirkan racikan kopi berkualitas dengan biji pilihan petani lokal serta pelayanan ramah untuk penikmat kopi nusantara.",
+    "goal": "Meningkatkan kapasitas roasting dan membuka kedai kemitraan strategis di kawasan wisata Kota Batu.",
+    "objective": "Meningkatkan omzet bulanan 20% dalam 90 hari dan memperluas distribusi kemasan drip bag ke hotel & resto.",
+    "nilaiUsaha": "Kualitas Biji Pilihan, Kebersamaan, Ketulusan Pelayanan, Kearifan Petani Lokal.",
+    "keahlianOrganisasi": "Teknik roasting profil medium-dark, penyajian manual brew, dan hubungan langsung dengan petani kebun kopi.",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Menjaga kestabilan pasokan green beans saat musim hujan.",
+        "midTerm": "Pengadaan mesin grinder dan sealer otomatis untuk mempercepat packaging.",
+        "longTerm": "Standarisasi SOP cupping dan quality control di seluruh lini."
+      },
+      "incremental": {
+        "recent": "Mempercantik packaging drip bag kopi untuk oleh-oleh wisatawan.",
+        "midTerm": "Kolaborasi menu kopi susu signature dengan kafe mitra.",
+        "longTerm": "Membuka flagship coffee shop di pusat Kota Batu."
+      },
+      "breakthrough": {
+        "recent": "Peluncuran cold brew konsentrat kemasan botol siap minum.",
+        "midTerm": "Kemitraan pasokan kopi resmi untuk jaringan perhotelan Batu.",
+        "longTerm": "Mendirikan pusat edukasi dan wisata kopi (Coffee Experience Center) di Sidoasri."
+      }
+    },
+    "createdAt": "2026-10-04 07:42:05",
+    "updatedAt": "2026-10-04 07:42:05"
+  },
+  {
+    "id": "TASK-SUB-002",
+    "namaUsaha": "Janus Cafe",
+    "namaPemilik": "Yauar Baihaqi",
+    "whatsapp": "085895807020",
+    "email": "yanuarfree@gmail.com",
+    "subsektor": "Kuliner",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Terus mengembangkan kualitas dan membuat terobosan baru",
+    "misi": "Punya identitas visual, namun masih belum dikenal luas di luar daerah",
+    "goal": "Lokasi strategis, produk berkualitas, keuntungan jelas",
+    "objective": "Mindset pengusaha",
+    "nilaiUsaha": "Terus mengembangkan kualitas dan membuat terobosan baru",
+    "keahlianOrganisasi": "Leadership: Marketing",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Sudah memisahkan keuangan pribadi dan usaha, namun ada momen kekurangan modal dan harus menyuntik",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "Punya identitas visual, namun masih belum dikenal luas di luar daerah",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "Open for all possibilities",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "10/09/2026 18:34:03",
+    "updatedAt": "10/09/2026 18:34:03"
+  },
+  {
+    "id": "TASK-SUB-003",
+    "namaUsaha": "Cleopatra",
+    "namaPemilik": "Erna Eriana",
+    "whatsapp": "081252513996",
+    "email": "ernacleopatra6969@gmail.com",
+    "subsektor": "Lainnya",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Saya percaya kualitas dan keunikan jasa kami sangat baik dibanding kompetitor sejenis",
+    "misi": "Cukup, belum maksimal",
+    "goal": "Masih kurang, masih sangat bergantung pada pemilik",
+    "objective": "Service Excellence, Komunikasi, Public Speaking",
+    "nilaiUsaha": "Saya percaya kualitas dan keunikan jasa kami sangat baik dibanding kompetitor sejenis",
+    "keahlianOrganisasi": "Service: Growth",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Lumayan baik, terpisah dr pribadi",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "Cukup, belum maksimal",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "Sangat baik, namun terhambat waktu karena jalannya usaha masih sangat bergabtung besar ke pemilik",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "13/09/2026 15:09:46",
+    "updatedAt": "13/09/2026 15:09:46"
+  },
+  {
+    "id": "TASK-SUB-004",
+    "namaUsaha": "Linara Craft",
+    "namaPemilik": "Lilis Suryani",
+    "whatsapp": "085257324459",
+    "email": "linaracraft.id@gmail.com",
+    "subsektor": "Kriya / Kerajinan",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Saya bergerak di bidang kriya. Yang saya tawarkan kepada customer yaitu servis gratis. Karena saya yakin akan kualitas produk saya. Saya juga melayani orderan sesuai permintaan customer",
+    "misi": "Photo profile saya adalah logo brand usaha saya. Sering melakukan komunikasi dengan calon-calon customer",
+    "goal": "Sangat jelas. Saya sering mencari info event-event bazar dan promosi digital serta pelanggan yang sering kembali ke saya",
+    "objective": "Saya beberapa kali berkolaborasi menjadi pemateri workshop yang diselenggarakan oleh Universitas Brawijaya",
+    "nilaiUsaha": "Saya bergerak di bidang kriya. Yang saya tawarkan kepada customer yaitu servis gratis. Karena saya yakin akan kualitas produk saya. Saya juga melayani orderan sesuai permintaan customer",
+    "keahlianOrganisasi": "Operasional: -",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Saya sudah melakukan pembukuan dasar sehingga terpantau jelas naik atau turunnya omset tiap periode",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "Photo profile saya adalah logo brand usaha saya. Sering melakukan komunikasi dengan calon-calon customer",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "Saya sangat terbuka untuk bekerjasama dengan pihak manapun. Asal komit dan jelas",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "13/09/2026 16:02:22",
+    "updatedAt": "13/09/2026 16:02:22"
+  },
+  {
+    "id": "TASK-SUB-005",
+    "namaUsaha": "De Rivi",
+    "namaPemilik": "Devi Fortuna Ambar Wati",
+    "whatsapp": "081216104768",
+    "email": "alrizalhelmi@gmail.com",
+    "subsektor": "Lainnya",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Nilai tambah DeRivi terletak pada kemampuan menyediakan produk custom yang dapat disesuaikan dengan kebutuhan dan keinginan pelanggan. Pelanggan tidak hanya membeli produk, tetapi juga mendapatkan produk yang lebih personal dan memiliki nilai emosional.\n\nKualitas menjadi perhatian utama, mulai dari pemilihan bahan, proses desain, hingga proses produksi dan finishing. Setiap pesanan dikerjakan dengan memperhatikan kerapian dan detail agar menghasilkan produk yang layak digunakan maupun diberikan sebagai hadiah.\n\nPembeda DeRivi dibanding kompetitor adalah menawarkan berbagai jenis produk custom dalam satu usaha, seperti label kulit, label akrilik, buket, mug custom, dan produk personalisasi lainnya. DeRivi juga memberikan ruang bagi pelanggan untuk menentukan desain, nama, tulisan, atau konsep sesuai kebutuhan, sehingga setiap produk dapat dibuat lebih unik dan tidak terasa seperti produk massal.\n\nDengan mengutamakan kreativitas, personalisasi, kualitas, dan pelayanan yang fleksibel, DeRivi berusaha memberikan pengalaman pembelian yang lebih dekat dengan kebutuhan setiap pelanggan.",
+    "misi": "DeRivi menggunakan identitas visual yang konsisten melalui penggunaan nama dan logo DeRivi pada materi promosi, produk, serta kemasan. Identitas tersebut menjadi ciri yang membantu pelanggan mengenali produk DeRivi.\n\nDalam pemasaran, DeRivi aktif memanfaatkan media sosial dan marketplace untuk menampilkan katalog produk, hasil pesanan, promosi, serta konten produk custom seperti label, buket, mug, dan produk personalisasi lainnya.\n\nKonten dibuat dengan menampilkan produk secara menarik dan informatif, sehingga pelanggan dapat melihat contoh hasil, memahami pilihan custom, dan menghubungi DeRivi untuk melakukan pemesanan. Ke depannya, DeRivi terus memperkuat konsistensi branding, kualitas foto/video produk, kemasan, dan aktivitas media sosial agar lebih mudah dikenali dan dipercaya oleh pelanggan.",
+    "goal": "DeRivi merupakan usaha custom dan printing yang menyediakan berbagai produk personalisasi, seperti label kulit, label akrilik, buket custom, mug custom, undangan, buku Yasin, serta berbagai produk hadiah dan kebutuhan acara.\n\nTarget pasar DeRivi cukup luas, mulai dari pelajar dan mahasiswa, orang tua, guru, pelaku UMKM, hingga masyarakat yang membutuhkan hadiah atau produk custom untuk ulang tahun, pernikahan, wisuda, acara sekolah, maupun kebutuhan usaha.\n\nCara DeRivi menghasilkan pendapatan adalah melalui penjualan produk custom secara langsung maupun melalui pemesanan online. Pelanggan dapat memilih produk dan melakukan personalisasi sesuai kebutuhan. Pendapatan diperoleh dari selisih harga jual dengan biaya bahan, produksi, dan pengerjaan setiap pesanan. Sistem produksi berdasarkan pesanan juga membantu menyesuaikan jumlah produksi dengan permintaan pelanggan.",
+    "objective": "peluang usaha dibidang advertising",
+    "nilaiUsaha": "Nilai tambah DeRivi terletak pada kemampuan menyediakan produk custom yang dapat disesuaikan dengan kebutuhan dan keinginan pelanggan. Pelanggan tidak hanya membeli produk, tetapi juga mendapatkan produk yang lebih personal dan memiliki nilai emosional.\n\nKualitas menjadi perhatian utama, mulai dari pemilihan bahan, proses desain, hingga proses produksi dan finishing. Setiap pesanan dikerjakan dengan memperhatikan kerapian dan detail agar menghasilkan produk yang layak digunakan maupun diberikan sebagai hadiah.\n\nPembeda DeRivi dibanding kompetitor adalah menawarkan berbagai jenis produk custom dalam satu usaha, seperti label kulit, label akrilik, buket, mug custom, dan produk personalisasi lainnya. DeRivi juga memberikan ruang bagi pelanggan untuk menentukan desain, nama, tulisan, atau konsep sesuai kebutuhan, sehingga setiap produk dapat dibuat lebih unik dan tidak terasa seperti produk massal.\n\nDengan mengutamakan kreativitas, personalisasi, kualitas, dan pelayanan yang fleksibel, DeRivi berusaha memberikan pengalaman pembelian yang lebih dekat dengan kebutuhan setiap pelanggan.",
+    "keahlianOrganisasi": "Growth: Marketing",
+    "matriks": {
+      "problemSolving": {
+        "recent": "masih tidak tertata",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "DeRivi menggunakan identitas visual yang konsisten melalui penggunaan nama dan logo DeRivi pada materi promosi, produk, serta kemasan. Identitas tersebut menjadi ciri yang membantu pelanggan mengenali produk DeRivi.\n\nDalam pemasaran, DeRivi aktif memanfaatkan media sosial dan marketplace untuk menampilkan katalog produk, hasil pesanan, promosi, serta konten produk custom seperti label, buket, mug, dan produk personalisasi lainnya.\n\nKonten dibuat dengan menampilkan produk secara menarik dan informatif, sehingga pelanggan dapat melihat contoh hasil, memahami pilihan custom, dan menghubungi DeRivi untuk melakukan pemesanan. Ke depannya, DeRivi terus memperkuat konsistensi branding, kualitas foto/video produk, kemasan, dan aktivitas media sosial agar lebih mudah dikenali dan dipercaya oleh pelanggan.",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "DeRivi terbuka terhadap masukan, kritik, dan saran dari pelanggan sebagai bahan evaluasi untuk meningkatkan kualitas produk dan pelayanan. Masukan pelanggan digunakan untuk mengetahui kebutuhan pasar serta mengembangkan desain dan produk baru.\n\nDeRivi juga memiliki semangat untuk terus belajar dan meningkatkan keterampilan, baik melalui pelatihan, tutorial, maupun mengikuti perkembangan tren di bidang desain, custom printing, dan pemasaran digital.\n\nSelain itu, DeRivi terbuka untuk berkolaborasi dengan pelaku usaha kreatif lainnya, seperti UMKM, jasa dekorasi, percetakan, fotografer, maupun pelaku usaha handmade. Kolaborasi diharapkan dapat menciptakan produk yang lebih beragam, memperluas pasar, dan saling mendukung perkembangan usaha.",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "13/09/2026 17:05:07",
+    "updatedAt": "13/09/2026 17:05:07"
+  },
+  {
+    "id": "TASK-SUB-006",
+    "namaUsaha": "The Apsara",
+    "namaPemilik": "Ciciek Kemalasari",
+    "whatsapp": "085313855181",
+    "email": "chicikemala@gmail.com",
+    "subsektor": "Fashion",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Banyak promo Dan program baru",
+    "misi": "Branding kecantikan dan spa",
+    "goal": "Usahanya baru mulai dirintis",
+    "objective": "Membuat konten",
+    "nilaiUsaha": "Banyak promo Dan program baru",
+    "keahlianOrganisasi": "Sales: -",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Masih belum terstruktur",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "Branding kecantikan dan spa",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "Siap menerima masukan",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "14/09/2026 9:33:20",
+    "updatedAt": "14/09/2026 9:33:20"
+  },
+  {
+    "id": "TASK-SUB-007",
+    "namaUsaha": "Creative Kokedama",
+    "namaPemilik": "Dwi Lili Indayani",
+    "whatsapp": "081230493939",
+    "email": "creative.kokedama@gmail.com",
+    "subsektor": "Kriya / Kerajinan",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "memiliki keunikan yang cukup menonjol dan seringkali menjadi salah satu poin yang dilihat pelanggan",
+    "misi": "branding sudah cukup kuat, penggunaan media digital ada di semua platform, tapi belum rutin untuk update",
+    "goal": "masih belum terlalu terstruktur, lebih ke continue supply ke outlet yang sudah ada, dll.",
+    "objective": "manajemen team",
+    "nilaiUsaha": "memiliki keunikan yang cukup menonjol dan seringkali menjadi salah satu poin yang dilihat pelanggan",
+    "keahlianOrganisasi": "Leadership: Marketing",
+    "matriks": {
+      "problemSolving": {
+        "recent": "masih manual, belum menggunakan aplikasi digital.",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "branding sudah cukup kuat, penggunaan media digital ada di semua platform, tapi belum rutin untuk update",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "sangat siap",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "15/09/2026 11:14:54",
+    "updatedAt": "15/09/2026 11:14:54"
+  },
+  {
+    "id": "TASK-SUB-008",
+    "namaUsaha": "Chloe Crochet",
+    "namaPemilik": "Gracyana Gitta",
+    "whatsapp": "085117470414",
+    "email": "chloe.crochet.id@gmail.com",
+    "subsektor": "Kriya / Kerajinan",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Kualitas hasil rajutan yang dihasilkan cukup baik.",
+    "misi": "Identitas visual seperti logo dan kemasan produk sudah cukup baik dan konsisten. Namun aktivitas di marketplace dan media sosial sangat kurang.",
+    "goal": "Jenis produk yang dibuat mulai memiliki karakter tersendiri, tetapi belum mencapai target pasar yang diinginkan.",
+    "objective": "Cara membuat produk rajutan yang berkualitas.",
+    "nilaiUsaha": "Kualitas hasil rajutan yang dihasilkan cukup baik.",
+    "keahlianOrganisasi": "Product: Marketing",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Sudah memiliki rekening tersendiri. Pencatatan keuangan untuk setiap event sudah cukup baik. Namun untuk keuangan harian masih tercatat seadanya.",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "Identitas visual seperti logo dan kemasan produk sudah cukup baik dan konsisten. Namun aktivitas di marketplace dan media sosial sangat kurang.",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "Sangat terbuka untuk menerima masukan dan mengikuti pelatihan. Terbuka juga untuk berkolaborasi dengan listas usaha kreatif, tetapi tetap menyesuaikan dengan identitas brand yang sudah ada sekarang dan yang akan berkembang kedepannya.",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "15/09/2026 12:00:03",
+    "updatedAt": "15/09/2026 12:00:03"
+  },
+  {
+    "id": "TASK-SUB-009",
+    "namaUsaha": "Kopi Kedungroso",
+    "namaPemilik": "Sumiarsih",
+    "whatsapp": "085755034299",
+    "email": "kopikedungasih@gmail.com",
+    "subsektor": "Kuliner",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Produk lokal yg bisa bersaing di pasar nasional",
+    "misi": "Sudah berlogo dan mempunyai marketplace",
+    "goal": "Produk berupa bubuk/biji roasting, target nya untuk pecinta/ penikmat kopi, cara menghasilkan pendapatan dg menjual secara online/ off line",
+    "objective": "Proses produksi, promosi/pemasaran offline, cara interaksi dengan pelanggan",
+    "nilaiUsaha": "Produk lokal yg bisa bersaing di pasar nasional",
+    "keahlianOrganisasi": "Operasional: -",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Sudah disiplin mencatat/ memisahkan uang pribadi dan usaha",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "Sudah berlogo dan mempunyai marketplace",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "Sangat terbuka dan antusias untuk menambah wawasan dan jaringan",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "15/09/2026 13:37:43",
+    "updatedAt": "15/09/2026 13:37:43"
+  },
+  {
+    "id": "TASK-SUB-010",
+    "namaUsaha": "Batu Camping",
+    "namaPemilik": "Devi Aristiningtias",
+    "whatsapp": "085791566286",
+    "email": "devi.aris11@gmail.com",
+    "subsektor": "Lainnya",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Walaupun segmented, penambahan trip VW jadi daya tarik yg unik di usaha saya",
+    "misi": "Kami cukup rutin membuat konten dan collab dengan KOL",
+    "goal": "Cukup baik, untuk ranah usaha di bidang rekreasi dan berlokasi di Kota Batu",
+    "objective": "Membuat konten plan di ig",
+    "nilaiUsaha": "Walaupun segmented, penambahan trip VW jadi daya tarik yg unik di usaha saya",
+    "keahlianOrganisasi": "Marketing: Growth",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Untuk pemisahan keuangan pribadi dan usaha memang sudah dilakukan dari awal. Hanya pencatatan rinci jarang dilakukan",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "Kami cukup rutin membuat konten dan collab dengan KOL",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "Jujur untuk saat ini usaha saya sudah mulai meredup, butuh hal-hal baru dan bertemu dengan orang2 baru untuk mendapatkan insight",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "15/09/2026 15:12:22",
+    "updatedAt": "15/09/2026 15:12:22"
+  },
+  {
+    "id": "TASK-SUB-011",
+    "namaUsaha": "Kriups!",
+    "namaPemilik": "Dwi Lili Indayani",
+    "whatsapp": "08982229600",
+    "email": "kriups.chips@gmail.com",
+    "subsektor": "Lainnya",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Memperkuat fondasi bisnis dan memperluas jangkauan pasar produk lokal berkualitas.",
+    "misi": "Menghadirkan produk unggulan dengan pelayanan terbaik dan nilai tambah bagi pelanggan setia.",
+    "goal": "Meningkatkan omzet dan membangun sistem operasional yang mandiri.",
+    "objective": "membuat konten, foto produk dengan modal kamera handphone",
+    "nilaiUsaha": "Kualitas, Keaslian Produk, Pelayanan Ramah, Ketekunan.",
+    "keahlianOrganisasi": "Product: -",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Efisiensi biaya dan stabilisasi pasokan bahan baku.",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "Peningkatan konsistensi promosi konten digital di media sosial.",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "Kolaborasi promosi silang dengan pelaku usaha sesama komunitas PartnerUp.",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "15/09/2026 16:21:39",
+    "updatedAt": "15/09/2026 16:21:39"
+  },
+  {
+    "id": "TASK-SUB-012",
+    "namaUsaha": "Janeetaqu",
+    "namaPemilik": "Ernawati",
+    "whatsapp": "085755557908",
+    "email": "janeetaqusukses908@gmail.com",
+    "subsektor": "Kriya / Kerajinan",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Rajutan rapi ,boneka /ganci karakter bisa mirip dgn karakter aslinya ( tdk jauh melenceng)",
+    "misi": "Ken blom ada team tersendiri utk medsos ,postingan jika ingat saja",
+    "goal": "Meningkatkan omzet dan membangun sistem operasional yang mandiri.",
+    "objective": "Merajut mulai dasar , motif dan teknik rajut( amigurumi , tapestry, mozaik dll)",
+    "nilaiUsaha": "Rajutan rapi ,boneka /ganci karakter bisa mirip dgn karakter aslinya ( tdk jauh melenceng)",
+    "keahlianOrganisasi": "Product: Marketing",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Tidak ada pencatatan keuangan , TPI rekening usaha sdh dipisah",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "Ken blom ada team tersendiri utk medsos ,postingan jika ingat saja",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "Dengan senang hati dan siap berkolaborasi",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "17/09/2026 13:26:22",
+    "updatedAt": "17/09/2026 13:26:22"
+  },
+  {
+    "id": "TASK-SUB-013",
+    "namaUsaha": "Inday Kueku",
+    "namaPemilik": "Elok Bakti Pratiwi",
+    "whatsapp": "082333118190",
+    "email": "elokbakti@gmail.com",
+    "subsektor": "Kuliner",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Saya menggunakan bahan- bahan yang berkualitas dalam memproduksi jajan pasar dan kue kering",
+    "misi": "Hanya memposting di washap saja.kadang-kadang di facebook dan masih belum memaksimalkan pemasaran lewat media IG dan Tiktok",
+    "goal": "Produk saya sdh masuk di 4 mall di kota batu dan kota malang yaitu hypermart dan mog, Dan pesanan pribadi dari pelangan saja.",
+    "objective": "Meminimalkan bahan sisa produksi yang tidak terpakai .",
+    "nilaiUsaha": "Saya menggunakan bahan- bahan yang berkualitas dalam memproduksi jajan pasar dan kue kering",
+    "keahlianOrganisasi": "Operasional: -",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Sudah melalukan pencatatan walaipun masih sering luoa untuk melalukan pencatatan pembelian bahan baku produksi",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "Hanya memposting di washap saja.kadang-kadang di facebook dan masih belum memaksimalkan pemasaran lewat media IG dan Tiktok",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "Sangat terbuka untuk berkolaborasi dengan rekan- rekan sesama UMKM yang lain.serta masih ingin terus meningkatkan ketrampilan melalui pelatihan.p",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "22/09/2026 13:12:03",
+    "updatedAt": "22/09/2026 13:12:03"
+  },
+  {
+    "id": "TASK-SUB-014",
+    "namaUsaha": "Itravel Malang",
+    "namaPemilik": "Rika Kartika",
+    "whatsapp": "08133338269",
+    "email": "rikakartikaw@gmail.com",
+    "subsektor": "Lainnya",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Memperkuat fondasi bisnis dan memperluas jangkauan pasar produk lokal berkualitas.",
+    "misi": "Menghadirkan produk unggulan dengan pelayanan terbaik dan nilai tambah bagi pelanggan setia.",
+    "goal": "Meningkatkan omzet dan membangun sistem operasional yang mandiri.",
+    "objective": "Customer service satisfaction",
+    "nilaiUsaha": "Kualitas, Keaslian Produk, Pelayanan Ramah, Ketekunan.",
+    "keahlianOrganisasi": "Service: Financial",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Efisiensi biaya dan stabilisasi pasokan bahan baku.",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "Peningkatan konsistensi promosi konten digital di media sosial.",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "Kolaborasi promosi silang dengan pelaku usaha sesama komunitas PartnerUp.",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "24/09/2026 13:08:24",
+    "updatedAt": "24/09/2026 13:08:24"
+  },
+  {
+    "id": "TASK-SUB-015",
+    "namaUsaha": "Pixora",
+    "namaPemilik": "Leo Setiyawan",
+    "whatsapp": "085646714314",
+    "email": "leosetiyawan86@gmail.com",
+    "subsektor": "Desain Grafis / Komunikasi Visual",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "desain tidak asal, ada maping, dan brainstorming terlebih dahulu agar desain lebih kuat dalam berkompetisi",
+    "misi": "konsisten dan disamakan disetiap medsos",
+    "goal": "produk ditujukan ke pondok, ukm, sekolah, kader, yang membutuhkan jasa desain, baik baner, kartu nama dll",
+    "objective": "memaksimalkan ponsel untuk foto produk, dan desain, baik kemasan, baner, dll",
+    "nilaiUsaha": "desain tidak asal, ada maping, dan brainstorming terlebih dahulu agar desain lebih kuat dalam berkompetisi",
+    "keahlianOrganisasi": "Service: Financial",
+    "matriks": {
+      "problemSolving": {
+        "recent": "masih tercampur belum terpisah dengan uang pribadi",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "konsisten dan disamakan disetiap medsos",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "siap menerima masukan dan ilmu tambahan, share project atau kolaborasi",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "24/09/2026 13:46:56",
+    "updatedAt": "24/09/2026 13:46:56"
+  },
+  {
+    "id": "TASK-SUB-016",
+    "namaUsaha": "Yoghurt Kisnamilk",
+    "namaPemilik": "Putri",
+    "whatsapp": "081357914024",
+    "email": "krisnajamaludin452@gmail.com",
+    "subsektor": "Kuliner",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "tanpa pengawet\nlangsung dari sumber bahan bakunya",
+    "misi": "tanpa pengawet\nlangsung dari sumber bahan bakunya",
+    "goal": "Meningkatkan omzet dan membangun sistem operasional yang mandiri.",
+    "objective": "strategi closing",
+    "nilaiUsaha": "tanpa pengawet\nlangsung dari sumber bahan bakunya",
+    "keahlianOrganisasi": "Product: -",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Efisiensi biaya dan stabilisasi pasokan bahan baku.",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "Peningkatan konsistensi promosi konten digital di media sosial.",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "sangat welcome",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "24/09/2026 20:25:33",
+    "updatedAt": "24/09/2026 20:25:33"
+  },
+  {
+    "id": "TASK-SUB-017",
+    "namaUsaha": "Party Utara",
+    "namaPemilik": "Rizkyta Bintang",
+    "whatsapp": "081333187243",
+    "email": "partyutara@gmail.com",
+    "subsektor": "Kriya / Kerajinan",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Memperkuat fondasi bisnis dan memperluas jangkauan pasar produk lokal berkualitas.",
+    "misi": "Menghadirkan produk unggulan dengan pelayanan terbaik dan nilai tambah bagi pelanggan setia.",
+    "goal": "Meningkatkan omzet dan membangun sistem operasional yang mandiri.",
+    "objective": "Sharing KPI dan SOP",
+    "nilaiUsaha": "Kualitas, Keaslian Produk, Pelayanan Ramah, Ketekunan.",
+    "keahlianOrganisasi": "Operasional: -",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Efisiensi biaya dan stabilisasi pasokan bahan baku.",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "Peningkatan konsistensi promosi konten digital di media sosial.",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "Kolaborasi promosi silang dengan pelaku usaha sesama komunitas PartnerUp.",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "27/09/2026 16:18:01",
+    "updatedAt": "27/09/2026 16:18:01"
+  },
+  {
+    "id": "TASK-SUB-018",
+    "namaUsaha": "Kenayu",
+    "namaPemilik": "Hesti Wiluejeng",
+    "whatsapp": "081233715875",
+    "email": "hesti.wilujeng.kristanti@gmail.com",
+    "subsektor": "Kuliner",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "70%",
+    "misi": "Kenayu memiliki logo yang mudah di kenali dan looks luxury",
+    "goal": "65%",
+    "objective": "cara penawaran produk kepada customer baru baik itu offline maupun online",
+    "nilaiUsaha": "70%",
+    "keahlianOrganisasi": "Service: Financial",
+    "matriks": {
+      "problemSolving": {
+        "recent": "masih harus banyak belajar program keuangan",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "Kenayu memiliki logo yang mudah di kenali dan looks luxury",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "85% siap brkolaborasi",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "27/09/2026 17:20:43",
+    "updatedAt": "27/09/2026 17:20:43"
+  },
+  {
+    "id": "TASK-SUB-019",
+    "namaUsaha": "Mau Grill",
+    "namaPemilik": "Sela Aliyansi Meilita",
+    "whatsapp": "081232456859",
+    "email": "selaaliyansi@gmail.com",
+    "subsektor": "Lainnya",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "- Kualitas: bahan baku berkualitas, higienis, packaging menarik, serta alat yang aman dan disertai panduan.\n-Nilai tambah: pelanggan mendapatkan solusi grill yang lengkap dan praktis, bukan sekadar membeli bahan makanan. Social proff drngsn verifikasi akun meta yg menambah trust.\n-Keunikan: konsep home service grill yang menghadirkan pengalaman grill langsung di lokasi pelanggan dan dapat dikustomisasi untuk kebutuhan personal maupun B2B",
+    "misi": "Secara branding, Mau Grill kami bangun sebagai brand home service grill yang praktis, berkualitas dan terpercaya. Kehadiran digital kami menggunakan Instagram dan TikTok sebagai kanal utama, didukung konten edukasi, kolaborasi, tester, dan follow-up WhatsApp. Branding ini ke depan akan kami konsistenkan untuk mendukung ekspansi consumer maupun B2B.",
+    "goal": "Mau Grill adalah UMKM jasa dan kuliner yang berdiri sejak 2020 di Kota Batu, dengan core business home service grill dan catering. Model bisnis kami menggabungkan penjualan langsung kepada konsumen melalui paket grill dengan model B2B berupa supply untuk villa, glamping, cafe maupun resto, serta pengembangan reseller dan event. \n\nRoadmap kami adalah memperkuat home service sebagai core business, memperbesar lini catering, dan membangun jaringan partnership B2B serta reseller sehingga Mau Grill bisa menjadi penyedia solusi grill yang praktis, berkualitas dan terpercaya di Kota Batu",
+    "objective": "- Dari Produk Menjadi Solusi: Membangun Service Experience untuk UMKM\n- Cara Menangani Customer dengan Pendekatan Solusi",
+    "nilaiUsaha": "- Kualitas: bahan baku berkualitas, higienis, packaging menarik, serta alat yang aman dan disertai panduan.\n-Nilai tambah: pelanggan mendapatkan solusi grill yang lengkap dan praktis, bukan sekadar membeli bahan makanan. Social proff drngsn verifikasi akun meta yg menambah trust.\n-Keunikan: konsep home service grill yang menghadirkan pengalaman grill langsung di lokasi pelanggan dan dapat dikustomisasi untuk kebutuhan personal maupun B2B",
+    "keahlianOrganisasi": "Service: -",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Mau Grill sudah memisahkan keuangan pribadi dan usaha melalui rekening terpisah. Transaksi kami dicatat menggunakan sistem Qasir, kemudian direkap dalam laporan keuangan bulanan berupa laba rugi hingga neraca. Sistem ini kami gunakan untuk menjaga transparansi dan membantu owner mengambil keputusan berdasarkan kondisi keuangan usaha",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "Secara branding, Mau Grill kami bangun sebagai brand home service grill yang praktis, berkualitas dan terpercaya. Kehadiran digital kami menggunakan Instagram dan TikTok sebagai kanal utama, didukung konten edukasi, kolaborasi, tester, dan follow-up WhatsApp. Branding ini ke depan akan kami konsistenkan untuk mendukung ekspansi consumer maupun B2B.",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "Owner Mau Grill aktif belajar dan terbuka terhadap masukan melalui berbagai pelatihan serta komunitas bisnis. Kami aktif membangun relasi di Sukses Berkah Community, IIBF, TDA, Entrepreneur University, High Class Response, Scale Up Grounded, Profit Camp, dan beberapa komunitas lainnya. Bagi kami, networking bukan hanya untuk belajar, tetapi juga membuka peluang kolaborasi dan bertukar pengalaman dengan sesama pelaku usaha.",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "27/09/2026 18:14:14",
+    "updatedAt": "27/09/2026 18:14:14"
+  },
+  {
+    "id": "TASK-SUB-020",
+    "namaUsaha": "Fida Accessories",
+    "namaPemilik": "Wahida Haeraty",
+    "whatsapp": "081253426280",
+    "email": "wahidahaeraty@gmail.com",
+    "subsektor": "Kriya / Kerajinan",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Untuk grosiran,hampir sering kami sbg pelopor atau pihak yg mengawali grosiran produk trtentu, pilihan warna yg banyak dan kualitas produk baik serta kemudahan pembayaran.",
+    "misi": "Ada namun Masih belum maksimal",
+    "goal": "Produk kami dibuat untuk penyuka aksesories baik dewasa maupun anak² ,untuk digunakan pribadi,sbg gift maupun untuk usaha atau dijual kembali dgn harga yg sangat kompetitif",
+    "objective": "Cara menyapa dan ngobrol dgn calon pembeli",
+    "nilaiUsaha": "Untuk grosiran,hampir sering kami sbg pelopor atau pihak yg mengawali grosiran produk trtentu, pilihan warna yg banyak dan kualitas produk baik serta kemudahan pembayaran.",
+    "keahlianOrganisasi": "Sales: Marketing",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Sudah terpisah walupun tdk trcatat sempurna",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "Ada namun Masih belum maksimal",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "Bersedia belajar dan berkolaborasi",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "27/09/2026 19:15:44",
+    "updatedAt": "27/09/2026 19:15:44"
+  },
+  {
+    "id": "TASK-SUB-021",
+    "namaUsaha": "Nickamakeupstudio",
+    "namaPemilik": "Nikka Savitri",
+    "whatsapp": "085749468931",
+    "email": "nickamakeupstudio751@gmail.com",
+    "subsektor": "Lainnya",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Yg menjadi pembeda adalah kami menggunakan sosmed untuk pemasaran yg jarang dilakukan oleh owner di sekitar kami",
+    "misi": "Selain menjual jasa kami juga seorang konten kreator jadi sosial media selalu beriringan dengan bisnis kami",
+    "goal": "Selama ini mengandalkan pendapatan dari fee klien dan kemudian diputar lagi untuk modal",
+    "objective": "Marketing lewat sosial media dalam membuat konten",
+    "nilaiUsaha": "Yg menjadi pembeda adalah kami menggunakan sosmed untuk pemasaran yg jarang dilakukan oleh owner di sekitar kami",
+    "keahlianOrganisasi": "Marketing: -",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Sudah mulai memindahkan untuk rekening pribadi dan usaha",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "Selain menjual jasa kami juga seorang konten kreator jadi sosial media selalu beriringan dengan bisnis kami",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "Kami selalu terus belajar dan mengupgrade skill",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "27/09/2026 19:16:06",
+    "updatedAt": "27/09/2026 19:16:06"
+  },
+  {
+    "id": "TASK-SUB-022",
+    "namaUsaha": "Cinematosh Presenter Indonesia",
+    "namaPemilik": "Sugoy Suhendra & Diana Dwi Novita",
+    "whatsapp": "081334484106",
+    "email": "diananovita13@gmail.com",
+    "subsektor": "Film, Animasi & Video",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Memperkuat fondasi bisnis dan memperluas jangkauan pasar produk lokal berkualitas.",
+    "misi": "Menghadirkan produk unggulan dengan pelayanan terbaik dan nilai tambah bagi pelanggan setia.",
+    "goal": "Meningkatkan omzet dan membangun sistem operasional yang mandiri.",
+    "objective": "Berkokaborasi uniuk saling berpromosi",
+    "nilaiUsaha": "Kualitas, Keaslian Produk, Pelayanan Ramah, Ketekunan.",
+    "keahlianOrganisasi": "Marketing: -",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Efisiensi biaya dan stabilisasi pasokan bahan baku.",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "Peningkatan konsistensi promosi konten digital di media sosial.",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "Kolaborasi promosi silang dengan pelaku usaha sesama komunitas PartnerUp.",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "27/09/2026 20:28:03",
+    "updatedAt": "27/09/2026 20:28:03"
+  },
+  {
+    "id": "TASK-SUB-023",
+    "namaUsaha": "Moofbride",
+    "namaPemilik": "Lukluul Mukaromah",
+    "whatsapp": "08973097633",
+    "email": "alfahrezadzakiandra@gmail.com",
+    "subsektor": "Fashion",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Dari segi produksi di eksekusi jahit menggunakan standart kualitas butik",
+    "misi": "Dari segi produksi di eksekusi jahit menggunakan standart kualitas butik",
+    "goal": "Meningkatkan omzet dan membangun sistem operasional yang mandiri.",
+    "objective": "Cara membuat konten",
+    "nilaiUsaha": "Dari segi produksi di eksekusi jahit menggunakan standart kualitas butik",
+    "keahlianOrganisasi": "Service: Growth",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Masih belum rutin masih kadang\"",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "Peningkatan konsistensi promosi konten digital di media sosial.",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "Saya sangat siap belajar untuk bisnis saya agar bisa grow up",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "27/09/2026 20:31:12",
+    "updatedAt": "27/09/2026 20:31:12"
+  },
+  {
+    "id": "TASK-SUB-024",
+    "namaUsaha": "Tresnaning Karyo",
+    "namaPemilik": "Ridha Hartatik",
+    "whatsapp": "081334198519",
+    "email": "ridhahartatik9@gmail.com",
+    "subsektor": "Kriya / Kerajinan",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Kuwalitas baik tidak ada yg menyamai",
+    "misi": "Branding tidak ada yg MW menyamai",
+    "goal": "Masih belum bisa maksimal",
+    "objective": "Penjualan lewat wa",
+    "nilaiUsaha": "Kuwalitas baik tidak ada yg menyamai",
+    "keahlianOrganisasi": "Service: Financial",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Belum bisa mencatat rapi",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "Branding tidak ada yg MW menyamai",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "Kami siap untuk diberi pengarahan untuk kemajuan usaha kami",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "27/09/2026 21:28:44",
+    "updatedAt": "27/09/2026 21:28:44"
+  },
+  {
+    "id": "TASK-SUB-025",
+    "namaUsaha": "Happy Food",
+    "namaPemilik": "Happy Izvestya Andhini",
+    "whatsapp": "081564899723",
+    "email": "happyandhini9@gmail.com",
+    "subsektor": "Kuliner",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Cuka Apel Albariqi dibuat dari sari apel melalui proses fermentasi alami dengan cita rasa asam yang lembut. Produk memiliki legalitas dan sertifikasi yang mendukung kepercayaan konsumen, serta memiliki keunikan sebagai produk cuka apel khas Kota Batu dengan kemasan yang praktis dan relatif aman untuk dibawa maupun dikirim.",
+    "misi": "Identitas merek Cuka Apel Albariqi sudah cukup kuat dan konsisten, didukung kemasan, media sosial, marketplace, serta berbagai materi promosi digital. Produk juga memiliki positioning yang jelas sebagai cuka apel dari Kota Batu.",
+    "goal": "Cuka Apel Albariqi memiliki model bisnis yang jelas, yaitu memproduksi dan menjual cuka apel berbahan sari apel Kota Batu. Target pasar meliputi konsumen yang peduli terhadap gaya hidup sehat, keluarga, wisatawan, toko oleh-oleh, reseller, retail, serta sektor kuliner dan HORECA. Penjualan dilakukan melalui kanal online dan offline.",
+    "objective": "Pencatatan keuangan usaha UMKM, menghitung HPP dan margin, memisahkan keuangan pribadi dan usaha, mengelola arus kas, serta menggunakan data keuangan sebagai dasar pengambilan keputusan bisnis.",
+    "nilaiUsaha": "Cuka Apel Albariqi dibuat dari sari apel melalui proses fermentasi alami dengan cita rasa asam yang lembut. Produk memiliki legalitas dan sertifikasi yang mendukung kepercayaan konsumen, serta memiliki keunikan sebagai produk cuka apel khas Kota Batu dengan kemasan yang praktis dan relatif aman untuk dibawa maupun dikirim.",
+    "keahlianOrganisasi": "Financial: Leadership",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Pengelolaan keuangan usaha sudah dilakukan dengan pencatatan penjualan, biaya produksi, HPP, dan pemisahan kebutuhan usaha dengan pribadi. Namun, sistem pencatatan dan monitoring keuangan masih terus disempurnakan agar lebih rapi dan terstruktur.",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "Identitas merek Cuka Apel Albariqi sudah cukup kuat dan konsisten, didukung kemasan, media sosial, marketplace, serta berbagai materi promosi digital. Produk juga memiliki positioning yang jelas sebagai cuka apel dari Kota Batu.",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "Aktif mengikuti pelatihan, mentoring, program pengembangan UMKM, serta terbuka terhadap masukan dan kolaborasi. Pengembangan produk, branding, digital marketing, dan akses pasar terus dilakukan untuk meningkatkan kapasitas usaha.",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "27/09/2026 21:33:35",
+    "updatedAt": "27/09/2026 21:33:35"
+  },
+  {
+    "id": "TASK-SUB-026",
+    "namaUsaha": "Lwegitcake",
+    "namaPemilik": "Voni Arianti",
+    "whatsapp": "081236692449",
+    "email": "lwegitcake@gmail.com",
+    "subsektor": "Kuliner",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Tetap mempertahankn rasa dan menggunakan bhn2 berkualitas",
+    "misi": "Masih blm optimal",
+    "goal": "Masih menggunakan modal pribadi",
+    "objective": "Strategi closing di wa",
+    "nilaiUsaha": "Tetap mempertahankn rasa dan menggunakan bhn2 berkualitas",
+    "keahlianOrganisasi": "Product: -",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Belum teratur dkm pencatatan",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "Masih blm optimal",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "Siap berkolaborasi, dan mengikuti pelatihan",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "27/09/2026 22:25:48",
+    "updatedAt": "27/09/2026 22:25:48"
+  },
+  {
+    "id": "TASK-SUB-027",
+    "namaUsaha": "Salty Tasty By Azr Kitchen",
+    "namaPemilik": "Anggun Sinta Maretasari",
+    "whatsapp": "081392085321",
+    "email": "anggunsintawork@gmail.com",
+    "subsektor": "Kuliner",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Produk kami mengusung konsep homemade dan menggunakan bahan premium & fresh. Sehingga produk kami berkualitas tinggi.",
+    "misi": "Untuk branding dan kehadiran digital kami baik. Karena identitas visual kami jelas, dan kami rajin upload konten di media sosial terutama tiktok",
+    "goal": "Usaha kami sangat jelas karena berfokus pada bidang kuliner dimsum dan bakso goreng yang sudah familiar di kalangan masyarakat",
+    "objective": "Good Service for a Good Deals",
+    "nilaiUsaha": "Produk kami mengusung konsep homemade dan menggunakan bahan premium & fresh. Sehingga produk kami berkualitas tinggi.",
+    "keahlianOrganisasi": "Service: -",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Pencatatan keuangan cukup baik, namun perlu ditingkatkan karena uang pribadi kadang tercampur untuk usaha",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "Untuk branding dan kehadiran digital kami baik. Karena identitas visual kami jelas, dan kami rajin upload konten di media sosial terutama tiktok",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "Kami terbuka untuk menerima masukan, pelatihan dan kolaborasi usahaa",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "27/09/2026 22:47:26",
+    "updatedAt": "27/09/2026 22:47:26"
+  },
+  {
+    "id": "TASK-SUB-028",
+    "namaUsaha": "Petite Plates",
+    "namaPemilik": "Lana Winda",
+    "whatsapp": "082229029992",
+    "email": "lanawindada@gmail.com",
+    "subsektor": "Kuliner",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Memperkuat fondasi bisnis dan memperluas jangkauan pasar produk lokal berkualitas.",
+    "misi": "Menghadirkan produk unggulan dengan pelayanan terbaik dan nilai tambah bagi pelanggan setia.",
+    "goal": "Meningkatkan omzet dan membangun sistem operasional yang mandiri.",
+    "objective": "Sepedrinya saya masih perlu belajar",
+    "nilaiUsaha": "Kualitas, Keaslian Produk, Pelayanan Ramah, Ketekunan.",
+    "keahlianOrganisasi": "Operasional: -",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Efisiensi biaya dan stabilisasi pasokan bahan baku.",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "Peningkatan konsistensi promosi konten digital di media sosial.",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "Kolaborasi promosi silang dengan pelaku usaha sesama komunitas PartnerUp.",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "28/09/2026 0:08:08",
+    "updatedAt": "28/09/2026 0:08:08"
+  },
+  {
+    "id": "TASK-SUB-029",
+    "namaUsaha": "Binka Shop",
+    "namaPemilik": "Sri Astuti",
+    "whatsapp": "081249674137",
+    "email": "warungmaksri2@gmail.com",
+    "subsektor": "Kriya / Kerajinan",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Unik",
+    "misi": "Masih tahap merintis",
+    "goal": "Pangsa Pasar middle up",
+    "objective": "Managenem produksi",
+    "nilaiUsaha": "Unik",
+    "keahlianOrganisasi": "Marketing: -",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Sdh ada sistem tapi masih perlu penguatan",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "Masih tahap merintis",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "Tetap upgrade",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "28/09/2026 7:31:00",
+    "updatedAt": "28/09/2026 7:31:00"
+  },
+  {
+    "id": "TASK-SUB-030",
+    "namaUsaha": "Galery Kepon",
+    "namaPemilik": "Indrayanti Alfa Sulaiman",
+    "whatsapp": "081615641044",
+    "email": "indrasembiloka12@gmail.com",
+    "subsektor": "Kriya / Kerajinan",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Dengan produk yg selalu baru dan inovatif serta kwalitas yg bagus maka pelanggan akan semakin sering untuk membeli produk kita",
+    "misi": "Singkat tapi penuh arti da  mudah di ingat masyarakat",
+    "goal": "Dengan sistem kerja yg baik produk bagus sehingga bisa memuaskan pelanggan",
+    "objective": "Cara memasarkan produk",
+    "nilaiUsaha": "Dengan produk yg selalu baru dan inovatif serta kwalitas yg bagus maka pelanggan akan semakin sering untuk membeli produk kita",
+    "keahlianOrganisasi": "Marketing: Operasional",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Krn keterbatasan modal jadi uang bisnis dan uang pribadi sering tercampur aduk sehingga kdg jd amburadul utk pencatatan",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "Singkat tapi penuh arti da  mudah di ingat masyarakat",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "Untuk kemajuan usaha sy sngat mendukung kolaborasi ini",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "03/10/2026 16:12:55",
+    "updatedAt": "03/10/2026 16:12:55"
+  },
+  {
+    "id": "TASK-SUB-031",
+    "namaUsaha": "Pentol Juara Ngalam",
+    "namaPemilik": "Pemilik Usaha",
+    "whatsapp": "087808091991",
+    "email": "",
+    "subsektor": "Kuliner",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Memperkuat fondasi bisnis dan memperluas jangkauan pasar produk lokal berkualitas.",
+    "misi": "Menghadirkan produk unggulan dengan pelayanan terbaik dan nilai tambah bagi pelanggan setia.",
+    "goal": "Meningkatkan omzet dan membangun sistem operasional yang mandiri.",
+    "objective": "Memberitahu produk bahwa kwalitas baek dan layak konsumsi",
+    "nilaiUsaha": "Kualitas, Keaslian Produk, Pelayanan Ramah, Ketekunan.",
+    "keahlianOrganisasi": "Product: Marketing",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Efisiensi biaya dan stabilisasi pasokan bahan baku.",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "Peningkatan konsistensi promosi konten digital di media sosial.",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "Kolaborasi promosi silang dengan pelaku usaha sesama komunitas PartnerUp.",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "03/10/2026 16:44:50",
+    "updatedAt": "03/10/2026 16:44:50"
+  },
+  {
+    "id": "TASK-SUB-032",
+    "namaUsaha": "Pastlove",
+    "namaPemilik": "Dya Anggraeni",
+    "whatsapp": "081334503518",
+    "email": "dyaanggraeni40@gmail.com",
+    "subsektor": "Kuliner",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Usaha saya menawarkan brownies dan cookies homemade dengan rasa yang lezat, tekstur yang berkualitas, serta dibuat menggunakan bahan-bahan yang baik dan higienis. Produk dapat dipesan dengan berbagai ukuran, dan kemasan sesuai kebutuhan pelanggan. Pembeda usaha saya adalah mengutamakan cita rasa homemade, kualitas produk, harga yang terjangkau, serta pelayanan yang ramah dan sesuai dengan kebutuhan pelanggan.",
+    "misi": "untuk identitas visual , saya menggunakan instagram. masih belum terlalu aktif dan belum banyak yang di upload karena keterbatasan waktu",
+    "goal": "Usaha saya menyediakan produk makanan berupa brownies dan cookies homemade dengan kualitas rasa yang enak, higienis, dan cocok untuk camilan maupun hadiah. Target pasar saya adalah keluarga, anak muda, pekerja, serta masyarakat yang menyukai makanan manis dan praktis. Pendapatan diperoleh dari penjualan brownies dan cookies secara langsung maupun melalui pemesanan online, dengan sistem pre-order dan pesanan dalam jumlah besar.",
+    "objective": "Saya dapat mengajarkan dasar-dasar pengembangan dan pengelolaan produk, khususnya produk makanan. Materi meliputi pemilihan bahan, menjaga kualitas dan konsistensi produk, serta menciptakan produk yang sesuai dengan kebutuhan pasar. Saya juga dapat mengajarkan cara menentukan kemasan yang menarik, praktis, dan sesuai dengan karakter produk. Selain itu, peserta dapat belajar melakukan evaluasi produk berdasarkan masukan dan kepuasan pelanggan. Pembelajaran diarahkan agar peserta mampu menghasilkan produk yang berkualitas, memiliki nilai jual, dan mampu bersaing di pasar.",
+    "nilaiUsaha": "Usaha saya menawarkan brownies dan cookies homemade dengan rasa yang lezat, tekstur yang berkualitas, serta dibuat menggunakan bahan-bahan yang baik dan higienis. Produk dapat dipesan dengan berbagai ukuran, dan kemasan sesuai kebutuhan pelanggan. Pembeda usaha saya adalah mengutamakan cita rasa homemade, kualitas produk, harga yang terjangkau, serta pelayanan yang ramah dan sesuai dengan kebutuhan pelanggan.",
+    "keahlianOrganisasi": "Product: Financial",
+    "matriks": {
+      "problemSolving": {
+        "recent": "pencatatan keuangan usaha dan pribadi masih tercampur, karena memang modal usaha masih berasal dari dana pribadi",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "untuk identitas visual , saya menggunakan instagram. masih belum terlalu aktif dan belum banyak yang di upload karena keterbatasan waktu",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "Saya terbuka terhadap kritik, saran, dan masukan dari pelanggan untuk terus meningkatkan kualitas brownies dan cookies. Saya juga aktif mengikuti pelatihan dan belajar hal-hal baru terkait pengembangan produk, pemasaran, dan pengelolaan usaha. Ke depannya, saya terbuka untuk berkolaborasi dengan pelaku usaha kreatif lainnya agar dapat memperluas pasar dan menciptakan produk yang lebih inovatif.",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "04/10/2026 9:27:11",
+    "updatedAt": "04/10/2026 9:27:11"
+  },
+  {
+    "id": "TASK-SUB-033",
+    "namaUsaha": "Sawetu",
+    "namaPemilik": "Pemilik Usaha",
+    "whatsapp": "081252622176",
+    "email": "",
+    "subsektor": "Kuliner",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Memperkuat fondasi bisnis dan memperluas jangkauan pasar produk lokal berkualitas.",
+    "misi": "Menghadirkan produk unggulan dengan pelayanan terbaik dan nilai tambah bagi pelanggan setia.",
+    "goal": "Meningkatkan omzet dan membangun sistem operasional yang mandiri.",
+    "objective": "materi tentang bagaimana seseorang perlu membangun sebuah brand usaha, membangun visual agar prodak bisa menarik dan menjadi ciri khas",
+    "nilaiUsaha": "Kualitas, Keaslian Produk, Pelayanan Ramah, Ketekunan.",
+    "keahlianOrganisasi": "Service: -",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Efisiensi biaya dan stabilisasi pasokan bahan baku.",
+        "midTerm": "Standarisasi SOP operasional dan manajemen stok harian.",
+        "longTerm": "Penyusunan sistem keuangan dan pemisahan rekening bisnis secara digital."
+      },
+      "incremental": {
+        "recent": "Peningkatan konsistensi promosi konten digital di media sosial.",
+        "midTerm": "Perluasan titik penjualan melalui display konsinyasi dan marketplace.",
+        "longTerm": "Pengembangan varian produk atau kemasan baru yang lebih praktis."
+      },
+      "breakthrough": {
+        "recent": "Kolaborasi promosi silang dengan pelaku usaha sesama komunitas PartnerUp.",
+        "midTerm": "Membuka kemitraan distribusi ke jaringan perhotelan dan wisata Kota Batu.",
+        "longTerm": "Membangun sentra workshop edukasi dan perluasan ke pasar regional."
+      }
+    },
+    "createdAt": "04/10/2026 9:42:35",
+    "updatedAt": "04/10/2026 9:42:35"
+  }
+]
