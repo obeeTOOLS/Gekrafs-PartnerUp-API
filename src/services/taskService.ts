@@ -281,11 +281,23 @@ class TaskService {
       this.saveToStorage();
       try {
         window.dispatchEvent(new CustomEvent('gkf-tasks-updated', { detail: finalTask }));
-        gasService.dispatchRemoteAction('submitTask', { task: finalTask });
+        const queueNumber = this.getSubmissionQueueNumber(finalTask.id);
+        gasService.dispatchRemoteAction('submitTask', { task: finalTask, queueNumber });
       } catch {}
       return finalTask;
     }
     return task;
+  }
+
+  /**
+   * Menghitung nomor urut antrean pengiriman tugas
+   */
+  getSubmissionQueueNumber(taskId: string): number {
+    const validSubmitted = this.tasks
+      .filter(t => t.status === 'submitted' || t.status === 'reviewed')
+      .sort((a, b) => (a.createdAt || a.updatedAt || '').localeCompare(b.createdAt || b.updatedAt || ''));
+    const index = validSubmitted.findIndex(t => t.id === taskId);
+    return index >= 0 ? index + 1 : Math.max(1, validSubmitted.length);
   }
 
   reviewTask(id: string, review: { nilai: number; catatanKurator: string; reviewerName: string; status?: 'reviewed' | 'revision' }): StrategicCanvasTask | null {

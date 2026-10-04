@@ -20,7 +20,12 @@ import {
   ChevronDown,
   Lock,
   ShieldCheck,
-  ShieldAlert
+  ShieldAlert,
+  MessageCircle,
+  Copy,
+  Check,
+  ExternalLink,
+  X
 } from 'lucide-react';
 import { taskService } from '../services/taskService';
 import { taskConfigService } from '../services/taskConfigService';
@@ -103,6 +108,20 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
   const [reviewedBy, setReviewedBy] = useState<string>('');
   const [lastSaved, setLastSaved] = useState<string>('');
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  
+  // Tanda Terima & Notifikasi WhatsApp Otomatis
+  const [submissionReceipt, setSubmissionReceipt] = useState<{
+    isOpen: boolean;
+    queueNumber: number;
+    namaUsaha: string;
+    namaPemilik: string;
+    whatsapp: string;
+    subsektor: string;
+    timestamp: string;
+    waLink: string;
+    waMessage: string;
+  } | null>(null);
+  const [isCopiedReceipt, setIsCopiedReceipt] = useState(false);
 
   // Sync dengan perubahan konfigurasi soal dari Portal Kurator
   useEffect(() => {
@@ -310,11 +329,52 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
       setCurrentTaskId(submitted.id);
       setCurrentStatus(submitted.status);
       setLastSaved(submitted.updatedAt);
+
+      // Hitung Nomor Urut Antrean Resmi & Siapkan Pesan WhatsApp
+      const queueNo = taskService.getSubmissionQueueNumber(submitted.id);
+      const targetWa = (submitted.whatsapp || whatsapp || '').trim();
+      const cleanPhone = targetWa.replace(/[^0-9]/g, '');
+      const intlPhone = cleanPhone.startsWith('0') 
+        ? '62' + cleanPhone.slice(1) 
+        : (cleanPhone.startsWith('62') ? cleanPhone : (cleanPhone ? '62' + cleanPhone : ''));
+
+      const formattedQueue = `#${String(queueNo).padStart(3, '0')}`;
+      const waMessage = `Halo Kak *${submitted.namaPemilik || 'Founder'}* (*${submitted.namaUsaha}*), 👋✨
+
+Terima kasih! Lembar Aksi Strategi Bisnis Anda untuk *PartnerUp 2026 Kota Batu* telah *BERHASIL TERCATAT* di sistem kami.
+
+📋 *Nomor Urut Antrean:* ${formattedQueue}
+🏢 *Subsektor:* ${submitted.subsektor}
+📅 *Waktu Masuk:* ${submitted.updatedAt} WIB
+📊 *Status:* Dalam Antrean Review Tim Kurator
+
+Saat ini lembar kerja Anda sedang berada di antrean kurasi & penilaian oleh Tim Kurator resmi GEKRAFS Kota Batu. Anda dapat memantau status persetujuan serta catatan masukan mentor secara berkala melalui web apps PartnerUp.
+
+Tetap semangat dalam mengakselerasi pertumbuhan bisnis Anda! 🚀
+
+Salam hangat,
+*Tim Kurator PartnerUp 2026*
+Dinas Pariwisata & GEKRAFS Kota Batu`;
+
+      const waLink = intlPhone ? `https://api.whatsapp.com/send?phone=${intlPhone}&text=${encodeURIComponent(waMessage)}` : '';
+
+      setSubmissionReceipt({
+        isOpen: true,
+        queueNumber: queueNo,
+        namaUsaha: submitted.namaUsaha,
+        namaPemilik: submitted.namaPemilik,
+        whatsapp: targetWa,
+        subsektor: submitted.subsektor || subsektor || 'Kuliner',
+        timestamp: submitted.updatedAt || new Date().toISOString().replace('T', ' ').substring(0, 19),
+        waLink,
+        waMessage
+      });
+
       setNotification({ 
         type: 'success', 
-        message: '🎉 Berhasil dikirim ke Tim Kurator! Tugas Anda sedang dalam antrean review & penilaian.' 
+        message: `🎉 Berhasil dikirim! Dokumen Anda tercatat dengan Nomor Antrean #${String(queueNo).padStart(3, '0')}.` 
       });
-      setTimeout(() => setNotification(null), 5000);
+      setTimeout(() => setNotification(null), 6000);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
       console.error('Error submitting task:', err);
@@ -966,6 +1026,126 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
           </div>
         </div>
       </form>
+
+      {/* MODAL TANDA TERIMA & NOTIFIKASI WHATSAPP OTOMATIS */}
+      {submissionReceipt && submissionReceipt.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden transform transition-all animate-scaleUp">
+            {/* Header Dialog */}
+            <div className="bg-gradient-to-r from-[#001c3c] to-[#0a3560] p-6 text-white text-center relative">
+              <button
+                type="button"
+                onClick={() => setSubmissionReceipt(null)}
+                className="absolute top-4 right-4 text-white/70 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
+                title="Tutup"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-400/30 text-emerald-400 mb-3 shadow-inner">
+                <CheckCircle2 className="w-8 h-8" />
+              </div>
+              <h3 className="text-lg font-black tracking-tight text-white">
+                Jawaban Berhasil Tercatat!
+              </h3>
+              <p className="text-xs text-slate-300 mt-1">
+                Dokumen Anda telah resmi masuk ke antrean kurasi
+              </p>
+            </div>
+
+            {/* Nomor Urut Card */}
+            <div className="p-6 space-y-4">
+              <div className="bg-gradient-to-br from-emerald-500 to-teal-700 text-white rounded-2xl p-5 text-center shadow-lg relative overflow-hidden">
+                <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full blur-xl pointer-events-none" />
+                <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-100 block">
+                  NOMOR URUT ANTREAN RESMI
+                </span>
+                <div className="text-4xl sm:text-5xl font-black mt-1 font-mono tracking-tight drop-shadow-sm">
+                  #{String(submissionReceipt.queueNumber).padStart(3, '0')}
+                </div>
+                <div className="text-[11px] text-emerald-100/90 mt-1 flex items-center justify-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>{submissionReceipt.timestamp} WIB</span>
+                </div>
+              </div>
+
+              {/* Data Usaha Card */}
+              <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200 text-xs space-y-1.5 text-slate-700">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Nama Usaha:</span>
+                  <strong className="text-slate-900">{submissionReceipt.namaUsaha}</strong>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Pemilik:</span>
+                  <strong className="text-slate-900">{submissionReceipt.namaPemilik}</strong>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Subsektor:</span>
+                  <strong className="text-slate-900">{submissionReceipt.subsektor}</strong>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">No. WhatsApp:</span>
+                  <strong className="text-emerald-700 font-mono">{submissionReceipt.whatsapp}</strong>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-2 pt-1">
+                {submissionReceipt.waLink ? (
+                  <a
+                    href={submissionReceipt.waLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full flex items-center justify-center gap-2.5 py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all text-center"
+                  >
+                    <MessageCircle className="w-4 h-4 text-white shrink-0" />
+                    <span>Kirim Tanda Terima ke WhatsApp ({submissionReceipt.whatsapp})</span>
+                    <ExternalLink className="w-3.5 h-3.5 opacity-80" />
+                  </a>
+                ) : (
+                  <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-800 text-xs text-center">
+                    Nomor WhatsApp belum terdaftar untuk tanda terima langsung.
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (submissionReceipt.waMessage) {
+                        navigator.clipboard.writeText(submissionReceipt.waMessage);
+                        setIsCopiedReceipt(true);
+                        setTimeout(() => setIsCopiedReceipt(false), 2500);
+                      }
+                    }}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors"
+                  >
+                    {isCopiedReceipt ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span className="text-emerald-700">Tersalin!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Salin Pesan Bukti</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSubmissionReceipt(null)}
+                    className="flex-1 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
+                  >
+                    Tutup
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

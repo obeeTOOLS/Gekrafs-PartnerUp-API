@@ -2006,55 +2006,57 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           {/* SECTION MODEL 2: KONTROL WHITELIST EMAIL ADMIN */}
           <div className="pt-6 border-t border-slate-200 space-y-5">
-            {/* Global Force Logout & Session Invalidation Card */}
-            <div className="bg-gradient-to-r from-rose-50 via-amber-50/40 to-rose-50/70 border border-rose-200/90 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse" />
-                  <span className="text-xs font-black text-rose-900 uppercase tracking-wider">
-                    Sistem Keamanan Sesi Global
-                  </span>
-                  <span className="text-[10px] bg-rose-100 text-rose-800 font-mono font-bold px-2 py-0.5 rounded-full border border-rose-200">
-                    Whitelist Enforced
-                  </span>
+            {/* Global Force Logout & Session Invalidation Card (Eksklusif Khusus Developer / Engineer) */}
+            {(userRole === 'developer' || !!engineerSession) && (
+              <>
+                <div className="bg-gradient-to-r from-rose-50 via-amber-50/40 to-rose-50/70 border border-rose-200/90 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse" />
+                      <span className="text-xs font-black text-rose-900 uppercase tracking-wider">
+                        Sistem Keamanan Sesi Global
+                      </span>
+                      <span className="text-[10px] bg-rose-100 text-rose-800 font-mono font-bold px-2 py-0.5 rounded-full border border-rose-200">
+                        Whitelist Enforced
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-extrabold text-[#001c3c]">
+                      Reset Sesi & Keluarkan Semua Pengguna (Force Logout Global)
+                    </h4>
+                    <p className="text-xs text-slate-600 max-w-2xl leading-relaxed">
+                      Jika terdapat pengguna atau perangkat lama yang masih membuka aplikasi, Anda dapat memutus dan mengeluarkan (force logout) seluruh sesi login di semua HP & laptop secara seketika. Seluruh pengguna wajib masuk ulang menggunakan <strong>Email & Password/PIN</strong> akun terdaftar.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setIsPanduanPdfOpen(true)}
+                      className="px-4 py-2.5 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 active:scale-95 text-white text-xs font-black rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                      title="Buka & Cetak Buku Panduan Hak Akses & SOP Login (Format PDF)"
+                    >
+                      <FileText className="w-4 h-4 text-amber-300" />
+                      <span>Cetak Panduan Hak Akses (PDF)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsForceLogoutModalOpen(true)}
+                      className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white text-xs font-black rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Force Logout Semua Perangkat</span>
+                    </button>
+                  </div>
                 </div>
-                <h4 className="text-sm font-extrabold text-[#001c3c]">
-                  Reset Sesi & Keluarkan Semua Pengguna (Force Logout Global)
-                </h4>
-                <p className="text-xs text-slate-600 max-w-2xl leading-relaxed">
-                  Jika terdapat pengguna atau perangkat lama yang masih membuka aplikasi, Anda dapat memutus dan mengeluarkan (force logout) seluruh sesi login di semua HP & laptop secara seketika. Seluruh pengguna wajib masuk ulang menggunakan <strong>Email & Password/PIN</strong> akun terdaftar.
-                </p>
-              </div>
 
-              <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
-                {(userRole === 'developer' || !!engineerSession) && (
-                  <button
-                    type="button"
-                    onClick={() => setIsPanduanPdfOpen(true)}
-                    className="px-4 py-2.5 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 active:scale-95 text-white text-xs font-black rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
-                    title="Buka & Cetak Buku Panduan Hak Akses & SOP Login (Format PDF)"
-                  >
-                    <FileText className="w-4 h-4 text-amber-300" />
-                    <span>Cetak Panduan Hak Akses (PDF)</span>
-                  </button>
+                {forceLogoutToast && (
+                  <div className="p-3 bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-bold rounded-xl flex items-center gap-2 animate-in fade-in">
+                    <Check className="w-4 h-4 text-emerald-600" />
+                    <span>{forceLogoutToast}</span>
+                  </div>
                 )}
-
-                <button
-                  type="button"
-                  onClick={() => setIsForceLogoutModalOpen(true)}
-                  className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white text-xs font-black rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>Force Logout Semua Perangkat</span>
-                </button>
-              </div>
-            </div>
-
-            {forceLogoutToast && (
-              <div className="p-3 bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-bold rounded-xl flex items-center gap-2 animate-in fade-in">
-                <Check className="w-4 h-4 text-emerald-600" />
-                <span>{forceLogoutToast}</span>
-              </div>
+              </>
             )}
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-[#eaf2fb] p-4 rounded-xl border border-blue-200">
