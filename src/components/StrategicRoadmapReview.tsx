@@ -138,8 +138,6 @@ export const StrategicRoadmapReview: React.FC<StrategicRoadmapReviewProps> = ({
       `🏆 *Status:* ${task.status === 'reviewed' ? 'Disetujui (Lulus)' : 'Perlu Revisi'}\n` +
       (task.nilai !== undefined ? `⭐ *Skor:* ${task.nilai}/100\n` : '') +
       `📝 *Catatan Kurator:*\n"${task.catatanKurator || '-'}"\n\n` +
-      `Silakan cek hasil lengkapnya dan cetak lembar peta jalan bisnis Anda di portal PartnerUp:\n` +
-      `https://ais-dev-ijwjef33hzkvilef4tuyto-118536196094.asia-east1.run.app\n\n` +
       `_Salam Kreatif,_\n*Tim Kurator GEKRAFS Kota Batu*`
     );
 

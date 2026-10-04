@@ -208,25 +208,93 @@ class TaskService {
     return this.tasks.find(t => t.id === id);
   }
 
+  /**
+   * Pencocokan Cerdas Multi-Kunci (Multi-Key Smart Matcher)
+   * Menemukan tugas peserta berdasarkan WhatsApp, Email, atau Nama Usaha (dengan normalisasi karakter/spasi)
+   */
+  getTaskByParticipant(query: { namaUsaha?: string; whatsapp?: string; email?: string } | string): StrategicCanvasTask | undefined {
+    if (!query) return undefined;
+    const namaUsaha = typeof query === 'string' ? query : query.namaUsaha || '';
+    const whatsapp = typeof query === 'object' ? query.whatsapp || '' : '';
+    const email = typeof query === 'object' ? query.email || '' : '';
+
+    const cleanPhone = (p: string) => {
+      const digits = (p || '').replace(/[^0-9]/g, '');
+      if (digits.startsWith('62')) return '0' + digits.slice(2);
+      if (!digits.startsWith('0') && digits.length > 0) return '0' + digits;
+      return digits;
+    };
+
+    const targetPhone = cleanPhone(whatsapp);
+    const targetEmail = email.toLowerCase().trim();
+    const targetName = namaUsaha.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    // 1. Kunci Utama: Cocokkan nomor WhatsApp (Paling Akurat & Unik)
+    if (targetPhone.length >= 9) {
+      const matchByPhone = this.tasks.find(t => t.whatsapp && cleanPhone(t.whatsapp) === targetPhone);
+      if (matchByPhone) return matchByPhone;
+    }
+
+    // 2. Kunci Kedua: Cocokkan Email Akun
+    if (targetEmail.length > 4 && targetEmail.includes('@')) {
+      const matchByEmail = this.tasks.find(t => t.email && t.email.toLowerCase().trim() === targetEmail);
+      if (matchByEmail) return matchByEmail;
+    }
+
+    // 3. Kunci Ketiga: Cocokkan Nama Usaha (Normalisasi Tanpa Spasi/Tanda Baca)
+    if (targetName) {
+      const matchByName = this.tasks.find(t => {
+        const tn = (t.namaUsaha || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (!tn) return false;
+        if (tn === targetName) return true;
+        if (targetName.length >= 5 && (tn.includes(targetName) || targetName.includes(tn))) return true;
+        return false;
+      });
+      if (matchByName) return matchByName;
+    }
+
+    return undefined;
+  }
+
   getTaskByNamaUsaha(namaUsaha: string): StrategicCanvasTask | undefined {
     if (!namaUsaha) return undefined;
-    const clean = namaUsaha.toLowerCase().trim();
-    return this.tasks.find(t => t.namaUsaha.toLowerCase().trim() === clean);
+    return this.getTaskByParticipant({ namaUsaha });
   }
 
   saveDraft(taskData: Partial<StrategicCanvasTask> & { namaUsaha: string; namaPemilik: string }): StrategicCanvasTask {
-    const existingIndex = this.tasks.findIndex(t => 
-      t.namaUsaha.toLowerCase().trim() === taskData.namaUsaha.toLowerCase().trim() ||
-      (taskData.id && t.id === taskData.id)
-    );
+    const cleanPhone = (p: string) => {
+      const digits = (p || '').replace(/[^0-9]/g, '');
+      if (digits.startsWith('62')) return '0' + digits.slice(2);
+      if (!digits.startsWith('0') && digits.length > 0) return '0' + digits;
+      return digits;
+    };
+
+    const targetPhone = cleanPhone(taskData.whatsapp || '');
+    const targetEmail = (taskData.email || '').toLowerCase().trim();
+    const targetName = (taskData.namaUsaha || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    const existingIndex = this.tasks.findIndex(t => {
+      if (taskData.id && t.id === taskData.id) return true;
+      if (targetPhone && targetPhone.length >= 9 && cleanPhone(t.whatsapp || '') === targetPhone) return true;
+      if (targetEmail && targetEmail.length > 4 && (t.email || '').toLowerCase().trim() === targetEmail) return true;
+      const tn = (t.namaUsaha || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      return tn && targetName && tn === targetName;
+    });
 
     const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
     if (existingIndex >= 0) {
+      const prev = this.tasks[existingIndex];
+      // PROTEKSI STATUS: Jika tugas sudah 'submitted', 'reviewed', atau 'revision',
+      // JANGAN PERNAH turunkan kembali statusnya menjadi 'draft'!
+      const preservedStatus = (prev.status === 'submitted' || prev.status === 'reviewed' || prev.status === 'revision')
+        ? prev.status
+        : (taskData.status || 'draft');
+
       const updated: StrategicCanvasTask = {
-        ...this.tasks[existingIndex],
+        ...prev,
         ...taskData,
-        status: this.tasks[existingIndex].status === 'reviewed' ? 'reviewed' : 'draft',
+        status: preservedStatus,
         updatedAt: now
       };
       this.tasks[existingIndex] = updated;

@@ -102,7 +102,13 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
 
   // Task Status & Meta
   const [currentTaskId, setCurrentTaskId] = useState<string>('');
-  const [currentStatus, setCurrentStatus] = useState<'draft' | 'submitted' | 'reviewed' | 'revision'>('draft');
+  const [currentStatus, setCurrentStatus] = useState<'draft' | 'submitted' | 'reviewed' | 'revision'>(() => {
+    const initUsaha = isPesertaLoggedIn && pesertaSession?.namaUsaha ? pesertaSession.namaUsaha : (userNamaUsaha || '');
+    const initWa = isPesertaLoggedIn && pesertaSession?.whatsapp ? pesertaSession.whatsapp : (userWhatsapp || '');
+    const initEmail = isPesertaLoggedIn && pesertaSession?.email ? pesertaSession.email : '';
+    const found = taskService.getTaskByParticipant({ namaUsaha: initUsaha, whatsapp: initWa, email: initEmail });
+    return found ? found.status : 'draft';
+  });
   const [nilai, setNilai] = useState<number | undefined>(undefined);
   const [catatanKurator, setCatatanKurator] = useState<string>('');
   const [reviewedBy, setReviewedBy] = useState<string>('');
@@ -146,27 +152,36 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
   // Track previous loaded task to avoid resetting when typing
   const lastLoadedTaskUsahaRef = React.useRef<string>('');
 
-  // Load existing task data when selectedNamaUsaha changes
+  // Load existing task data when selectedNamaUsaha or identity changes
   useEffect(() => {
-    const cleanUsaha = (selectedNamaUsaha || pesertaSession?.namaUsaha || '').trim();
-    if (!cleanUsaha) return;
+    const cleanUsaha = (selectedNamaUsaha || pesertaSession?.namaUsaha || userNamaUsaha || '').trim();
+    const cleanWa = (whatsapp || pesertaSession?.whatsapp || userWhatsapp || '').trim();
+    const cleanEmail = (pesertaSession?.email || '').trim();
+    if (!cleanUsaha && !cleanWa) return;
 
     // Autofill peserta info from registered list
     const foundPeserta = registeredPeserta.find(
-      p => p.namaUsaha.toLowerCase().trim() === cleanUsaha.toLowerCase()
+      p => (cleanUsaha && p.namaUsaha.toLowerCase().trim() === cleanUsaha.toLowerCase()) ||
+           (cleanWa && p.whatsapp && p.whatsapp.replace(/[^0-9]/g, '').endsWith(cleanWa.replace(/[^0-9]/g, '').slice(-8)))
     );
     if (foundPeserta) {
-      if (!namaPemilik) setNamaPemilik(foundPeserta.namaPemilik || '');
-      if (!whatsapp) setWhatsapp(foundPeserta.whatsapp || '');
+      if (!namaPemilik && foundPeserta.namaPemilik) setNamaPemilik(foundPeserta.namaPemilik);
+      if (!whatsapp && foundPeserta.whatsapp) setWhatsapp(foundPeserta.whatsapp);
       if (foundPeserta.subsektor) setSubsektor(foundPeserta.subsektor || 'Kuliner');
       if (foundPeserta.sesi) setSesiPartnerUp(foundPeserta.sesi || 'Sesi 2');
     }
 
-    // Check if task exists in taskService
-    const existing = taskService.getTaskByNamaUsaha(cleanUsaha);
+    // Pencocokan Cerdas Multi-Kunci ke taskService (WhatsApp, Email, dan Nama Usaha)
+    const existing = taskService.getTaskByParticipant({
+      namaUsaha: cleanUsaha || (foundPeserta?.namaUsaha || ''),
+      whatsapp: cleanWa || (foundPeserta?.whatsapp || ''),
+      email: cleanEmail
+    });
+
     if (existing) {
-      if (lastLoadedTaskUsahaRef.current.toLowerCase() !== cleanUsaha.toLowerCase()) {
-        lastLoadedTaskUsahaRef.current = cleanUsaha;
+      const matchKey = existing.id + '_' + (existing.namaUsaha || '');
+      if (lastLoadedTaskUsahaRef.current !== matchKey) {
+        lastLoadedTaskUsahaRef.current = matchKey;
         setCurrentTaskId(existing.id);
         if (existing.namaPemilik) setNamaPemilik(existing.namaPemilik);
         if (existing.whatsapp) setWhatsapp(existing.whatsapp);
@@ -198,13 +213,18 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
         setCatatanKurator(existing.catatanKurator || '');
         setReviewedBy(existing.reviewedBy || '');
         setLastSaved(existing.updatedAt);
+      } else {
+        // Sinkronisasi status tugas secara real-time
+        setCurrentStatus(existing.status);
+        if (existing.nilai !== undefined) setNilai(existing.nilai);
+        if (existing.catatanKurator) setCatatanKurator(existing.catatanKurator);
       }
     } else {
       // PENTING: Jika tugas baru belum ada di taskService, JANGAN HAPUS input yang sedang diketik peserta!
       setCurrentTaskId('');
       setCurrentStatus('draft');
     }
-  }, [selectedNamaUsaha, registeredPeserta]);
+  }, [selectedNamaUsaha, whatsapp, registeredPeserta]);
 
   const handleAnswerChange = (questionId: string, val: string) => {
     setJawabanDinamis(prev => ({ ...prev, [questionId]: val }));
@@ -353,8 +373,7 @@ Saat ini lembar kerja Anda sedang berada di antrean kurasi & penilaian oleh Tim 
 Tetap semangat dalam mengakselerasi pertumbuhan bisnis Anda! 🚀
 
 Salam hangat,
-*Tim Kurator PartnerUp 2026*
-Dinas Pariwisata & GEKRAFS Kota Batu`;
+*Tim Kurator PartnerUp 2026*`;
 
       const waLink = intlPhone ? `https://api.whatsapp.com/send?phone=${intlPhone}&text=${encodeURIComponent(waMessage)}` : '';
 

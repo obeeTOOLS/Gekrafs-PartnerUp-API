@@ -123,6 +123,7 @@ export interface PesertaSession {
   namaUsaha: string;
   whatsapp: string;
   namaPemilik?: string;
+  email?: string;
   isRegistered: boolean;
   loggedInAt: number;
   epoch?: number;
