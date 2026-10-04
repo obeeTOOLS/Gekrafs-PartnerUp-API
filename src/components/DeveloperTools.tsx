@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { gasService } from '../services/gasService';
 import { HEADLESS_GAS_CODE } from '../services/headlessGasCode';
 import { whatsappService } from '../services/whatsappService';
+import { taskService } from '../services/taskService';
 import { 
   authService, 
   AUTHORIZED_ENGINEERS, 
@@ -43,7 +44,8 @@ import {
   EyeOff,
   RefreshCw,
   BookOpen,
-  Wrench
+  Wrench,
+  Trash2
 } from 'lucide-react';
 
 export const DeveloperTools: React.FC = () => {
@@ -829,6 +831,19 @@ export const DeveloperTools: React.FC = () => {
           >
             <RotateCcw className="w-4 h-4" />
             <span>Reset ke Data Asli Bawaan</span>
+          </button>
+
+          <button
+            onClick={() => {
+              if (confirm('Yakin ingin membersihkan seluruh data tugas dummy atau uji coba lama?')) {
+                const res = taskService.purgeDummyTasks();
+                alert(res.message);
+              }
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-amber-300 text-amber-900 bg-amber-50 hover:bg-amber-100 text-xs font-bold transition-colors cursor-pointer"
+          >
+            <Trash2 className="w-4 h-4 text-amber-700" />
+            <span>Bersihkan Tugas Dummy / Uji Coba</span>
           </button>
         </div>
       </div>

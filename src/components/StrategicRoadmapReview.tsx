@@ -57,6 +57,13 @@ export const StrategicRoadmapReview: React.FC<StrategicRoadmapReviewProps> = ({
     setTasks(taskService.getAllTasks());
   };
 
+  React.useEffect(() => {
+    refreshTasks();
+    const handleUpdate = () => refreshTasks();
+    window.addEventListener('gkf-tasks-updated', handleUpdate);
+    return () => window.removeEventListener('gkf-tasks-updated', handleUpdate);
+  }, []);
+
   const filteredTasks = tasks.filter(t => {
     const matchesSearch = 
       t.namaUsaha.toLowerCase().includes(searchQuery.toLowerCase()) ||

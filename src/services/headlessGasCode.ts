@@ -23,6 +23,7 @@ const SHEET_JADWAL = 'Jadwal Pelatihan';
 const SHEET_DASHBOARD = 'Dashboard';
 const SHEET_ASESMEN = 'Asesmen';
 const SHEET_KEHADIRAN = 'Kehadiran';
+const SHEET_TUGAS = 'Tugas';
 
 const ASESMEN_KRITERIA = [
   'Kejelasan Model Bisnis',
@@ -109,6 +110,10 @@ function doGet(e) {
       case 'getKehadiranBySesi':
         const idSesi = e.parameter.idSesi;
         return createJsonResponse({ status: 'success', data: getKehadiranBySesi(idSesi) });
+
+      case 'getTaskList':
+      case 'getTasks':
+        return createJsonResponse({ status: 'success', data: getTaskList() });
 
       case 'getSettings':
         return createJsonResponse({
@@ -226,6 +231,15 @@ function doPost(e) {
         }
         if (s.modeUjicoba !== undefined) setModeUjicoba(s.modeUjicoba);
         return createJsonResponse({ status: 'success', message: 'Pengaturan dan sheet Timeline berhasil diselaraskan.' });
+
+      case 'submitTask':
+        return createJsonResponse(saveOrSubmitTask(payload.task, 'submitted'));
+
+      case 'saveTaskDraft':
+        return createJsonResponse(saveOrSubmitTask(payload.task, 'draft'));
+
+      case 'reviewTask':
+        return createJsonResponse(saveOrSubmitTask(payload.task, payload.task ? payload.task.status || 'reviewed' : 'reviewed'));
 
       default:
         return createJsonResponse({ status: 'error', message: 'Aksi tidak dikenali: ' + action });
@@ -726,5 +740,147 @@ function isModeUjicobaAktif() {
 function setModeUjicoba(aktif) {
   PropertiesService.getScriptProperties().setProperty('MODE_UJICOBA', aktif ? 'true' : 'false');
   return { status: 'success', modeUjicoba: aktif };
+}
+
+// ============================================================
+// MODUL TUGAS & LEMBAR KERJA STRATEGIS (OTOMATIS MEMBUAT TAB 'Tugas')
+// ============================================================
+
+function saveOrSubmitTask(task, forceStatus) {
+  if (!task || !task.namaUsaha) {
+    return { status: 'error', message: 'Data tugas tidak lengkap atau Nama Usaha kosong.' };
+  }
+
+  const sheet = getOrCreateSheet(SHEET_TUGAS);
+  const data = sheet.getDataRange().getValues();
+
+  // Buat baris header otomatis jika tab baru dibuat
+  if (data.length === 0 || !data[0][0]) {
+    sheet.appendRow([
+      'Timestamp',
+      'ID Tugas',
+      'Nama Usaha',
+      'Nama Pemilik',
+      'Nomor WhatsApp',
+      'Subsektor',
+      'Sesi PartnerUp',
+      'Status Tugas',
+      'Nilai (0-100)',
+      'Catatan Kurator',
+      'Visi Usaha',
+      'Misi Usaha',
+      'Goal (Sasaran)',
+      'Objective (Target)',
+      'Nilai-nilai Usaha',
+      'Keahlian Organisasi',
+      'Problem Solving (JSON)',
+      'Incremental (JSON)',
+      'Breakthrough (JSON)',
+      'Data Lengkap Task (JSON)'
+    ]);
+  }
+
+  const cleanNama = String(task.namaUsaha).toLowerCase().trim();
+  const rows = sheet.getDataRange().getValues();
+  let targetRow = -1;
+
+  for (let i = 1; i < rows.length; i++) {
+    const rowId = String(rows[i][1] || '').trim();
+    const rowNama = String(rows[i][2] || '').toLowerCase().trim();
+    if ((task.id && rowId === String(task.id).trim()) || rowNama === cleanNama) {
+      targetRow = i + 1;
+      break;
+    }
+  }
+
+  const nowFormatted = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'dd/MM/yyyy HH:mm:ss');
+  const statusToSave = forceStatus || task.status || 'draft';
+  const psStr = task.matriks && task.matriks.problemSolving ? JSON.stringify(task.matriks.problemSolving) : '';
+  const incStr = task.matriks && task.matriks.incremental ? JSON.stringify(task.matriks.incremental) : '';
+  const btStr = task.matriks && task.matriks.breakthrough ? JSON.stringify(task.matriks.breakthrough) : '';
+  const fullJson = JSON.stringify(task);
+
+  const rowValues = [
+    nowFormatted,
+    task.id || ('TASK-' + new Date().getTime()),
+    task.namaUsaha,
+    task.namaPemilik || '',
+    task.whatsapp || '',
+    task.subsektor || 'Kuliner',
+    task.sesiPartnerUp || getSesiAktif(),
+    statusToSave,
+    task.nilai !== undefined && task.nilai !== null ? task.nilai : '',
+    task.catatanKurator || '',
+    task.visi || '',
+    task.misi || '',
+    task.goal || '',
+    task.objective || '',
+    task.nilaiUsaha || '',
+    task.keahlianOrganisasi || '',
+    psStr,
+    incStr,
+    btStr,
+    fullJson
+  ];
+
+  if (targetRow > 0) {
+    sheet.getRange(targetRow, 1, 1, rowValues.length).setValues([rowValues]);
+    return { 
+      status: 'success', 
+      message: 'Lembar kerja tugas untuk "' + task.namaUsaha + '" berhasil diperbarui di spreadsheet!', 
+      row: targetRow 
+    };
+  } else {
+    sheet.appendRow(rowValues);
+    return { 
+      status: 'success', 
+      message: 'Lembar kerja tugas untuk "' + task.namaUsaha + '" berhasil disimpan ke sheet Tugas!', 
+      row: sheet.getLastRow() 
+    };
+  }
+}
+
+function getTaskList() {
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_TUGAS);
+  if (!sheet) return [];
+
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return [];
+
+  const list = [];
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (!row[2]) continue;
+
+    let fullTask = null;
+    try {
+      if (row[19]) fullTask = JSON.parse(row[19]);
+    } catch (e) {}
+
+    if (fullTask && fullTask.namaUsaha) {
+      list.push(fullTask);
+    } else {
+      list.push({
+        id: String(row[1] || ('TASK-' + i)),
+        namaUsaha: String(row[2] || ''),
+        namaPemilik: String(row[3] || ''),
+        whatsapp: String(row[4] || ''),
+        subsektor: String(row[5] || 'Kuliner'),
+        sesiPartnerUp: String(row[6] || 'Sesi 2'),
+        status: String(row[7] || 'draft'),
+        nilai: row[8] ? Number(row[8]) : undefined,
+        catatanKurator: String(row[9] || ''),
+        visi: String(row[10] || ''),
+        misi: String(row[11] || ''),
+        goal: String(row[12] || ''),
+        objective: String(row[13] || ''),
+        nilaiUsaha: String(row[14] || ''),
+        keahlianOrganisasi: String(row[15] || ''),
+        updatedAt: String(row[0] || '')
+      });
+    }
+  }
+  return list;
 }
 `;
