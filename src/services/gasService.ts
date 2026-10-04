@@ -338,7 +338,7 @@ class GasService {
   }
 
   // --- Remote Call Helper (Non-blocking background sync) ---
-  private async dispatchRemoteAction(action: string, payload: any = {}): Promise<any> {
+  public async dispatchRemoteAction(action: string, payload: any = {}): Promise<any> {
     if (!this.settings.autoSync || !this.settings.gasEndpointUrl) {
       console.warn('[GAS Sync] Sinkronisasi otomatis mati atau URL endpoint belum diisi.', {
         autoSync: this.settings.autoSync,

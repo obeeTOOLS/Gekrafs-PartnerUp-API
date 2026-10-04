@@ -170,7 +170,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-20 bg-white border-b border-slate-200 text-[#001c3c] shadow-xs">
+    <header className="sticky top-0 z-20 bg-white border-b border-slate-200 text-[#001c3c] shadow-xs print:hidden">
       {/* Top Banner Accent */}
       <div className="h-0.5 bg-gradient-to-r from-[#004c80] via-[#ffc72c] to-[#0070b3]" />
 

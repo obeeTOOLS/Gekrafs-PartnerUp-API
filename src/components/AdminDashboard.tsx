@@ -812,19 +812,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <Settings className="w-4 h-4 text-slate-300 hover:text-white" />
           </button>
 
-          {/* Tombol Khusus Peran Developer / Engineer: Panduan Hak Akses & SOP Login (PDF) */}
-          {(userRole === 'developer' || !!engineerSession) && (
-            <button
-              type="button"
-              onClick={() => setIsPanduanPdfOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 active:scale-95 text-white text-xs font-bold shadow transition-all cursor-pointer"
-              title="Buku Panduan Resmi Hak Akses & SOP Login Sistem (Format PDF)"
-            >
-              <FileText className="w-3.5 h-3.5 text-amber-300" />
-              <span>Panduan Akses (PDF)</span>
-            </button>
-          )}
-
           {/* Tombol Ganti Password */}
           <button
             type="button"

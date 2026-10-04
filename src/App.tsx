@@ -244,7 +244,7 @@ export default function App() {
       <div className="flex-1 flex flex-col min-w-0 overflow-x-hidden">
         {/* Global Sync Notification Banner */}
         {globalToast && (
-          <div className="bg-emerald-600 text-white text-xs font-bold py-2 px-4 text-center flex items-center justify-center gap-2 shadow animate-in fade-in">
+          <div className="bg-emerald-600 text-white text-xs font-bold py-2 px-4 text-center flex items-center justify-center gap-2 shadow animate-in fade-in print:hidden">
             <Check className="w-4 h-4" />
             <span>{globalToast}</span>
           </div>
@@ -369,7 +369,7 @@ export default function App() {
         </main>
 
         {/* Modern Clean Footer with discreet Panitia & Engineer Links */}
-        <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500">
+        <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 print:hidden">
           <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-lg bg-white p-0.5 shadow-xs border border-slate-200 flex items-center justify-center flex-shrink-0">

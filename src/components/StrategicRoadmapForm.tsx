@@ -39,7 +39,7 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
   userNamaUsaha = '',
   userWhatsapp = ''
 }) => {
-  const registeredPeserta: PesertaItem[] = gasService.getPeserta();
+  const [registeredPeserta, setRegisteredPeserta] = useState<PesertaItem[]>(() => gasService.getPeserta());
 
   // Modul & Pertanyaan Tugas Dinamis dari taskConfigService
   const [modules, setModules] = useState<TaskModuleDef[]>(() => taskConfigService.getModules());
@@ -114,74 +114,78 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
     return () => window.removeEventListener('gkf-task-config-updated', handleConfigUpdate);
   }, []);
 
+  // Update daftar peserta jika sinkronisasi GAS berjalan di latar
+  useEffect(() => {
+    const updatePeserta = () => {
+      const list = gasService.getPeserta();
+      setRegisteredPeserta(list);
+    };
+    window.addEventListener('storage', updatePeserta);
+    return () => window.removeEventListener('storage', updatePeserta);
+  }, []);
+
+  // Track previous loaded task to avoid resetting when typing
+  const lastLoadedTaskUsahaRef = React.useRef<string>('');
+
   // Load existing task data when selectedNamaUsaha changes
   useEffect(() => {
-    if (!selectedNamaUsaha) return;
+    const cleanUsaha = (selectedNamaUsaha || pesertaSession?.namaUsaha || '').trim();
+    if (!cleanUsaha) return;
 
     // Autofill peserta info from registered list
-    const foundPeserta = registeredPeserta.find(p => p.namaUsaha.toLowerCase() === selectedNamaUsaha.toLowerCase());
+    const foundPeserta = registeredPeserta.find(
+      p => p.namaUsaha.toLowerCase().trim() === cleanUsaha.toLowerCase()
+    );
     if (foundPeserta) {
-      setNamaPemilik(foundPeserta.namaPemilik || '');
-      setWhatsapp(foundPeserta.whatsapp || '');
-      setSubsektor(foundPeserta.subsektor || 'Kuliner');
-      setSesiPartnerUp(foundPeserta.sesi || 'Sesi 2');
+      if (!namaPemilik) setNamaPemilik(foundPeserta.namaPemilik || '');
+      if (!whatsapp) setWhatsapp(foundPeserta.whatsapp || '');
+      if (foundPeserta.subsektor) setSubsektor(foundPeserta.subsektor || 'Kuliner');
+      if (foundPeserta.sesi) setSesiPartnerUp(foundPeserta.sesi || 'Sesi 2');
     }
 
     // Check if task exists in taskService
-    const existing = taskService.getTaskByNamaUsaha(selectedNamaUsaha);
+    const existing = taskService.getTaskByNamaUsaha(cleanUsaha);
     if (existing) {
-      setCurrentTaskId(existing.id);
-      setNamaPemilik(existing.namaPemilik);
-      setWhatsapp(existing.whatsapp);
-      setSubsektor(existing.subsektor || 'Kuliner');
-      setSesiPartnerUp(existing.sesiPartnerUp || 'Sesi 2');
-      setVisi(existing.visi || '');
-      setMisi(existing.misi || '');
-      setGoal(existing.goal || '');
-      setObjective(existing.objective || '');
-      setNilaiUsaha(existing.nilaiUsaha || '');
-      setKeahlianOrganisasi(existing.keahlianOrganisasi || '');
-      if (existing.matriks) {
-        setMatriks(existing.matriks);
+      if (lastLoadedTaskUsahaRef.current.toLowerCase() !== cleanUsaha.toLowerCase()) {
+        lastLoadedTaskUsahaRef.current = cleanUsaha;
+        setCurrentTaskId(existing.id);
+        if (existing.namaPemilik) setNamaPemilik(existing.namaPemilik);
+        if (existing.whatsapp) setWhatsapp(existing.whatsapp);
+        if (existing.subsektor) setSubsektor(existing.subsektor || 'Kuliner');
+        if (existing.sesiPartnerUp) setSesiPartnerUp(existing.sesiPartnerUp || 'Sesi 2');
+        if (existing.visi) setVisi(existing.visi);
+        if (existing.misi) setMisi(existing.misi);
+        if (existing.goal) setGoal(existing.goal);
+        if (existing.objective) setObjective(existing.objective);
+        if (existing.nilaiUsaha) setNilaiUsaha(existing.nilaiUsaha);
+        if (existing.keahlianOrganisasi) setKeahlianOrganisasi(existing.keahlianOrganisasi);
+        if (existing.matriks) {
+          setMatriks(existing.matriks);
+        }
+        if (existing.jawabanDinamis && Object.keys(existing.jawabanDinamis).length > 0) {
+          setJawabanDinamis(existing.jawabanDinamis);
+        } else {
+          setJawabanDinamis({
+            visi: existing.visi || '',
+            misi: existing.misi || '',
+            goal: existing.goal || '',
+            objective: existing.objective || '',
+            nilaiUsaha: existing.nilaiUsaha || '',
+            keahlianOrganisasi: existing.keahlianOrganisasi || ''
+          });
+        }
+        setCurrentStatus(existing.status);
+        setNilai(existing.nilai);
+        setCatatanKurator(existing.catatanKurator || '');
+        setReviewedBy(existing.reviewedBy || '');
+        setLastSaved(existing.updatedAt);
       }
-      if (existing.jawabanDinamis) {
-        setJawabanDinamis(existing.jawabanDinamis);
-      } else {
-        setJawabanDinamis({
-          visi: existing.visi || '',
-          misi: existing.misi || '',
-          goal: existing.goal || '',
-          objective: existing.objective || '',
-          nilaiUsaha: existing.nilaiUsaha || '',
-          keahlianOrganisasi: existing.keahlianOrganisasi || ''
-        });
-      }
-      setCurrentStatus(existing.status);
-      setNilai(existing.nilai);
-      setCatatanKurator(existing.catatanKurator || '');
-      setReviewedBy(existing.reviewedBy || '');
-      setLastSaved(existing.updatedAt);
     } else {
-      // Clear fields for new input
+      // PENTING: Jika tugas baru belum ada di taskService, JANGAN HAPUS input yang sedang diketik peserta!
       setCurrentTaskId('');
-      setVisi('');
-      setMisi('');
-      setGoal('');
-      setObjective('');
-      setNilaiUsaha('');
-      setKeahlianOrganisasi('');
-      setMatriks({
-        problemSolving: { recent: '', midTerm: '', longTerm: '' },
-        incremental: { recent: '', midTerm: '', longTerm: '' },
-        breakthrough: { recent: '', midTerm: '', longTerm: '' }
-      });
-      setJawabanDinamis({});
       setCurrentStatus('draft');
-      setNilai(undefined);
-      setCatatanKurator('');
-      setReviewedBy('');
     }
-  }, [selectedNamaUsaha]);
+  }, [selectedNamaUsaha, registeredPeserta]);
 
   const handleAnswerChange = (questionId: string, val: string) => {
     setJawabanDinamis(prev => ({ ...prev, [questionId]: val }));
@@ -208,41 +212,63 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
   };
 
   const handleSaveDraft = () => {
-    if (!selectedNamaUsaha.trim()) {
-      setNotification({ type: 'error', message: 'Silakan pilih atau masukkan Nama Usaha terlebih dahulu!' });
+    const usaha = (selectedNamaUsaha || pesertaSession?.namaUsaha || '').trim();
+    if (!usaha) {
+      setNotification({ 
+        type: 'error', 
+        message: 'Silakan pilih atau ketikkan Nama Usaha Anda terlebih dahulu pada Bagian 1.' 
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
-    const saved = taskService.saveDraft({
-      id: currentTaskId || undefined,
-      namaUsaha: selectedNamaUsaha,
-      namaPemilik,
-      whatsapp,
-      subsektor,
-      sesiPartnerUp,
-      moduleId: activeModule.id,
-      jawabanDinamis,
-      visi: jawabanDinamis['visi'] || visi,
-      misi: jawabanDinamis['misi'] || misi,
-      goal: jawabanDinamis['goal'] || goal,
-      objective: jawabanDinamis['objective'] || objective,
-      nilaiUsaha: jawabanDinamis['nilaiUsaha'] || nilaiUsaha,
-      keahlianOrganisasi: jawabanDinamis['keahlianOrganisasi'] || keahlianOrganisasi,
-      matriks
-    });
+    try {
+      const saved = taskService.saveDraft({
+        id: currentTaskId || undefined,
+        namaUsaha: usaha,
+        namaPemilik: namaPemilik || pesertaSession?.namaPemilik || 'Founder',
+        whatsapp: whatsapp || pesertaSession?.whatsapp || '',
+        subsektor,
+        sesiPartnerUp,
+        moduleId: activeModule.id,
+        jawabanDinamis,
+        visi: jawabanDinamis['visi'] || visi,
+        misi: jawabanDinamis['misi'] || misi,
+        goal: jawabanDinamis['goal'] || goal,
+        objective: jawabanDinamis['objective'] || objective,
+        nilaiUsaha: jawabanDinamis['nilaiUsaha'] || nilaiUsaha,
+        keahlianOrganisasi: jawabanDinamis['keahlianOrganisasi'] || keahlianOrganisasi,
+        matriks
+      });
 
-    setCurrentTaskId(saved.id);
-    setCurrentStatus(saved.status);
-    setLastSaved(saved.updatedAt);
-    setNotification({ type: 'success', message: 'Draf lembar kerja berhasil disimpan! Anda dapat melanjutkannya kapan saja.' });
-    setTimeout(() => setNotification(null), 4000);
+      lastLoadedTaskUsahaRef.current = usaha;
+      setCurrentTaskId(saved.id);
+      setCurrentStatus(saved.status);
+      setLastSaved(saved.updatedAt);
+      setNotification({ 
+        type: 'success', 
+        message: '✅ Draf lembar kerja berhasil disimpan! Tulisan Anda aman dan dapat dilanjutkan kapan saja.' 
+      });
+      setTimeout(() => setNotification(null), 4000);
+    } catch (err: any) {
+      console.error('Error saving draft:', err);
+      setNotification({ 
+        type: 'error', 
+        message: 'Gagal menyimpan draf: ' + (err.message || 'Terjadi kendala penyimpanan.') 
+      });
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedNamaUsaha.trim()) {
-      setNotification({ type: 'error', message: 'Silakan pilih atau masukkan Nama Usaha!' });
+    const usaha = (selectedNamaUsaha || pesertaSession?.namaUsaha || '').trim();
+    if (!usaha) {
+      setNotification({ 
+        type: 'error', 
+        message: 'Silakan pilih atau ketikkan Nama Usaha Anda pada Bagian 1 terlebih dahulu!' 
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -256,37 +282,47 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
     if (missing.length > 0) {
       setNotification({ 
         type: 'error', 
-        message: `Mohon lengkapi pertanyaan wajib: "${missing[0].label}" sebelum mengirimkan ke kurator.` 
+        message: `⚠️ Mohon lengkapi pertanyaan wajib: "${missing[0].label}" sebelum mengirimkan ke kurator.` 
       });
       return;
     }
 
-    const submitted = taskService.submitTask({
-      id: currentTaskId || undefined,
-      namaUsaha: selectedNamaUsaha,
-      namaPemilik,
-      whatsapp,
-      subsektor,
-      sesiPartnerUp,
-      moduleId: activeModule.id,
-      jawabanDinamis,
-      visi: jawabanDinamis['visi'] || visi,
-      misi: jawabanDinamis['misi'] || misi,
-      goal: jawabanDinamis['goal'] || goal,
-      objective: jawabanDinamis['objective'] || objective,
-      nilaiUsaha: jawabanDinamis['nilaiUsaha'] || nilaiUsaha,
-      keahlianOrganisasi: jawabanDinamis['keahlianOrganisasi'] || keahlianOrganisasi,
-      matriks
-    });
+    try {
+      const submitted = taskService.submitTask({
+        id: currentTaskId || undefined,
+        namaUsaha: usaha,
+        namaPemilik: namaPemilik || pesertaSession?.namaPemilik || 'Founder',
+        whatsapp: whatsapp || pesertaSession?.whatsapp || '',
+        subsektor,
+        sesiPartnerUp,
+        moduleId: activeModule.id,
+        jawabanDinamis,
+        visi: jawabanDinamis['visi'] || visi,
+        misi: jawabanDinamis['misi'] || misi,
+        goal: jawabanDinamis['goal'] || goal,
+        objective: jawabanDinamis['objective'] || objective,
+        nilaiUsaha: jawabanDinamis['nilaiUsaha'] || nilaiUsaha,
+        keahlianOrganisasi: jawabanDinamis['keahlianOrganisasi'] || keahlianOrganisasi,
+        matriks
+      });
 
-    setCurrentTaskId(submitted.id);
-    setCurrentStatus(submitted.status);
-    setLastSaved(submitted.updatedAt);
-    setNotification({ 
-      type: 'success', 
-      message: '🎉 Berhasil dikirim ke Tim Kurator! Tugas Anda sedang dalam antrean review & penilaian.' 
-    });
-    setTimeout(() => setNotification(null), 5000);
+      lastLoadedTaskUsahaRef.current = usaha;
+      setCurrentTaskId(submitted.id);
+      setCurrentStatus(submitted.status);
+      setLastSaved(submitted.updatedAt);
+      setNotification({ 
+        type: 'success', 
+        message: '🎉 Berhasil dikirim ke Tim Kurator! Tugas Anda sedang dalam antrean review & penilaian.' 
+      });
+      setTimeout(() => setNotification(null), 5000);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err: any) {
+      console.error('Error submitting task:', err);
+      setNotification({ 
+        type: 'error', 
+        message: 'Gagal mengirimkan tugas: ' + (err.message || 'Terjadi kendala.') 
+      });
+    }
   };
 
   const handlePrint = () => {
@@ -294,10 +330,36 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-3 sm:px-6 py-6 space-y-6">
+    <div className="max-w-5xl mx-auto px-3 sm:px-6 py-6 space-y-6 print:p-0 print:m-0 print:space-y-4 print:max-w-none">
+      {/* Official Print Header (Only visible on paper / PDF print) */}
+      <div className="hidden print:flex items-center justify-between border-b-2 border-[#001c3c] pb-3 mb-3">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-lg bg-white p-1 border border-slate-200 flex items-center justify-center flex-shrink-0">
+            <img src="/logo.svg" alt="Gekrafs Kota Batu" className="w-full h-full object-contain" />
+          </div>
+          <div>
+            <div className="text-[10px] font-black uppercase tracking-wider text-amber-700">
+              GEKRAFS KOTA BATU &middot; PROGRAM PARTNERUP 2026
+            </div>
+            <h1 className="text-base font-black text-[#001c3c]">
+              LEMBAR KERJA STRATEGIS & PETA JALAN BISNIS
+            </h1>
+            <p className="text-[10px] text-slate-600">
+              {activeModule.judulModul} &middot; {activeModule.subJudul}
+            </p>
+          </div>
+        </div>
+        <div className="text-right text-[10px] text-slate-700 space-y-0.5">
+          <div>Usaha: <strong className="text-slate-900">{selectedNamaUsaha || pesertaSession?.namaUsaha || '-'}</strong></div>
+          <div>Pemilik: <strong className="text-slate-900">{namaPemilik || pesertaSession?.namaPemilik || '-'}</strong></div>
+          <div>WhatsApp: <strong className="text-slate-900">{whatsapp || pesertaSession?.whatsapp || '-'}</strong></div>
+          <div>Status: <strong className="text-slate-900">{currentStatus === 'reviewed' ? `Disetujui (${nilai}/100)` : currentStatus === 'submitted' ? 'Terkirim (Menunggu Review)' : 'Draf Lembar Kerja'}</strong></div>
+        </div>
+      </div>
+
       {/* Toast Notification */}
       {notification && (
-        <div className={`p-4 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-3 shadow-lg animate-in fade-in transition-all ${
+        <div className={`p-4 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-3 shadow-lg animate-in fade-in transition-all print:hidden ${
           notification.type === 'success' 
             ? 'bg-emerald-600 text-white' 
             : 'bg-rose-600 text-white'
@@ -308,24 +370,25 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
       )}
 
       {/* Header Banner */}
-      <div className="bg-gradient-to-br from-[#001c3c] via-[#002855] to-[#001730] text-white rounded-3xl p-5 sm:p-8 shadow-xl border border-[#003866] relative overflow-hidden">
-        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="bg-gradient-to-br from-[#001c3c] via-[#002855] to-[#001730] text-white rounded-3xl p-5 sm:p-8 shadow-xl border border-[#003866] relative overflow-hidden print:p-5 print:rounded-2xl print:shadow-none print:border-slate-300">
+        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-amber-400/10 rounded-full blur-3xl pointer-events-none print:hidden" />
         
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 text-xs font-extrabold uppercase tracking-wider border border-amber-400/30">
-              <Sparkles className="w-3.5 h-3.5" />
+              <Sparkles className="w-3.5 h-3.5 print:hidden" />
               <span>{activeModule.judulModul}</span>
             </div>
-            <h1 className="text-xl sm:text-3xl font-extrabold text-white tracking-tight">
+            <h1 className="text-xl sm:text-3xl font-extrabold text-white tracking-tight print:text-xl">
               {activeModule.subJudul || 'Lembar Kerja & Peta Jalan Bisnis'}
             </h1>
-            <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed print:text-xs">
               {activeModule.keterangan}
             </p>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          {/* Tombol Aksi di Layar - Otomatis Hilang Saat Print / Download PDF */}
+          <div className="flex items-center gap-2 flex-wrap print:hidden">
             <button
               type="button"
               onClick={handlePrint}
@@ -349,18 +412,18 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
         </div>
 
         {/* Status Tracker Bar */}
-        <div className="mt-6 pt-5 border-t border-white/15 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="mt-6 pt-5 border-t border-white/15 flex flex-wrap items-center justify-between gap-3 text-xs print:mt-3 print:pt-3">
           <div className="flex items-center gap-2">
             <span className="text-slate-400 font-medium">Status Tugas:</span>
             {currentStatus === 'reviewed' && (
               <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5" />
+                <CheckCircle2 className="w-3.5 h-3.5 print:hidden" />
                 Disetujui & Dinilai ({nilai}/100)
               </span>
             )}
             {currentStatus === 'submitted' && (
               <span className="px-2.5 py-1 rounded-lg bg-amber-500/20 border border-amber-400/40 text-amber-300 font-bold flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5" />
+                <Clock className="w-3.5 h-3.5 print:hidden" />
                 Terkirim • Menunggu Review Kurator
               </span>
             )}
@@ -371,7 +434,7 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
             )}
             {currentStatus === 'revision' && (
               <span className="px-2.5 py-1 rounded-lg bg-rose-500/20 border border-rose-400/40 text-rose-300 font-bold flex items-center gap-1.5">
-                <AlertCircle className="w-3.5 h-3.5" />
+                <AlertCircle className="w-3.5 h-3.5 print:hidden" />
                 Perlu Revisi Peserta
               </span>
             )}
@@ -411,7 +474,7 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
       )}
 
       {/* Form Workspace */}
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} noValidate className="space-y-6">
         
         {/* Identitas Usaha Peserta */}
         <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-4">
@@ -432,7 +495,12 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
                 <ShieldAlert className="w-3.5 h-3.5 text-amber-700" />
                 Mode Kurator / Admin
               </span>
-            ) : null}
+            ) : (
+              <span className="px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-[10px] font-bold flex items-center gap-1.5 shadow-2xs">
+                <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                Pilih atau Ketik Usaha
+              </span>
+            )}
           </div>
 
           {isPesertaLoggedIn ? (
@@ -458,65 +526,74 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
                 </div>
               </div>
 
-              <div className="text-[11px] text-slate-600 bg-white/90 p-3 rounded-xl border border-slate-200 shadow-2xs max-w-sm leading-relaxed">
+              <div className="text-[11px] text-slate-600 bg-white/90 p-3 rounded-xl border border-slate-200 shadow-2xs max-w-sm leading-relaxed print:hidden">
                 🔒 <strong>Perlindungan Data:</strong> Formulir ini terkunci otomatis untuk akun usaha Anda. Tugas yang Anda simpan atau kirim tidak akan tertukar dengan peserta lain.
               </div>
             </div>
           ) : (
-            /* Mode Kurator / Admin: Dapat Memilih UMKM Peserta */
-            <div className="space-y-3">
-              <div className="text-[11px] text-amber-900 bg-amber-50 p-2.5 rounded-xl border border-amber-200">
-                Pilih atau cari UMKM peserta yang ingin dilihat, dibantu pengisiannya, atau direview lembar aksinya:
+            <>
+              {/* Tampilan Ringkas Saat Print (Mode Non-login) */}
+              <div className="hidden print:block p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                <div className="font-bold text-slate-900 text-sm">{selectedNamaUsaha || '(Nama Usaha Belum Diisi)'}</div>
+                <div className="text-slate-600 mt-0.5">
+                  Pemilik: <strong>{namaPemilik || '-'}</strong> &middot; WhatsApp: <strong>{whatsapp || '-'}</strong> &middot; Subsektor: <strong>{subsektor}</strong>
+                </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="sm:col-span-2 space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                    <span>Nama Usaha UMKM *</span>
-                    <span className="text-[10px] text-slate-400 font-normal">Pilih UMKM</span>
-                  </label>
-                  <div className="relative">
+
+              {/* Mode Pilih / Ketik UMKM Peserta (Hanya di Layar) */}
+              <div className="space-y-3 print:hidden">
+                <div className="text-[11px] text-slate-700 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                  Pilih nama usaha Anda dari daftar terdaftar, atau ketik langsung nama usaha Anda:
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                      <span>Nama Usaha UMKM *</span>
+                      <span className="text-[10px] text-slate-400 font-normal">Pilih atau Ketik Baru</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        list="registered-umkm-list"
+                        value={selectedNamaUsaha}
+                        onChange={(e) => setSelectedNamaUsaha(e.target.value)}
+                        placeholder="Ketik atau pilih: Contoh: Kripik Apel Batu Mandiri"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-[#001c3c] focus:outline-none focus:ring-2 focus:ring-amber-400"
+                      />
+                      <datalist id="registered-umkm-list">
+                        {registeredPeserta.map((p, idx) => (
+                          <option key={idx} value={p.namaUsaha}>
+                            {p.namaPemilik} ({p.subsektor})
+                          </option>
+                        ))}
+                      </datalist>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700">Nama Pemilik / Founder</label>
                     <input
                       type="text"
-                      list="registered-umkm-list"
-                      value={selectedNamaUsaha}
-                      onChange={(e) => setSelectedNamaUsaha(e.target.value)}
-                      placeholder="Contoh: Kripik Apel Batu Mandiri"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-[#001c3c] focus:outline-none focus:ring-2 focus:ring-amber-400"
-                      required
+                      value={namaPemilik}
+                      onChange={(e) => setNamaPemilik(e.target.value)}
+                      placeholder="Nama Lengkap"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
                     />
-                    <datalist id="registered-umkm-list">
-                      {registeredPeserta.map((p, idx) => (
-                        <option key={idx} value={p.namaUsaha}>
-                          {p.namaPemilik} ({p.subsektor})
-                        </option>
-                      ))}
-                    </datalist>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700">WhatsApp Aktif</label>
+                    <input
+                      type="text"
+                      value={whatsapp}
+                      onChange={(e) => setWhatsapp(e.target.value)}
+                      placeholder="0812xxxx"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                    />
                   </div>
                 </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">Nama Pemilik / Founder</label>
-                  <input
-                    type="text"
-                    value={namaPemilik}
-                    onChange={(e) => setNamaPemilik(e.target.value)}
-                    placeholder="Nama Lengkap"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">WhatsApp Aktif</label>
-                  <input
-                    type="text"
-                    value={whatsapp}
-                    onChange={(e) => setWhatsapp(e.target.value)}
-                    placeholder="0812xxxx"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                  />
-                </div>
               </div>
-            </div>
+            </>
           )}
         </div>
 
@@ -531,20 +608,20 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
           });
 
           return Object.entries(groups).map(([kategoriName, qList], groupIdx) => (
-            <div key={kategoriName} className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-5">
+            <div key={kategoriName} className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-5 break-inside-avoid print:p-4 print:border-slate-300 print:shadow-none">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2.5">
-                  <Compass className="w-5 h-5 text-[#001c3c]" />
+                  <Compass className="w-5 h-5 text-[#001c3c] print:hidden" />
                   <div>
                     <h2 className="text-sm font-extrabold text-[#001c3c] uppercase tracking-wider">
                       {groupIdx + 2}. {kategoriName}
                     </h2>
-                    <p className="text-[11px] text-slate-500">
+                    <p className="text-[11px] text-slate-500 print:hidden">
                       Jawab pertanyaan tugas berikut sesuai kondisi dan target usaha Anda.
                     </p>
                   </div>
                 </div>
-                <span className="text-[10px] font-bold px-2.5 py-1 bg-amber-100 text-amber-900 rounded-lg">
+                <span className="text-[10px] font-bold px-2.5 py-1 bg-amber-100 text-amber-900 rounded-lg print:border print:border-amber-300">
                   Bagian {groupIdx + 1}
                 </span>
               </div>
@@ -556,40 +633,48 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
                     : (q.id === 'visi' ? visi : q.id === 'misi' ? misi : q.id === 'goal' ? goal : q.id === 'objective' ? objective : q.id === 'nilaiUsaha' ? nilaiUsaha : q.id === 'keahlianOrganisasi' ? keahlianOrganisasi : '');
 
                   return (
-                    <div key={q.id} className="space-y-1.5">
+                    <div key={q.id} className="space-y-1.5 break-inside-avoid">
                       <label className="text-xs font-black text-[#001c3c] flex items-center justify-between">
                         <span>
-                          {q.label} {q.wajib && <span className="text-rose-600 font-bold">*</span>}
+                          {q.label} {q.wajib && <span className="text-rose-600 font-bold print:hidden">*</span>}
                         </span>
                         {q.petunjuk && (
-                          <span className="text-[10px] text-slate-400 font-normal hidden sm:inline">
+                          <span className="text-[10px] text-slate-400 font-normal hidden sm:inline print:hidden">
                             {q.petunjuk}
                           </span>
                         )}
                       </label>
 
                       {q.tipe === 'textarea' ? (
-                        <textarea
-                          value={val}
-                          onChange={(e) => handleAnswerChange(q.id, e.target.value)}
-                          rows={3}
-                          placeholder={q.placeholder || 'Tuliskan jawaban Anda di sini...'}
-                          className="w-full p-3 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400 leading-relaxed bg-white font-medium"
-                          required={q.wajib}
-                        />
+                        <>
+                          <textarea
+                            value={val}
+                            onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+                            rows={3}
+                            placeholder={q.placeholder || 'Tuliskan jawaban Anda di sini...'}
+                            className="w-full p-3 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400 leading-relaxed bg-white font-medium print:hidden"
+                          />
+                          <div className="hidden print:block p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 leading-relaxed font-medium whitespace-pre-wrap min-h-[48px]">
+                            {val.trim() || <span className="text-slate-400 italic">(Belum diisi)</span>}
+                          </div>
+                        </>
                       ) : (
-                        <input
-                          type="text"
-                          value={val}
-                          onChange={(e) => handleAnswerChange(q.id, e.target.value)}
-                          placeholder={q.placeholder || 'Tuliskan jawaban Anda di sini...'}
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white font-medium"
-                          required={q.wajib}
-                        />
+                        <>
+                          <input
+                            type="text"
+                            value={val}
+                            onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+                            placeholder={q.placeholder || 'Tuliskan jawaban Anda di sini...'}
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white font-medium print:hidden"
+                          />
+                          <div className="hidden print:block p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 font-medium">
+                            {val.trim() || <span className="text-slate-400 italic">(Belum diisi)</span>}
+                          </div>
+                        </>
                       )}
 
                       {q.petunjuk && (
-                        <p className="text-[10px] text-slate-400 italic">
+                        <p className="text-[10px] text-slate-400 italic print:hidden">
                           💡 Tips: {q.petunjuk}
                         </p>
                       )}
@@ -603,22 +688,22 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
 
         {/* BAGIAN MATRIKS PENGEMBANGAN KEAHLIAN & INOVASI 3x3 (JIKA AKTIF DI MODUL INI) */}
         {activeModule.includeMatrix3x3 && (
-        <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-5">
+        <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-5 break-inside-avoid print:p-4 print:border-slate-300 print:shadow-none">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
             <div className="flex items-center gap-2.5">
-              <Layers className="w-5 h-5 text-amber-500" />
+              <Layers className="w-5 h-5 text-amber-500 print:hidden" />
               <div>
                 <h2 className="text-sm font-extrabold text-[#001c3c] uppercase tracking-wider">
                   4. Matriks Pengembangan Keahlian (Innovation Matrix 3x3)
                 </h2>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-slate-500 print:hidden">
                   Petakan langkah perbaikan dari masalah harian, peningkatan bertahap, hingga lompatan terobosan.
                 </p>
               </div>
             </div>
 
             {/* Mobile Tab Selector */}
-            <div className="flex md:hidden p-1 bg-slate-100 rounded-xl border border-slate-200 self-start">
+            <div className="flex md:hidden p-1 bg-slate-100 rounded-xl border border-slate-200 self-start print:hidden">
               {(['recent', 'midTerm', 'longTerm'] as const).map((tab) => (
                 <button
                   key={tab}
@@ -636,21 +721,21 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
             </div>
           </div>
 
-          {/* DESKTOP VIEW: FULL 3x3 GRID TABLE */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full border-collapse border border-slate-300 rounded-xl overflow-hidden text-xs">
+          {/* DESKTOP & PRINT VIEW: FULL 3x3 GRID TABLE (Tampil penuh saat cetak PDF) */}
+          <div className="hidden md:block print:block overflow-x-auto">
+            <table className="w-full border-collapse border border-slate-300 rounded-xl overflow-hidden text-xs print:border-slate-400">
               <thead>
-                <tr className="bg-[#001c3c] text-white text-left">
-                  <th className="p-3 font-bold border border-slate-600 w-1/4">
+                <tr className="bg-[#001c3c] text-white text-left print:bg-slate-800">
+                  <th className="p-3 font-bold border border-slate-600 print:border-slate-400 w-1/4">
                     Tingkat Pengembangan
                   </th>
-                  <th className="p-3 font-bold border border-slate-600 w-1/4">
+                  <th className="p-3 font-bold border border-slate-600 print:border-slate-400 w-1/4">
                     Recent (Saat Ini / 1-3 Bln)
                   </th>
-                  <th className="p-3 font-bold border border-slate-600 w-1/4">
+                  <th className="p-3 font-bold border border-slate-600 print:border-slate-400 w-1/4">
                     Mid-Term (Menengah / 6-12 Bln)
                   </th>
-                  <th className="p-3 font-bold border border-slate-600 w-1/4">
+                  <th className="p-3 font-bold border border-slate-600 print:border-slate-400 w-1/4">
                     Long-Term (Panjang / 2-3 Thn)
                   </th>
                 </tr>
@@ -660,36 +745,45 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
                 <tr className="hover:bg-slate-50/50">
                   <td className="p-3 border border-slate-300 bg-slate-50 font-bold text-[#001c3c] align-top">
                     <div className="font-extrabold">Problem Solving</div>
-                    <div className="text-[10px] text-slate-500 font-normal mt-0.5">
+                    <div className="text-[10px] text-slate-500 font-normal mt-0.5 print:hidden">
                       Penyelesaian kendala harian & hambatan teknis
                     </div>
                   </td>
-                  <td className="p-2 border border-slate-300">
+                  <td className="p-2 border border-slate-300 align-top">
                     <textarea
                       value={matriks.problemSolving.recent}
                       onChange={(e) => handleMatrixChange('problemSolving', 'recent', e.target.value)}
                       rows={3}
                       placeholder="Solusi kendala saat ini..."
-                      className="w-full p-2 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-amber-400 focus:outline-none"
+                      className="w-full p-2 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-amber-400 focus:outline-none print:hidden"
                     />
+                    <div className="hidden print:block text-xs text-slate-800 whitespace-pre-wrap p-1 font-medium">
+                      {matriks.problemSolving.recent || '-'}
+                    </div>
                   </td>
-                  <td className="p-2 border border-slate-300">
+                  <td className="p-2 border border-slate-300 align-top">
                     <textarea
                       value={matriks.problemSolving.midTerm}
                       onChange={(e) => handleMatrixChange('problemSolving', 'midTerm', e.target.value)}
                       rows={3}
                       placeholder="Solusi kendala jangka menengah..."
-                      className="w-full p-2 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-amber-400 focus:outline-none"
+                      className="w-full p-2 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-amber-400 focus:outline-none print:hidden"
                     />
+                    <div className="hidden print:block text-xs text-slate-800 whitespace-pre-wrap p-1 font-medium">
+                      {matriks.problemSolving.midTerm || '-'}
+                    </div>
                   </td>
-                  <td className="p-2 border border-slate-300">
+                  <td className="p-2 border border-slate-300 align-top">
                     <textarea
                       value={matriks.problemSolving.longTerm}
                       onChange={(e) => handleMatrixChange('problemSolving', 'longTerm', e.target.value)}
                       rows={3}
                       placeholder="Sistem pencegahan jangka panjang..."
-                      className="w-full p-2 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-amber-400 focus:outline-none"
+                      className="w-full p-2 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-amber-400 focus:outline-none print:hidden"
                     />
+                    <div className="hidden print:block text-xs text-slate-800 whitespace-pre-wrap p-1 font-medium">
+                      {matriks.problemSolving.longTerm || '-'}
+                    </div>
                   </td>
                 </tr>
 
@@ -697,36 +791,45 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
                 <tr className="hover:bg-slate-50/50">
                   <td className="p-3 border border-slate-300 bg-slate-50 font-bold text-[#001c3c] align-top">
                     <div className="font-extrabold text-blue-950">Incremental</div>
-                    <div className="text-[10px] text-slate-500 font-normal mt-0.5">
+                    <div className="text-[10px] text-slate-500 font-normal mt-0.5 print:hidden">
                       Peningkatan mutu, efisiensi & perbaikan bertahap
                     </div>
                   </td>
-                  <td className="p-2 border border-slate-300">
+                  <td className="p-2 border border-slate-300 align-top">
                     <textarea
                       value={matriks.incremental.recent}
                       onChange={(e) => handleMatrixChange('incremental', 'recent', e.target.value)}
                       rows={3}
                       placeholder="Perbaikan bertahap saat ini..."
-                      className="w-full p-2 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-amber-400 focus:outline-none"
+                      className="w-full p-2 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-amber-400 focus:outline-none print:hidden"
                     />
+                    <div className="hidden print:block text-xs text-slate-800 whitespace-pre-wrap p-1 font-medium">
+                      {matriks.incremental.recent || '-'}
+                    </div>
                   </td>
-                  <td className="p-2 border border-slate-300">
+                  <td className="p-2 border border-slate-300 align-top">
                     <textarea
                       value={matriks.incremental.midTerm}
                       onChange={(e) => handleMatrixChange('incremental', 'midTerm', e.target.value)}
                       rows={3}
                       placeholder="Peningkatan kapasitas & mutu menengah..."
-                      className="w-full p-2 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-amber-400 focus:outline-none"
+                      className="w-full p-2 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-amber-400 focus:outline-none print:hidden"
                     />
+                    <div className="hidden print:block text-xs text-slate-800 whitespace-pre-wrap p-1 font-medium">
+                      {matriks.incremental.midTerm || '-'}
+                    </div>
                   </td>
-                  <td className="p-2 border border-slate-300">
+                  <td className="p-2 border border-slate-300 align-top">
                     <textarea
                       value={matriks.incremental.longTerm}
                       onChange={(e) => handleMatrixChange('incremental', 'longTerm', e.target.value)}
                       rows={3}
                       placeholder="Standar mutu & ekspansi panjang..."
-                      className="w-full p-2 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-amber-400 focus:outline-none"
+                      className="w-full p-2 rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-amber-400 focus:outline-none print:hidden"
                     />
+                    <div className="hidden print:block text-xs text-slate-800 whitespace-pre-wrap p-1 font-medium">
+                      {matriks.incremental.longTerm || '-'}
+                    </div>
                   </td>
                 </tr>
 
@@ -734,47 +837,56 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
                 <tr className="hover:bg-amber-50/30">
                   <td className="p-3 border border-slate-300 bg-amber-50/50 font-bold text-amber-950 align-top">
                     <div className="font-extrabold text-amber-900 flex items-center gap-1">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                      <Sparkles className="w-3.5 h-3.5 text-amber-600 print:hidden" />
                       <span>Breakthrough</span>
                     </div>
-                    <div className="text-[10px] text-amber-800/80 font-normal mt-0.5">
+                    <div className="text-[10px] text-amber-800/80 font-normal mt-0.5 print:hidden">
                       Lompatan inovasi baru, diferensiasi & terobosan
                     </div>
                   </td>
-                  <td className="p-2 border border-slate-300">
+                  <td className="p-2 border border-slate-300 align-top">
                     <textarea
                       value={matriks.breakthrough.recent}
                       onChange={(e) => handleMatrixChange('breakthrough', 'recent', e.target.value)}
                       rows={3}
                       placeholder="Eksperimen inovasi baru saat ini..."
-                      className="w-full p-2 rounded-lg border border-amber-200 text-xs focus:ring-1 focus:ring-amber-400 focus:outline-none"
+                      className="w-full p-2 rounded-lg border border-amber-200 text-xs focus:ring-1 focus:ring-amber-400 focus:outline-none print:hidden"
                     />
+                    <div className="hidden print:block text-xs text-slate-800 whitespace-pre-wrap p-1 font-medium">
+                      {matriks.breakthrough.recent || '-'}
+                    </div>
                   </td>
-                  <td className="p-2 border border-slate-300">
+                  <td className="p-2 border border-slate-300 align-top">
                     <textarea
                       value={matriks.breakthrough.midTerm}
                       onChange={(e) => handleMatrixChange('breakthrough', 'midTerm', e.target.value)}
                       rows={3}
                       placeholder="Lompatan produk/pasar menengah..."
-                      className="w-full p-2 rounded-lg border border-amber-200 text-xs focus:ring-1 focus:ring-amber-400 focus:outline-none"
+                      className="w-full p-2 rounded-lg border border-amber-200 text-xs focus:ring-1 focus:ring-amber-400 focus:outline-none print:hidden"
                     />
+                    <div className="hidden print:block text-xs text-slate-800 whitespace-pre-wrap p-1 font-medium">
+                      {matriks.breakthrough.midTerm || '-'}
+                    </div>
                   </td>
-                  <td className="p-2 border border-slate-300">
+                  <td className="p-2 border border-slate-300 align-top">
                     <textarea
                       value={matriks.breakthrough.longTerm}
                       onChange={(e) => handleMatrixChange('breakthrough', 'longTerm', e.target.value)}
                       rows={3}
                       placeholder="Peluang terobosan besar masa depan..."
-                      className="w-full p-2 rounded-lg border border-amber-200 text-xs focus:ring-1 focus:ring-amber-400 focus:outline-none"
+                      className="w-full p-2 rounded-lg border border-amber-200 text-xs focus:ring-1 focus:ring-amber-400 focus:outline-none print:hidden"
                     />
+                    <div className="hidden print:block text-xs text-slate-800 whitespace-pre-wrap p-1 font-medium">
+                      {matriks.breakthrough.longTerm || '-'}
+                    </div>
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          {/* MOBILE VIEW: TABBED CARDS FOR COMFORTABLE SMARTPHONE TYPING */}
-          <div className="block md:hidden space-y-4">
+          {/* MOBILE VIEW: TABBED CARDS FOR COMFORTABLE SMARTPHONE TYPING (Hilang saat cetak PDF) */}
+          <div className="block md:hidden print:hidden space-y-4">
             <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 flex items-center gap-2">
               <HelpCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
               <span>
@@ -828,8 +940,8 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
         </div>
         )}
 
-        {/* BOTTOM ACTION BAR */}
-        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-3 sticky bottom-4 z-20">
+        {/* BOTTOM ACTION BAR - Hilang Saat Print / Download PDF */}
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-3 sticky bottom-4 z-20 print:hidden">
           <div className="text-xs text-slate-500">
             Pastikan data sudah diperiksa sebelum mengirimkan ke kurator.
           </div>

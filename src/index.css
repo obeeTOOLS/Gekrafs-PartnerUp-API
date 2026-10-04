@@ -71,3 +71,63 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* ============================================================
+   PRINT & PDF EXPORT STYLES (Fokus Murni pada Jawaban & Data)
+   ============================================================ */
+@media print {
+  /* Hilangkan seluruh navigasi, header, footer, toast, tombol aksi */
+  header,
+  nav,
+  footer,
+  aside,
+  button,
+  .print\:hidden,
+  .no-print,
+  [aria-label="Navigasi Bawah Layar HP"] {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Reset halaman agar bersih di atas kertas A4 */
+  html, body {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 11pt !important;
+    line-height: 1.45 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 12mm 15mm 15mm 15mm;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  /* Cegah pemotongan aneh di tengah kartu atau tabel */
+  .break-inside-avoid,
+  table,
+  tr,
+  td,
+  th {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Perbaiki tampilan input/textarea saat dicetak */
+  textarea, input[type="text"] {
+    box-shadow: none !important;
+    resize: none !important;
+  }
+}

@@ -37,7 +37,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
   return (
     <nav 
       aria-label="Navigasi Bawah Layar HP"
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-slate-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-slate-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] print:hidden"
       style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 6px)' }}
     >
       <div className={`grid ${colCount} h-16 max-w-md mx-auto px-1 items-center`}>

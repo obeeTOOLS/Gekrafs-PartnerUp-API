@@ -5,6 +5,7 @@
  */
 
 import { StrategicCanvasTask, StrategicInnovationMatrix } from '../types';
+import { gasService } from './gasService';
 
 const STORAGE_KEY = 'gkf_strategic_tasks_v2';
 
@@ -148,6 +149,10 @@ class TaskService {
       };
       this.tasks[existingIndex] = updated;
       this.saveToStorage();
+      try {
+        window.dispatchEvent(new CustomEvent('gkf-tasks-updated', { detail: updated }));
+        gasService.dispatchRemoteAction('saveTaskDraft', { task: updated });
+      } catch {}
       return updated;
     } else {
       const newTask: StrategicCanvasTask = {
@@ -171,6 +176,10 @@ class TaskService {
       };
       this.tasks.unshift(newTask);
       this.saveToStorage();
+      try {
+        window.dispatchEvent(new CustomEvent('gkf-tasks-updated', { detail: newTask }));
+        gasService.dispatchRemoteAction('saveTaskDraft', { task: newTask });
+      } catch {}
       return newTask;
     }
   }
@@ -181,13 +190,18 @@ class TaskService {
     const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
     if (existingIndex >= 0) {
-      this.tasks[existingIndex] = {
+      const finalTask: StrategicCanvasTask = {
         ...this.tasks[existingIndex],
         status: 'submitted',
         updatedAt: now
       };
+      this.tasks[existingIndex] = finalTask;
       this.saveToStorage();
-      return this.tasks[existingIndex];
+      try {
+        window.dispatchEvent(new CustomEvent('gkf-tasks-updated', { detail: finalTask }));
+        gasService.dispatchRemoteAction('submitTask', { task: finalTask });
+      } catch {}
+      return finalTask;
     }
     return task;
   }
@@ -197,7 +211,7 @@ class TaskService {
     if (index === -1) return null;
 
     const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
-    this.tasks[index] = {
+    const reviewedTask: StrategicCanvasTask = {
       ...this.tasks[index],
       nilai: review.nilai,
       catatanKurator: review.catatanKurator,
@@ -206,9 +220,14 @@ class TaskService {
       status: review.status || 'reviewed',
       updatedAt: now
     };
+    this.tasks[index] = reviewedTask;
 
     this.saveToStorage();
-    return this.tasks[index];
+    try {
+      window.dispatchEvent(new CustomEvent('gkf-tasks-updated', { detail: reviewedTask }));
+      gasService.dispatchRemoteAction('reviewTask', { task: reviewedTask });
+    } catch {}
+    return reviewedTask;
   }
 
   deleteTask(id: string): boolean {
@@ -216,6 +235,10 @@ class TaskService {
     this.tasks = this.tasks.filter(t => t.id !== id);
     if (this.tasks.length !== prevLen) {
       this.saveToStorage();
+      try {
+        window.dispatchEvent(new CustomEvent('gkf-tasks-updated', { detail: { id } }));
+        gasService.dispatchRemoteAction('deleteTask', { id });
+      } catch {}
       return true;
     }
     return false;
