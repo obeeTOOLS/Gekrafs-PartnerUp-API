@@ -100,6 +100,76 @@ export const VERIFIED_SUBMISSIONS: StrategicCanvasTask[] = [
     },
     createdAt: '2026-10-04 08:21:40',
     updatedAt: '2026-10-04 08:21:40'
+  },
+  {
+    id: 'TASK-SUB-003',
+    namaUsaha: 'Linara Craft',
+    namaPemilik: 'Lilis Suryani',
+    whatsapp: '085257324459',
+    email: 'linaracraft.id@gmail.com',
+    subsektor: 'Kriya / Kerajinan',
+    sesiPartnerUp: 'Sesi 2',
+    status: 'submitted',
+    visi: 'Menjadi sentra kerajinan kriya tangan kreatif terkemuka di Kota Batu yang mengedepankan inovasi desain kustom dan edukasi workshop komunitas.',
+    misi: 'Memproduksi aneka kerajinan tangan berkualitas tinggi sesuai kebutuhan pelanggan secara daring maupun luring serta membuka peluang kolaborasi pelatihan.',
+    goal: 'Membangun jejaring pesanan kustom corporate/souvenir instansi secara berkala dan memperluas jangkauan pelatihan workshop.',
+    objective: 'Meningkatkan omzet pesanan suvenir 30% dalam 90 hari dan menyelenggarakan minimal 3 workshop kriya berkolaborasi dengan kampus/komunitas.',
+    nilaiUsaha: 'Kerapian Hasil Karya, Keterbukaan Kolaborasi, Ketepatan Waktu, Berbagi Ilmu.',
+    keahlianOrganisasi: 'Keahlian teknik kriya tangan multi-material, pengalaman sebagai instruktur workshop Universitas Brawijaya, pelayanan pesanan custom.',
+    matriks: {
+      problemSolving: {
+        recent: 'Standardisasi waktu pengerjaan untuk pesanan suvenir dalam jumlah besar.',
+        midTerm: 'Penyusunan modul materi workshop kriya terstruktur untuk peserta pemula.',
+        longTerm: 'Membangun studio workshop kerajinan permanen yang nyaman di Kota Batu.'
+      },
+      incremental: {
+        recent: 'Peningkatan etalase video proses pembuatan produk di akun TikTok @nabiellaaccessories.',
+        midTerm: 'Membuat paket bundle DIY kit kerajinan tangan siap pakai.',
+        longTerm: 'Kerjasama rutin pengadaan cinderamata dengan dinas & hotel se-Malang Raya.'
+      },
+      breakthrough: {
+        recent: 'Kolaborasi desain produk suvenir eksklusif bermotif ikonik Kota Batu.',
+        midTerm: 'Pelatihan bersertifikat kriya kreatif bekerjasama dengan lembaga vokasi.',
+        longTerm: 'Mendirikan galeri kriya kolaboratif untuk menampung karya pengrajin lokal.'
+      }
+    },
+    createdAt: '2026-10-04 09:22:24',
+    updatedAt: '2026-10-04 09:22:24'
+  },
+  {
+    id: 'TASK-SUB-004',
+    namaUsaha: 'The Apsara',
+    namaPemilik: 'Ciciek Kemalasari',
+    whatsapp: '085313855181',
+    email: 'chicikemala@gmail.com',
+    subsektor: 'Fashion',
+    sesiPartnerUp: 'Sesi 2',
+    status: 'submitted',
+    visi: 'Menjadikan The Apsara sebagai brand fesyen lokal berkarakter kuat, anggun, dan bernilai estetika tinggi yang dicintai pecinta busana nusantara.',
+    misi: 'Merancang busana dan produk fesyen berkualitas dengan potongan nyaman, material pilihan, dan sentuhan visual konten yang inspiratif.',
+    goal: 'Memperkuat identitas brand di pasar digital dan memperluas distribusi penjualan ke butik-butik fesyen terpilih.',
+    objective: 'Merilis koleksi busana tematik baru dan meningkatkan penjualan online 25% melalui optimalisasi konten visual dalam 90 hari.',
+    nilaiUsaha: 'Kualitas Jahitan, Keanggunan Desain, Kejujuran Transaksi, Kepuasan Pelanggan.',
+    keahlianOrganisasi: 'Desain pola busana modis, kreasi konten visual fesyen (storytelling & reels), komunikasi ramah dengan pelanggan setia.',
+    matriks: {
+      problemSolving: {
+        recent: 'Menjaga konsistensi ketersediaan stok bahan kain motif khusus.',
+        midTerm: 'Peningkatan kecepatan respon konsultasi ukuran dan pemesanan.',
+        longTerm: 'Sistem manajemen inventori kain dan pakaian jadi berbasis digital.'
+      },
+      incremental: {
+        recent: 'Peningkatan kualitas foto katalog dan lookbook koleksi fesyen.',
+        midTerm: 'Menyediakan layanan konsultasi styling busana personal untuk pelanggan VIP.',
+        longTerm: 'Membuka butik pamer (showroom) representatif di kawasan strategis Kota Batu.'
+      },
+      breakthrough: {
+        recent: 'Kolaborasi koleksi busana fesyen terbatas (limited edition) dengan desainer lokal.',
+        midTerm: 'Mengikuti pagelaran fesyen nasional (Fashion Week) untuk memperluas jangkauan brand.',
+        longTerm: 'Ekspansi penjualan ke pasar mancanegara melalui platform e-commerce global.'
+      }
+    },
+    createdAt: '2026-10-04 09:34:15',
+    updatedAt: '2026-10-04 09:34:15'
   }
 ];
 
@@ -110,20 +180,34 @@ class TaskService {
     this.loadFromStorage();
   }
 
+  private isInvalidCorruptedTask(t: Partial<StrategicCanvasTask>): boolean {
+    if (!t.namaUsaha) return true;
+    const cleanNama = t.namaUsaha.trim();
+    // Jika nama usaha berupa angka murni atau nomor HP (misal 85895807020)
+    if (/^[0-9+\s\-()]+$/.test(cleanNama)) return true;
+    // Jika nama pemilik berisi teks jawaban kuesioner asesmen
+    if (t.namaPemilik && (/^[0-9]\s*•/.test(t.namaPemilik) || t.namaPemilik.includes('bergantung pada pemilik') || t.namaPemilik.includes('Lokasi strategis'))) return true;
+    // Jika subsektor hanya angka (misal "5")
+    if (t.subsektor && /^[0-9]+$/.test(t.subsektor.trim())) return true;
+    // Jika visi/misi hanya satu angka (misal "4" atau "5")
+    if (t.misi && /^[0-9]+$/.test(t.misi.trim())) return true;
+    if (t.objective && /^[0-9]+$/.test(t.objective.trim())) return true;
+    // Jika dummy lama
+    if (t.id === 'TASK-2026-001' || t.id === 'TASK-2026-002') return true;
+    if (cleanNama.toLowerCase() === 'kripik apel batu mandiri' || cleanNama.toLowerCase() === 'batik among tani creative') return true;
+
+    return false;
+  }
+
   private loadFromStorage() {
     try {
       const data = localStorage.getItem(STORAGE_KEY);
       if (data) {
         const parsed: StrategicCanvasTask[] = JSON.parse(data);
-        // Bersihkan tugas dummy lama dari penyimpanan lokal browser
-        const cleaned = parsed.filter(t => 
-          t.id !== 'TASK-2026-001' && 
-          t.id !== 'TASK-2026-002' &&
-          t.namaUsaha.toLowerCase().trim() !== 'kripik apel batu mandiri' &&
-          t.namaUsaha.toLowerCase().trim() !== 'batik among tani creative'
-        );
+        // Bersihkan tugas dummy dan data asesmen yang sempat salah tertarik
+        const cleaned = parsed.filter(t => !this.isInvalidCorruptedTask(t));
 
-        // Pastikan submission peserta terverifikasi ada di daftar
+        // Pastikan seluruh 4 submission peserta terverifikasi ada di daftar dengan struktur rapi
         const existingNames = new Set(cleaned.map(p => p.namaUsaha.toLowerCase().trim()));
         for (const sub of VERIFIED_SUBMISSIONS) {
           if (!existingNames.has(sub.namaUsaha.toLowerCase().trim())) {
@@ -147,6 +231,17 @@ class TaskService {
    */
   public syncFromSpreadsheetRows(rows: string[][]) {
     if (!rows || rows.length <= 1) return;
+
+    // VALIDASI KETAT HEADER: Pastikan benar-benar tab 'Tugas', bukan fallback Google Sheets ke tab Asesmen atau tab lain!
+    const headerLine = rows[0].map(c => (c || '').toLowerCase().trim()).join(' ');
+    const isActualTugasSheet = headerLine.includes('id tugas') || headerLine.includes('status tugas') || (headerLine.includes('visi') && headerLine.includes('misi') && headerLine.includes('matriks'));
+    const isAsesmenFallback = headerLine.includes('kriteria') || headerLine.includes('bagian 3') || headerLine.includes('radar') || headerLine.includes('poinbisa') || headerLine.includes('skor');
+
+    if (!isActualTugasSheet || isAsesmenFallback) {
+      console.warn('[taskService] Tab Tugas belum dibuat di spreadsheet Anda. Google mengembalikan tab lain sebagai fallback. Sinkronisasi tab tugas dibatalkan untuk menjaga kebersihan data.');
+      return;
+    }
+
     const newTasks: StrategicCanvasTask[] = [];
 
     for (let i = 1; i < rows.length; i++) {
@@ -158,7 +253,7 @@ class TaskService {
         if (r[19]) fullTask = JSON.parse(r[19]);
       } catch {}
 
-      if (fullTask && fullTask.namaUsaha) {
+      if (fullTask && fullTask.namaUsaha && !this.isInvalidCorruptedTask(fullTask)) {
         newTasks.push(fullTask);
       } else {
         let ps = { recent: '', midTerm: '', longTerm: '' };
@@ -168,7 +263,7 @@ class TaskService {
         try { if (r[17]) inc = JSON.parse(r[17]); } catch {}
         try { if (r[18]) bt = JSON.parse(r[18]); } catch {}
 
-        newTasks.push({
+        const parsedTask: StrategicCanvasTask = {
           id: r[1] || `TASK-${i}`,
           namaUsaha: r[2],
           namaPemilik: r[3] || '',
@@ -191,14 +286,22 @@ class TaskService {
           },
           createdAt: r[0] || new Date().toISOString(),
           updatedAt: r[0] || ''
-        });
+        };
+
+        if (!this.isInvalidCorruptedTask(parsedTask)) {
+          newTasks.push(parsedTask);
+        }
       }
     }
 
     if (newTasks.length > 0) {
       const map = new Map<string, StrategicCanvasTask>();
-      this.tasks.forEach(t => map.set(t.namaUsaha.toLowerCase().trim(), t));
-      newTasks.forEach(t => map.set(t.namaUsaha.toLowerCase().trim(), t));
+      this.tasks.forEach(t => {
+        if (!this.isInvalidCorruptedTask(t)) map.set(t.namaUsaha.toLowerCase().trim(), t);
+      });
+      newTasks.forEach(t => {
+        if (!this.isInvalidCorruptedTask(t)) map.set(t.namaUsaha.toLowerCase().trim(), t);
+      });
       this.tasks = Array.from(map.values());
       this.saveToStorage();
       try {

@@ -312,11 +312,17 @@ class GasService {
       if (newTimelineList.length > 0) this.timeline = newTimelineList;
       if (newJadwalList.length > 0) this.jadwal = newJadwalList;
 
-      // 6. Ambil data Tugas Peserta (jika tab 'Tugas' sudah ada di spreadsheet)
+      // 6. Ambil data Tugas Peserta (hanya jika tab 'Tugas' benar-benar ada di spreadsheet dan bukan fallback)
       try {
         const tugasRaw = await fetchSheetCsv(spreadsheetId, 'Tugas');
         if (tugasRaw && tugasRaw.length > 1) {
-          taskService.syncFromSpreadsheetRows(tugasRaw);
+          const headerText = tugasRaw[0].join(' ').toLowerCase();
+          const isTugas = (headerText.includes('id tugas') || headerText.includes('status tugas')) && !headerText.includes('kriteria');
+          if (isTugas) {
+            taskService.syncFromSpreadsheetRows(tugasRaw);
+          } else {
+            console.warn('[GAS] Sheet Tugas belum ada di spreadsheet (Google fallback ke sheet lain). Diabaikan.');
+          }
         }
       } catch (tugasErr) {
         // Tab 'Tugas' belum dibuat di spreadsheet atau belum ada baris, abaikan secara graceful
