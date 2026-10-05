@@ -53,6 +53,23 @@ export const StrategicRoadmapReview: React.FC<StrategicRoadmapReviewProps> = ({
   const [aiAnalysisResult, setAiAnalysisResult] = useState<AiReviewResult | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
 
+  // Sync to Sheet state
+  const [isSyncingSheet, setIsSyncingSheet] = useState(false);
+
+  const handleSyncAllToSheet = async () => {
+    setIsSyncingSheet(true);
+    try {
+      const res = await taskService.pushAllTasksToGoogleSheet();
+      setToast(res.message);
+      setTimeout(() => setToast(null), 5000);
+    } catch (err: any) {
+      setToast('Gagal menyinkronkan tugas: ' + (err?.message || 'Koneksi error'));
+      setTimeout(() => setToast(null), 5000);
+    } finally {
+      setIsSyncingSheet(false);
+    }
+  };
+
   const refreshTasks = () => {
     setTasks(taskService.getAllTasks());
   };
@@ -163,15 +180,28 @@ export const StrategicRoadmapReview: React.FC<StrategicRoadmapReviewProps> = ({
             Periksa hasil tugas peserta, berikan skor kelulusan, dan kirimkan umpan balik via WhatsApp.
           </p>
         </div>
-        {onOpenQuestionEditor && (
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={onOpenQuestionEditor}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 text-xs font-bold transition-all cursor-pointer whitespace-nowrap self-start"
+            onClick={handleSyncAllToSheet}
+            disabled={isSyncingSheet || tasks.length === 0}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all cursor-pointer whitespace-nowrap shadow-xs disabled:opacity-50"
+            title="Kirim seluruh jawaban tugas yang ada di aplikasi ke tab Tugas di Google Spreadsheet"
           >
-            <span>📝 Kelola & Tambah Soal Tugas</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncingSheet ? 'animate-spin' : ''}`} />
+            <span>{isSyncingSheet ? 'Menyinkronkan...' : '🚀 Sinkronkan ke Google Sheet'}</span>
           </button>
-        )}
+
+          {onOpenQuestionEditor && (
+            <button
+              type="button"
+              onClick={onOpenQuestionEditor}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 text-xs font-bold transition-all cursor-pointer whitespace-nowrap"
+            >
+              <span>📝 Kelola Soal</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Summary KPI Cards */}

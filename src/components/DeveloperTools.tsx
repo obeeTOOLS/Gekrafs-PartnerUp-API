@@ -45,7 +45,8 @@ import {
   RefreshCw,
   BookOpen,
   Wrench,
-  Trash2
+  Trash2,
+  Compass
 } from 'lucide-react';
 
 export const DeveloperTools: React.FC = () => {
@@ -84,6 +85,23 @@ export const DeveloperTools: React.FC = () => {
     message: string;
     counts?: { peserta: number; asesmen: number; timeline: number; jadwal: number };
   } | null>(null);
+
+  // Sync all tasks to Google Sheet state
+  const [isSyncingTasks, setIsSyncingTasks] = useState(false);
+  const [syncTasksResult, setSyncTasksResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const handlePushAllTasksToLiveSheet = async () => {
+    setIsSyncingTasks(true);
+    setSyncTasksResult(null);
+    try {
+      const res = await taskService.pushAllTasksToGoogleSheet();
+      setSyncTasksResult({ success: res.success, message: res.message });
+    } catch (err: any) {
+      setSyncTasksResult({ success: false, message: 'Gagal mengirim tugas: ' + (err?.message || 'Koneksi error') });
+    } finally {
+      setIsSyncingTasks(false);
+    }
+  };
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(HEADLESS_GAS_CODE);
@@ -621,6 +639,65 @@ export const DeveloperTools: React.FC = () => {
                 <div className="text-[11px] opacity-75 mt-0.5">Latency: {testResult.latency} ms</div>
               )}
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* Section 2.5: Sinkronisasi Jawaban Tugas ke Google Spreadsheet */}
+      <div className="bg-white rounded-2xl p-6 border-2 border-indigo-500/40 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-2">
+          <div>
+            <h2 className="text-sm font-extrabold text-[#001c3c] uppercase flex items-center gap-2">
+              <Compass className="w-4 h-4 text-indigo-600" />
+              <span>Sinkronkan Jawaban Tugas ke Sheet Asli (Tab "Tugas")</span>
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Dorong seluruh jawaban lembar kerja / roadmap tugas peserta yang sudah masuk di aplikasi ke tab <strong>Tugas</strong> di Google Spreadsheet secara real-time.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-lg">
+              {taskService.getAllTasks().length} Tugas Tersimpan
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
+          <div className="text-xs text-indigo-950 space-y-1">
+            <div className="font-bold flex items-center gap-1.5 text-indigo-900">
+              <ShieldCheck className="w-4 h-4 text-indigo-600" />
+              <span>Pencegahan Duplikasi & Keamanan Data</span>
+            </div>
+            <p className="text-slate-600 leading-relaxed text-[11px]">
+              Sistem akan memetakan setiap jawaban ke baris spreadsheet berdasarkan <em>Nama Usaha</em>. Jika nama usaha sudah pernah masuk sebelumnya, baris tersebut akan diperbarui secara otomatis tanpa membuat baris ganda.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handlePushAllTasksToLiveSheet}
+            disabled={isSyncingTasks || taskService.getAllTasks().length === 0}
+            className="w-full sm:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 whitespace-nowrap shadow-sm disabled:opacity-50 cursor-pointer"
+          >
+            <RefreshCw className={`w-4 h-4 ${isSyncingTasks ? 'animate-spin' : ''}`} />
+            <span>{isSyncingTasks ? 'Menyinkronkan...' : '🚀 Kirim Semua Jawaban ke Sheet'}</span>
+          </button>
+        </div>
+
+        {syncTasksResult && (
+          <div
+            className={`p-3.5 rounded-xl text-xs font-semibold flex items-start gap-2.5 ${
+              syncTasksResult.success
+                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                : 'bg-rose-50 text-rose-800 border border-rose-200'
+            }`}
+          >
+            {syncTasksResult.success ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+            ) : (
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            )}
+            <div>{syncTasksResult.message}</div>
           </div>
         )}
       </div>

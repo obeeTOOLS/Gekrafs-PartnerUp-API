@@ -405,6 +405,34 @@ class TaskService {
     }
     return false;
   }
+
+  /**
+   * Mengirim seluruh jawaban tugas yang tersimpan di sistem ke tab 'Tugas' di Google Spreadsheet asli
+   */
+  async pushAllTasksToGoogleSheet(): Promise<{ success: boolean; total: number; successCount: number; message: string }> {
+    const validTasks = this.tasks.filter(t => t.namaUsaha && (t.status === 'submitted' || t.status === 'reviewed' || t.status === 'draft'));
+    if (validTasks.length === 0) {
+      return { success: false, total: 0, successCount: 0, message: 'Tidak ada data jawaban tugas yang tersimpan di aplikasi.' };
+    }
+
+    let successCount = 0;
+    for (const task of validTasks) {
+      try {
+        const queueNumber = this.getSubmissionQueueNumber(task.id);
+        await gasService.dispatchRemoteAction('submitTask', { task, queueNumber });
+        successCount++;
+      } catch (err) {
+        console.error('Gagal mengirim tugas untuk ' + task.namaUsaha, err);
+      }
+    }
+
+    return {
+      success: successCount > 0,
+      total: validTasks.length,
+      successCount,
+      message: `Berhasil menyinkronkan ${successCount} dari ${validTasks.length} jawaban tugas ke tab Tugas di Google Spreadsheet!`
+    };
+  }
 }
 
 export const taskService = new TaskService();
