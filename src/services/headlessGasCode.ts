@@ -628,18 +628,18 @@ function getPesertaList(filterSesi) {
   const cleanFilter = filterSesi ? String(filterSesi).toLowerCase().trim() : '';
 
   for (let i = 1; i < rows.length; i++) {
-    const sesi = String(rows[i][9] || '').trim();
+    const sesi = String(rows[i][8] || rows[i][9] || '').trim();
     if (!cleanFilter || sesi.toLowerCase() === cleanFilter) {
       list.push({
         row: i + 1,
-        timestamp: rows[i][1],
-        namaUsaha: rows[i][2],
-        namaPemilik: rows[i][3],
-        subsektor: rows[i][4],
-        whatsapp: String(rows[i][5]),
-        email: rows[i][6],
-        statusKurasi: rows[i][7] || 'Belum Direview',
-        catatanKurator: rows[i][8] || '',
+        timestamp: rows[i][0],
+        namaUsaha: rows[i][1],
+        namaPemilik: rows[i][2],
+        subsektor: rows[i][3],
+        whatsapp: String(rows[i][4]),
+        email: rows[i][5],
+        statusKurasi: rows[i][6] || 'Belum Direview',
+        catatanKurator: rows[i][7] || '',
         sesi: sesi || 'Sesi 2'
       });
     }
@@ -653,7 +653,7 @@ function getRegisteredBusinessNames() {
   const rows = sheet.getDataRange().getValues();
   const names = [];
   for (let i = 1; i < rows.length; i++) {
-    if (rows[i][2]) names.push(String(rows[i][2]).trim());
+    if (rows[i][1]) names.push(String(rows[i][1]).trim());
   }
   return names;
 }
@@ -667,12 +667,12 @@ function verifyPesertaIdentity(namaUsaha, cred) {
   const cleanCred = String(cred).replace(/[^0-9]/g, '');
 
   for (let i = 1; i < rows.length; i++) {
-    const rowNama = String(rows[i][2]).toLowerCase().trim();
-    const rowWa = String(rows[i][5]).replace(/[^0-9]/g, '');
+    const rowNama = String(rows[i][1]).toLowerCase().trim();
+    const rowWa = String(rows[i][4]).replace(/[^0-9]/g, '');
 
     if (rowNama === cleanNama) {
       if (cleanCred && (rowWa.endsWith(cleanCred) || cleanCred.endsWith(rowWa))) {
-        return { verified: true, namaUsaha: rows[i][2], namaPemilik: rows[i][3] };
+        return { verified: true, namaUsaha: rows[i][1], namaPemilik: rows[i][2] };
       }
     }
   }

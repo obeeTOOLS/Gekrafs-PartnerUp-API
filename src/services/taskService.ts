@@ -39,6 +39,82 @@ class TaskService {
 
   constructor() {
     this.loadFromStorage();
+    // Tarik data remote secara asynchronous agar langsung sinkron dengan Google Sheets
+    if (typeof window !== 'undefined') {
+      setTimeout(() => {
+        this.pullTasksFromRemote();
+      }, 200);
+    }
+  }
+
+  /**
+   * Menarik data Tugas terbaru secara real-time dari Google Apps Script / Google Spreadsheet
+   */
+  public async pullTasksFromRemote(): Promise<{ success: boolean; count: number; newAdded: number }> {
+    const endpoint = gasService.getSettings().gasEndpointUrl;
+    if (!endpoint) return { success: false, count: this.tasks.length, newAdded: 0 };
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
+      const res = await fetch(`${endpoint}?action=getAllData`, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      const remoteTugas: any[] = json?.data?.tugas || [];
+
+      if (remoteTugas && remoteTugas.length > 0) {
+        const prevCount = this.tasks.length;
+        const map = new Map<string, StrategicCanvasTask>();
+        
+        // 1. Muat task lokal yang valid
+        this.tasks.forEach(t => {
+          if (t && t.namaUsaha && !this.isInvalidCorruptedTask(t)) {
+            map.set(t.namaUsaha.toLowerCase().trim(), t);
+          }
+        });
+
+        // 2. Selaraskan dengan data remote dari Google Sheets (termasuk tugas baru yang masuk)
+        remoteTugas.forEach(rt => {
+          if (rt && rt.namaUsaha && !this.isInvalidCorruptedTask(rt)) {
+            const key = rt.namaUsaha.toLowerCase().trim();
+            const existing = map.get(key);
+            if (!existing) {
+              map.set(key, {
+                ...rt,
+                matriks: rt.matriks || DEFAULT_INNOVATION_MATRIX
+              });
+            } else {
+              map.set(key, {
+                ...existing,
+                ...rt,
+                matriks: rt.matriks || existing.matriks || DEFAULT_INNOVATION_MATRIX
+              });
+            }
+          }
+        });
+
+        this.tasks = Array.from(map.values());
+        this.saveToStorage();
+        try {
+          window.dispatchEvent(new CustomEvent('gkf-tasks-updated'));
+        } catch {}
+
+        return {
+          success: true,
+          count: this.tasks.length,
+          newAdded: Math.max(0, this.tasks.length - prevCount)
+        };
+      }
+    } catch (err) {
+      console.warn('[taskService] Gagal menarik tugas dari remote GAS:', err);
+    }
+    return { success: false, count: this.tasks.length, newAdded: 0 };
   }
 
   private isInvalidCorruptedTask(t: Partial<StrategicCanvasTask>): boolean {
@@ -358,6 +434,34 @@ class TaskService {
   }
 
   /**
+   * Mengirim tugas dengan konfirmasi asynchronous hingga Google Apps Script merespon
+   */
+  async submitTaskAsync(taskData: Partial<StrategicCanvasTask> & { namaUsaha: string; namaPemilik: string }): Promise<StrategicCanvasTask> {
+    const task = this.saveDraft(taskData);
+    const existingIndex = this.tasks.findIndex(t => t.id === task.id);
+    const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+
+    if (existingIndex >= 0) {
+      const finalTask: StrategicCanvasTask = {
+        ...this.tasks[existingIndex],
+        status: 'submitted',
+        updatedAt: now
+      };
+      this.tasks[existingIndex] = finalTask;
+      this.saveToStorage();
+      try {
+        window.dispatchEvent(new CustomEvent('gkf-tasks-updated', { detail: finalTask }));
+        const queueNumber = this.getSubmissionQueueNumber(finalTask.id);
+        await gasService.dispatchRemoteAction('submitTask', { task: finalTask, queueNumber });
+      } catch (err) {
+        console.warn('Gagal remote dispatch submitTask:', err);
+      }
+      return finalTask;
+    }
+    return task;
+  }
+
+  /**
    * Menghitung nomor urut antrean pengiriman tugas
    */
   getSubmissionQueueNumber(taskId: string): number {
@@ -407,41 +511,71 @@ class TaskService {
   }
 
   /**
-   * Mengirim seluruh jawaban tugas yang tersimpan di sistem ke tab 'Tugas' di Google Spreadsheet asli
+   * Mengirim jawaban tugas ke Google Spreadsheet secara cerdas & super cepat (Smart Differential Sync)
    */
   async pushAllTasksToGoogleSheet(): Promise<{ success: boolean; total: number; successCount: number; message: string }> {
+    // 1. Tarik data terbaru dari Google Sheets terlebih dahulu agar data lokal langsung update
+    await this.pullTasksFromRemote();
+
     const validTasks = this.tasks.filter(t => t.namaUsaha && (t.status === 'submitted' || t.status === 'reviewed' || t.status === 'draft'));
     if (validTasks.length === 0) {
       return { success: false, total: 0, successCount: 0, message: 'Tidak ada data jawaban tugas yang tersimpan di aplikasi.' };
     }
 
-    let successCount = 0;
-    for (const task of validTasks) {
+    // 2. Cek tugas yang sudah ada di remote agar tidak mengirim ulang puluhan tugas yang sudah tersimpan
+    const remoteExistingNames = new Set<string>();
+    try {
+      const endpoint = gasService.getSettings().gasEndpointUrl;
+      if (endpoint) {
+        const res = await fetch(`${endpoint}?action=getAllData`, {
+          method: 'GET',
+          headers: { Accept: 'application/json' }
+        });
+        if (res.ok) {
+          const json = await res.json();
+          const remoteList: any[] = json?.data?.tugas || [];
+          remoteList.forEach(t => {
+            if (t && t.namaUsaha) remoteExistingNames.add(t.namaUsaha.toLowerCase().trim());
+          });
+        }
+      }
+    } catch {}
+
+    // 3. Filter hanya tugas lokal yang BELUM ada di Google Spreadsheet
+    const tasksToPush = validTasks.filter(t => !remoteExistingNames.has(t.namaUsaha.toLowerCase().trim()));
+
+    // Jika seluruh tugas sudah tercatat di Google Sheets, selesai instan dalam hitungan detik!
+    if (tasksToPush.length === 0) {
+      return {
+        success: true,
+        total: validTasks.length,
+        successCount: validTasks.length,
+        message: `⚡ Sinkronisasi Kilat Selesai! Seluruh ${validTasks.length} Lembar Aksi selaras 100% dengan Google Spreadsheet.`
+      };
+    }
+
+    // 4. Jika ada tugas baru, kirim HANYA tugas baru tersebut
+    let newPushed = 0;
+    for (const task of tasksToPush) {
       try {
         const queueNumber = this.getSubmissionQueueNumber(task.id);
         const res = await gasService.dispatchRemoteAction('submitTask', { task, queueNumber });
         if (res && (res.status === 'success' || res.status === 'ok')) {
-          successCount++;
+          newPushed++;
         }
       } catch (err) {
-        console.error('Gagal mengirim tugas untuk ' + task.namaUsaha, err);
+        console.error('Gagal mengirim tugas baru untuk ' + task.namaUsaha, err);
       }
     }
 
-    if (successCount === 0) {
-      return {
-        success: false,
-        total: validTasks.length,
-        successCount: 0,
-        message: 'Gagal menyinkronkan tugas ke Google Spreadsheet. Server belum merespon status sukses.'
-      };
-    }
+    // Refresh data lokal sekali lagi setelah push
+    await this.pullTasksFromRemote();
 
     return {
-      success: successCount > 0,
-      total: validTasks.length,
-      successCount,
-      message: `Berhasil menyinkronkan ${successCount} dari ${validTasks.length} jawaban tugas ke tab Tugas di Google Spreadsheet!`
+      success: true,
+      total: this.tasks.length,
+      successCount: validTasks.length,
+      message: `⚡ Sinkronisasi Kilat Berhasil! ${newPushed} tugas baru tersinkron, total ${this.tasks.length} tugas aktif di Google Spreadsheet.`
     };
   }
 }

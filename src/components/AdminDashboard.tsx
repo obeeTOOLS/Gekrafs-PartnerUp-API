@@ -112,6 +112,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const [sertifikatModalPeserta, setSertifikatModalPeserta] = useState<PesertaItem | null>(null);
   const [editingUmkmPeserta, setEditingUmkmPeserta] = useState<PesertaItem | null>(null);
+  const [taskCount, setTaskCount] = useState<number>(() => taskService.getAllTasks().length);
+
+  useEffect(() => {
+    const handleTasksUpdate = () => {
+      setTaskCount(taskService.getAllTasks().length);
+    };
+    window.addEventListener('gkf-tasks-updated', handleTasksUpdate);
+    return () => window.removeEventListener('gkf-tasks-updated', handleTasksUpdate);
+  }, []);
 
   useEffect(() => {
     if (initialTab) {
@@ -878,7 +887,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       <div className="flex p-1 bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto scrollbar-none gap-1">
         {[
           { id: 'peserta', label: `Peserta (${pesertaList.length})`, icon: Users },
-          { id: 'tugas', label: `Lembar Aksi (${taskService.getAllTasks().length})`, icon: Compass },
+          { id: 'tugas', label: `Lembar Aksi (${taskCount})`, icon: Compass },
           { id: 'kelola_soal', label: '📝 Kelola Soal Tugas', icon: FileEdit },
           { id: 'asesmen', label: `Asesmen (${asesmenList.length})`, icon: ClipboardList },
           { id: 'statistik', label: 'Analitik Visual & Radar', icon: BarChart3 },

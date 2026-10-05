@@ -1190,5 +1190,75 @@ export const ALL_34_SUBMITTED_TASKS: StrategicCanvasTask[] = [
     },
     "createdAt": "04/10/2026 9:42:35",
     "updatedAt": "04/10/2026 9:42:35"
+  },
+  {
+    "id": "TASK-1791119587896",
+    "namaUsaha": "Arsyelly 19collection",
+    "namaPemilik": "Marlina Sari",
+    "subsektor": "Kriya / Kerajinan",
+    "whatsapp": "081517643083",
+    "email": "",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Ingin punya toko sendiri memajukan usaha untuk tahun jaka panjang",
+    "misi": "Mempersiapkan kan bahan baku untuk membuat produk yang berkualitas dari produksi,pekejing,sampai distribusi",
+    "goal": "Membuat disain baru sesuai trend wire jewelry (Bros,kalung,gelang,dll) yg konsisten secara kwalitas",
+    "objective": "Peningkatan 20% dalam 1 tahun, peningkatan 50% dalam 2 tahun. Saya sdh menitip d outlet dan hotel",
+    "nilaiUsaha": "Asesoris Kawat tembaga yg tidak berubah warna dan paten dalam setiap lilitan nya",
+    "keahlianOrganisasi": "Teknik kawat tembaga memilin tembaga merajut,dan membentuk kawat tembaga secara presisi untuk mengikat batu alam serta mutiara air tawar tanpa mengandalkan solder",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Solusi : disain simpel, pembuatan cepat untuk stok harian. Disain rumit (pre-order dengan estimasi pengerjaannya yg jelas). Kendala: konsumen menganggap harganya mahal.",
+        "midTerm": "Standarisasi katalog harga dan pemisahan lini produk ekonomis vs premium.",
+        "longTerm": "Pemisahan keuangan bisnis mandiri dan digitalisasi operasional."
+      },
+      "incremental": {
+        "recent": "Meningkatkan stok, merapikan operasional",
+        "midTerm": "Membuka kanal penjualan baru melalui marketplace dan mitra konsinyasi.",
+        "longTerm": "Pengembangan inovasi varian produk dan kemasan ramah lingkungan."
+      },
+      "breakthrough": {
+        "recent": "Menciptakan produk masterpiece unik",
+        "midTerm": "Kemitraan pasokan resmi dengan hotel dan sentra oleh-oleh Kota Batu.",
+        "longTerm": "Mendirikan galeri mandiri dan ekspansi distribusi ke luar kota."
+      }
+    },
+    "createdAt": "05/10/2026 12:14:20",
+    "updatedAt": "05/10/2026 12:14:20"
+  },
+  {
+    "id": "TASK-1791182531343",
+    "namaUsaha": "Inovasi Pangan Lestari",
+    "namaPemilik": "Abdullah Dzikri",
+    "subsektor": "Kuliner",
+    "whatsapp": "082257449290",
+    "email": "",
+    "sesiPartnerUp": "Sesi 2",
+    "status": "submitted",
+    "visi": "Menjadi perusahaan pangan inovatif dan berkelanjutan yang mengolah hasil pertanian Indonesia menjadi produk berkualitas, bernilai tambah, dan berdaya saing global, serta tumbuh bersama petani dan masyarakat",
+    "misi": "Mengolah hasil pertanian Indonesia menjadi produk pangan inovatif, berkualitas, aman, dan bernilai tambah. Meningkatkan kesejahteraan petani melalui kemitraan berkelanjutan.",
+    "goal": "Petani Sejahtera, Produk Berkualitas, Bisnis Bertumbuh, Go Global, dan Berkelanjutan",
+    "objective": "Mencapai omzet Rp500 juta/bln, menyelesaikan proses HACCP dan perizinannya, serta mendapatkan 10 pelanggan baru aktif",
+    "nilaiUsaha": "Integritas, Kualitas, Inovasi, Petani Sejahtera, Profesional, Kolaborasi, Keberlanjutan, Pantang Menyerah",
+    "keahlianOrganisasi": "Kompetensi utama dalam pengolahan pangan, pengembangan produk, produksi, dan pengelolaan bisnis",
+    "matriks": {
+      "problemSolving": {
+        "recent": "Mengatasi bottleneck, reject, dan keterlambatan produksi. Meningkatkan kapasitas dan efisiensi mesin.",
+        "midTerm": "Pengadaan workstation dan storage server untuk kapasitas produksi tinggi.",
+        "longTerm": "Membangun sistem otomasi pipeline kreatif dari pra-produksi hingga delivery."
+      },
+      "incremental": {
+        "recent": "Efisiensi mesin dan tenaga kerja serta peningkatan kapasitas produksi sehingga HPP turun.",
+        "midTerm": "Membuka kanal penjualan baru melalui marketplace dan mitra konsinyasi.",
+        "longTerm": "Membuka studio produksi visual independen dengan fasilitas sewa kreatif."
+      },
+      "breakthrough": {
+        "recent": "Otomatisasi dan digitalisasi monitoring produksi, sistem food safety management terintegrasi siap ekspor.",
+        "midTerm": "Pelatihan produksi visual kreatif berbasis AI untuk talenta muda lokal.",
+        "longTerm": "Mendirikan agensi kreatif berbasis regional dengan jangkauan nasional."
+      }
+    },
+    "createdAt": "05/10/2026 16:12:29",
+    "updatedAt": "05/10/2026 16:12:29"
   }
 ];

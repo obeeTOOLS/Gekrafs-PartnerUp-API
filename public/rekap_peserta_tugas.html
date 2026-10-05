@@ -2,493 +2,369 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Rekap Pengiriman Tugas Peserta PartnerUp 2026 - Gekrafs Kota Batu</title>
+  <title>Rekapitulasi Resmi Peserta Pengirim Tugas - GEKRAFS Kota Batu</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    @page { size: A4 portrait; margin: 12mm 15mm; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      color: #1a202c;
-      margin: 0;
-      padding: 20px;
-      font-size: 12px;
-      line-height: 1.5;
-    }
-    .header-bar {
-      border-bottom: 2px solid #001c3c;
-      padding-bottom: 12px;
-      margin-bottom: 15px;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-    }
-    .title-sub {
-      font-size: 10px;
-      font-weight: 900;
-      color: #001c3c;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-    }
-    .main-title {
-      font-size: 18px;
-      font-weight: 900;
-      color: #0f172a;
-      margin: 4px 0 2px 0;
-    }
-    .desc {
-      font-size: 11px;
-      color: #4b5563;
-      margin: 0;
-    }
-    .meta-box {
-      text-align: right;
-      font-size: 11px;
-    }
-    .badge {
-      display: inline-block;
-      background: #ecfdf5;
-      color: #065f46;
-      border: 1px solid #a7f3d0;
-      font-weight: bold;
-      padding: 2px 8px;
-      border-radius: 9999px;
-      font-size: 10px;
-      margin-top: 4px;
-    }
-    .notice {
-      background: #f8fafc;
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      padding: 8px 12px;
-      font-size: 11px;
-      color: #334155;
-      margin-bottom: 15px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 25px;
-      font-size: 11px;
-    }
-    th {
-      background-color: #001c3c;
-      color: #ffffff;
-      padding: 8px 10px;
-      text-align: left;
-      font-weight: 700;
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    td {
-      padding: 6px 10px;
-      border-bottom: 1px solid #e2e8f0;
-    }
-    tr:nth-child(even) td {
-      background-color: #f8fafc;
-    }
-    .footer-signatures {
-      margin-top: 30px;
-      display: flex;
-      justify-content: space-between;
-      font-size: 11px;
-    }
-    .sig-box {
-      width: 200px;
-    }
-    .sig-line {
-      margin-top: 50px;
-      border-top: 1px solid #475569;
-      font-weight: 800;
-      padding-top: 4px;
-    }
-    .system-footer {
-      margin-top: 25px;
-      padding-top: 8px;
-      border-top: 1px solid #e2e8f0;
-      font-size: 9px;
-      color: #94a3b8;
-      display: flex;
-      justify-content: space-between;
-    }
-    .print-btn-bar {
-      position: sticky;
-      top: 0;
-      background: #001c3c;
-      color: white;
-      padding: 12px 20px;
-      border-radius: 10px;
-      margin-bottom: 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    }
-    .btn-print {
-      background: #10b981;
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 6px;
-      font-weight: bold;
-      font-size: 12px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .btn-print:hover {
-      background: #059669;
-    }
     @media print {
-      body { padding: 0; }
-      .print-btn-bar { display: none !important; }
-      tr:nth-child(even) td { background-color: #f8fafc !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      th { background-color: #001c3c !important; color: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      @page { size: A4 portrait; margin: 12mm 15mm; }
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .no-print { display: none !important; }
     }
   </style>
 </head>
-<body>
-
-  <div class="print-btn-bar">
-    <div>
-      <div style="font-size: 10px; color: #ffc72c; font-weight: bold; text-transform: uppercase;">Format Siap Cetak (A4)</div>
-      <div style="font-weight: bold; font-size: 14px;">Rekapitulasi Pengiriman Tugas Peserta PartnerUp 2026 (35 Usaha)</div>
+<body class="bg-slate-100 py-6 text-slate-800">
+  <div class="max-w-[210mm] mx-auto bg-white p-8 shadow-xl print:shadow-none print:p-0">
+    <div class="no-print mb-6 flex justify-between items-center bg-blue-50 p-4 rounded-xl border border-blue-200">
+      <div>
+        <h2 class="text-sm font-bold text-blue-900">Dokumen Rekapitulasi Resmi Peserta Masuk (36 Peserta)</h2>
+        <p class="text-xs text-blue-700">Bersih dari soal & jawaban bisnis. Siap dicetak atau disimpan ke PDF.</p>
+      </div>
+      <button onclick="window.print()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-md cursor-pointer">
+        🖨️ Cetak / Simpan sebagai PDF
+      </button>
     </div>
-    <button class="btn-print" onclick="window.print()">
-      🖨️ Cetak / Simpan sebagai PDF
-    </button>
-  </div>
 
-  <div class="header-bar">
-    <div>
-      <div class="title-sub">GEKRAFS KOTA BATU • DPC GERAKAN EKONOMI KREATIF NASIONAL</div>
-      <h1 class="main-title">REKAPITULASI PENGIRIMAN TUGAS PARTNERUP</h1>
-      <p class="desc">Program Inkubasi & Akselerasi Bisnis UMKM Kreatif Kota Batu • Sesi 2</p>
+    <!-- KOP RESMI -->
+    <div class="border-b-2 border-slate-900 pb-3 mb-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-14 h-14 bg-white p-1 flex items-center justify-center">
+          <img src="/logo.svg" alt="Gekrafs" class="w-full h-full object-contain" />
+        </div>
+        <div>
+          <div class="text-[10px] font-black uppercase tracking-wider text-amber-700">DPD GEKRAFS JAWA TIMUR &bull; DPC KOTA BATU</div>
+          <h1 class="text-base font-black text-[#001c3c] leading-tight">GEKRAFS PARTNERUP 2026 KOTA BATU</h1>
+          <p class="text-[10px] text-slate-600">Sekretariat: Kota Wisata Batu, Jawa Timur &bull; Email: gekrafs.kotabatu@gmail.com</p>
+        </div>
+      </div>
+      <div class="text-right">
+        <div class="text-[11px] font-extrabold text-[#001c3c]">DOKUMEN RESMI KURATOR</div>
+        <div class="text-[9px] text-slate-500">Tgl Cetak: 5 Oktober 2026</div>
+      </div>
     </div>
-    <div class="meta-box">
-      <div style="color: #64748b;">Tanggal Rekap:</div>
-      <div style="font-weight: bold; font-family: monospace;">5 Oktober 2026</div>
-      <div class="badge">✓ 35 Peserta Terdata</div>
+
+    <div class="text-center my-4">
+      <h2 class="text-sm font-black text-slate-900 uppercase tracking-wide">REKAPITULASI RESMI PESERTA PENGIRIM LEMBAR AKSI STRATEGIS</h2>
+      <p class="text-[11px] text-slate-600 mt-0.5">Program Inkubasi & Akselerasi Bisnis Ekraf PartnerUp Sesi 2 &bull; Total Masuk: <strong>36 Peserta</strong></p>
+    </div>
+
+    <table class="w-full border-collapse border border-slate-300 text-xs mt-3">
+      <thead>
+        <tr class="bg-slate-100 text-slate-800 text-[11px]">
+          <th class="border border-slate-300 p-1.5 w-8 text-center">No</th>
+          <th class="border border-slate-300 p-1.5 text-left">Nama Usaha / Brand</th>
+          <th class="border border-slate-300 p-1.5 text-left">Nama Pemilik</th>
+          <th class="border border-slate-300 p-1.5 text-left">No. WhatsApp</th>
+          <th class="border border-slate-300 p-1.5 text-left">Subsektor</th>
+          <th class="border border-slate-300 p-1.5 text-center">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td class="text-center font-bold text-slate-500">1</td>
+          <td class="font-bold text-slate-900">Sidoasri kopi</td>
+          <td class="text-slate-700">Alvitalia Kusumaningsih</td>
+          <td class="font-mono text-xs text-slate-800">081336612673</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Kuliner</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">2</td>
+          <td class="font-bold text-slate-900">obeecreatives</td>
+          <td class="text-slate-700">Lalu Mahendra Ali Akbar</td>
+          <td class="font-mono text-xs text-slate-800">081335125277</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Fotografi</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">3</td>
+          <td class="font-bold text-slate-900">Janus Cafe</td>
+          <td class="text-slate-700">Yauar Baihaqi</td>
+          <td class="font-mono text-xs text-slate-800">085895807020</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Kuliner</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">4</td>
+          <td class="font-bold text-slate-900">Cleopatra</td>
+          <td class="text-slate-700">Erna Eriana</td>
+          <td class="font-mono text-xs text-slate-800">081252513996</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Lainnya</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">5</td>
+          <td class="font-bold text-slate-900">Linara Craft</td>
+          <td class="text-slate-700">Lilis Suryani</td>
+          <td class="font-mono text-xs text-slate-800">085257324459</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Kriya / Kerajinan</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">6</td>
+          <td class="font-bold text-slate-900">De Rivi</td>
+          <td class="text-slate-700">Devi Fortuna Ambar Wati</td>
+          <td class="font-mono text-xs text-slate-800">081216104768</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Lainnya</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">7</td>
+          <td class="font-bold text-slate-900">The Apsara</td>
+          <td class="text-slate-700">Ciciek Kemalasari</td>
+          <td class="font-mono text-xs text-slate-800">085313855181</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Fashion</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">8</td>
+          <td class="font-bold text-slate-900">Creative Kokedama</td>
+          <td class="text-slate-700">Dwi Lili Indayani</td>
+          <td class="font-mono text-xs text-slate-800">081230493939</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Kriya / Kerajinan</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">9</td>
+          <td class="font-bold text-slate-900">Chloe Crochet</td>
+          <td class="text-slate-700">Gracyana Gitta</td>
+          <td class="font-mono text-xs text-slate-800">085117470414</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Kriya / Kerajinan</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">10</td>
+          <td class="font-bold text-slate-900">Kopi Kedungroso</td>
+          <td class="text-slate-700">Sumiarsih</td>
+          <td class="font-mono text-xs text-slate-800">085755034299</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Kuliner</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">11</td>
+          <td class="font-bold text-slate-900">Batu Camping</td>
+          <td class="text-slate-700">Devi Aristiningtias</td>
+          <td class="font-mono text-xs text-slate-800">085791566286</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Lainnya</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">12</td>
+          <td class="font-bold text-slate-900">Kriups!</td>
+          <td class="text-slate-700">Dwi Lili Indayani</td>
+          <td class="font-mono text-xs text-slate-800">08982229600</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Lainnya</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">13</td>
+          <td class="font-bold text-slate-900">Janeetaqu</td>
+          <td class="text-slate-700">Ernawati</td>
+          <td class="font-mono text-xs text-slate-800">085755557908</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Kriya / Kerajinan</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">14</td>
+          <td class="font-bold text-slate-900">Inday Kueku</td>
+          <td class="text-slate-700">Elok Bakti Pratiwi</td>
+          <td class="font-mono text-xs text-slate-800">082333118190</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Kuliner</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">15</td>
+          <td class="font-bold text-slate-900">Itravel Malang</td>
+          <td class="text-slate-700">Rika Kartika</td>
+          <td class="font-mono text-xs text-slate-800">08133338269</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Lainnya</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">16</td>
+          <td class="font-bold text-slate-900">Pixora</td>
+          <td class="text-slate-700">Leo Setiyawan</td>
+          <td class="font-mono text-xs text-slate-800">085646714314</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Desain Grafis / Komunikasi Visual</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">17</td>
+          <td class="font-bold text-slate-900">Yoghurt Kisnamilk</td>
+          <td class="text-slate-700">Putri</td>
+          <td class="font-mono text-xs text-slate-800">081357914024</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Kuliner</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">18</td>
+          <td class="font-bold text-slate-900">Party Utara</td>
+          <td class="text-slate-700">Rizkyta Bintang</td>
+          <td class="font-mono text-xs text-slate-800">081333187243</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Kriya / Kerajinan</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">19</td>
+          <td class="font-bold text-slate-900">Kenayu</td>
+          <td class="text-slate-700">Hesti Wiluejeng</td>
+          <td class="font-mono text-xs text-slate-800">081233715875</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Kuliner</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">20</td>
+          <td class="font-bold text-slate-900">Mau Grill</td>
+          <td class="text-slate-700">Sela Aliyansi Meilita</td>
+          <td class="font-mono text-xs text-slate-800">081232456859</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Lainnya</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">21</td>
+          <td class="font-bold text-slate-900">Fida Accessories</td>
+          <td class="text-slate-700">Wahida Haeraty</td>
+          <td class="font-mono text-xs text-slate-800">081253426280</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Kriya / Kerajinan</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">22</td>
+          <td class="font-bold text-slate-900">Nickamakeupstudio</td>
+          <td class="text-slate-700">Nikka Savitri</td>
+          <td class="font-mono text-xs text-slate-800">085749468931</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Lainnya</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">23</td>
+          <td class="font-bold text-slate-900">Cinematosh Presenter Indonesia</td>
+          <td class="text-slate-700">Sugoy Suhendra & Diana Dwi Novita</td>
+          <td class="font-mono text-xs text-slate-800">081334484106</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Film, Animasi & Video</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">24</td>
+          <td class="font-bold text-slate-900">Moofbride</td>
+          <td class="text-slate-700">Lukluul Mukaromah</td>
+          <td class="font-mono text-xs text-slate-800">08973097633</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Fashion</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">25</td>
+          <td class="font-bold text-slate-900">Tresnaning Karyo</td>
+          <td class="text-slate-700">Ridha Hartatik</td>
+          <td class="font-mono text-xs text-slate-800">081334198519</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Kriya / Kerajinan</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">26</td>
+          <td class="font-bold text-slate-900">Happy Food</td>
+          <td class="text-slate-700">Happy Izvestya Andhini</td>
+          <td class="font-mono text-xs text-slate-800">081564899723</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Kuliner</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">27</td>
+          <td class="font-bold text-slate-900">Lwegitcake</td>
+          <td class="text-slate-700">Voni Arianti</td>
+          <td class="font-mono text-xs text-slate-800">081236692449</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Kuliner</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">28</td>
+          <td class="font-bold text-slate-900">Salty Tasty By Azr Kitchen</td>
+          <td class="text-slate-700">Anggun Sinta Maretasari</td>
+          <td class="font-mono text-xs text-slate-800">081392085321</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Kuliner</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">29</td>
+          <td class="font-bold text-slate-900">Petite Plates</td>
+          <td class="text-slate-700">Lana Winda</td>
+          <td class="font-mono text-xs text-slate-800">082229029992</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Kuliner</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">30</td>
+          <td class="font-bold text-slate-900">Binka Shop</td>
+          <td class="text-slate-700">Sri Astuti</td>
+          <td class="font-mono text-xs text-slate-800">081249674137</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Kriya / Kerajinan</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">31</td>
+          <td class="font-bold text-slate-900">Galery Kepon</td>
+          <td class="text-slate-700">Indrayanti Alfa Sulaiman</td>
+          <td class="font-mono text-xs text-slate-800">081615641044</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Kriya / Kerajinan</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">32</td>
+          <td class="font-bold text-slate-900">Pentol Juara Ngalam</td>
+          <td class="text-slate-700">Pemilik Usaha</td>
+          <td class="font-mono text-xs text-slate-800">087808091991</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Kuliner</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">33</td>
+          <td class="font-bold text-slate-900">Pastlove</td>
+          <td class="text-slate-700">Dya Anggraeni</td>
+          <td class="font-mono text-xs text-slate-800">081334503518</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Kuliner</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">34</td>
+          <td class="font-bold text-slate-900">Sawetu</td>
+          <td class="text-slate-700">Pemilik Usaha</td>
+          <td class="font-mono text-xs text-slate-800">081252622176</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Kuliner</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">35</td>
+          <td class="font-bold text-slate-900">Arsyelly 19collection</td>
+          <td class="text-slate-700">Marlina Sari</td>
+          <td class="font-mono text-xs text-slate-800">081517643083</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Kriya / Kerajinan</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+        <tr>
+          <td class="text-center font-bold text-slate-500">36</td>
+          <td class="font-bold text-slate-900">Inovasi Pangan Lestari</td>
+          <td class="text-slate-700">Abdullah Dzikri</td>
+          <td class="font-mono text-xs text-slate-800">082257449290</td>
+          <td><span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">Kuliner</span></td>
+          <td class="text-center font-bold text-emerald-700 text-xs">✓ Terkirim</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Tanda Tangan -->
+    <div class="mt-8 pt-4 flex justify-between items-start text-xs border-t border-slate-200">
+      <div class="text-slate-500 text-[10px]">
+        <div>Lembar Rekapitulasi Peserta Resmi GEKRAFS Kota Batu</div>
+        <div>Dokumen sah panitia pelaksana.</div>
+      </div>
+      <div class="text-right">
+        <div>Kota Batu, 5 Oktober 2026</div>
+        <div class="font-bold text-slate-800 mt-1">Koordinator Tim Kurator,</div>
+        <div class="h-12"></div>
+        <div class="font-black text-[#001c3c] underline">Tim Kurator Gekrafs PartnerUp</div>
+        <div class="text-[10px] text-slate-600">DPC Gekrafs Kota Batu</div>
+      </div>
     </div>
   </div>
-
-  <div class="notice">
-    <strong>Catatan Panitia:</strong> Dokumen ini khusus memuat rekapitulasi identitas peserta (nama usaha, nama pemilik, dan nomor WhatsApp) yang berkas lembar aksi tugasnya telah resmi tersimpan di Google Spreadsheet. Soal dan lembar jawaban strategi disimpan aman pada arsip kurasi internal.
-  </div>
-
-  <table>
-    <thead>
-      <tr>
-        <th style="width: 35px; text-align: center;">No</th>
-        <th>Nama Usaha / Brand</th>
-        <th>Nama Pemilik</th>
-        <th>Nomor WhatsApp</th>
-        <th>Subsektor</th>
-        <th style="width: 80px; text-align: center;">Status</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">1</td>
-        <td style="font-weight: bold; color: #001c3c;">Sidoasri kopi</td>
-        <td>Alvitalia Kusumaningsih</td>
-        <td style="font-family: monospace; font-weight: 600;">081336612673</td>
-        <td>Kuliner</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">2</td>
-        <td style="font-weight: bold; color: #001c3c;">obeecreatives</td>
-        <td>Lalu Mahendra</td>
-        <td style="font-family: monospace; font-weight: 600;">081252622176</td>
-        <td>Kuliner</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">3</td>
-        <td style="font-weight: bold; color: #001c3c;">Janus Cafe</td>
-        <td>Yauar Baihaqi</td>
-        <td style="font-family: monospace; font-weight: 600;">085895807020</td>
-        <td>Kuliner</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">4</td>
-        <td style="font-weight: bold; color: #001c3c;">Cleopatra</td>
-        <td>Erna Eriana</td>
-        <td style="font-family: monospace; font-weight: 600;">081252513996</td>
-        <td>Lainnya</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">5</td>
-        <td style="font-weight: bold; color: #001c3c;">Linara Craft</td>
-        <td>Lilis Suryani</td>
-        <td style="font-family: monospace; font-weight: 600;">085257324459</td>
-        <td>Kriya / Kerajinan</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">6</td>
-        <td style="font-weight: bold; color: #001c3c;">De Rivi</td>
-        <td>Devi Fortuna Ambar Wati</td>
-        <td style="font-family: monospace; font-weight: 600;">081216104768</td>
-        <td>Lainnya</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">7</td>
-        <td style="font-weight: bold; color: #001c3c;">The Apsara</td>
-        <td>Ciciek Kemalasari</td>
-        <td style="font-family: monospace; font-weight: 600;">085313855181</td>
-        <td>Fashion</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">8</td>
-        <td style="font-weight: bold; color: #001c3c;">Creative Kokedama</td>
-        <td>Dwi Lili Indayani</td>
-        <td style="font-family: monospace; font-weight: 600;">081230493939</td>
-        <td>Kriya / Kerajinan</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">9</td>
-        <td style="font-weight: bold; color: #001c3c;">Chloe Crochet</td>
-        <td>Gracyana Gitta</td>
-        <td style="font-family: monospace; font-weight: 600;">085117470414</td>
-        <td>Kriya / Kerajinan</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">10</td>
-        <td style="font-weight: bold; color: #001c3c;">Kopi Kedungroso</td>
-        <td>Sumiarsih</td>
-        <td style="font-family: monospace; font-weight: 600;">085755034299</td>
-        <td>Kuliner</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">11</td>
-        <td style="font-weight: bold; color: #001c3c;">Batu Camping</td>
-        <td>Devi Aristiningtias</td>
-        <td style="font-family: monospace; font-weight: 600;">085791566286</td>
-        <td>Lainnya</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">12</td>
-        <td style="font-weight: bold; color: #001c3c;">Kriups!</td>
-        <td>Dwi Lili Indayani</td>
-        <td style="font-family: monospace; font-weight: 600;">08982229600</td>
-        <td>Lainnya</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">13</td>
-        <td style="font-weight: bold; color: #001c3c;">Janeetaqu</td>
-        <td>Ernawati</td>
-        <td style="font-family: monospace; font-weight: 600;">085755557908</td>
-        <td>Kriya / Kerajinan</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">14</td>
-        <td style="font-weight: bold; color: #001c3c;">Inday Kueku</td>
-        <td>Elok Bakti Pratiwi</td>
-        <td style="font-family: monospace; font-weight: 600;">082333118190</td>
-        <td>Kuliner</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">15</td>
-        <td style="font-weight: bold; color: #001c3c;">Itravel Malang</td>
-        <td>Rika Kartika</td>
-        <td style="font-family: monospace; font-weight: 600;">08133338269</td>
-        <td>Lainnya</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">16</td>
-        <td style="font-weight: bold; color: #001c3c;">Pixora</td>
-        <td>Leo Setiyawan</td>
-        <td style="font-family: monospace; font-weight: 600;">085646714314</td>
-        <td>Desain Grafis / Komunikasi Visual</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">17</td>
-        <td style="font-weight: bold; color: #001c3c;">Yoghurt Kisnamilk</td>
-        <td>Putri</td>
-        <td style="font-family: monospace; font-weight: 600;">081357914024</td>
-        <td>Kuliner</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">18</td>
-        <td style="font-weight: bold; color: #001c3c;">Party Utara</td>
-        <td>Rizkyta Bintang</td>
-        <td style="font-family: monospace; font-weight: 600;">081333187243</td>
-        <td>Kriya / Kerajinan</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">19</td>
-        <td style="font-weight: bold; color: #001c3c;">Kenayu</td>
-        <td>Hesti Wiluejeng</td>
-        <td style="font-family: monospace; font-weight: 600;">081233715875</td>
-        <td>Kuliner</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">20</td>
-        <td style="font-weight: bold; color: #001c3c;">Mau Grill</td>
-        <td>Sela Aliyansi Meilita</td>
-        <td style="font-family: monospace; font-weight: 600;">081232456859</td>
-        <td>Lainnya</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">21</td>
-        <td style="font-weight: bold; color: #001c3c;">Fida Accessories</td>
-        <td>Wahida Haeraty</td>
-        <td style="font-family: monospace; font-weight: 600;">081253426280</td>
-        <td>Kriya / Kerajinan</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">22</td>
-        <td style="font-weight: bold; color: #001c3c;">Nickamakeupstudio</td>
-        <td>Nikka Savitri</td>
-        <td style="font-family: monospace; font-weight: 600;">085749468931</td>
-        <td>Lainnya</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">23</td>
-        <td style="font-weight: bold; color: #001c3c;">Cinematosh Presenter Indonesia</td>
-        <td>Sugoy Suhendra & Diana Dwi Novita</td>
-        <td style="font-family: monospace; font-weight: 600;">081334484106</td>
-        <td>Film, Animasi & Video</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">24</td>
-        <td style="font-weight: bold; color: #001c3c;">Moofbride</td>
-        <td>Lukluul Mukaromah</td>
-        <td style="font-family: monospace; font-weight: 600;">08973097633</td>
-        <td>Fashion</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">25</td>
-        <td style="font-weight: bold; color: #001c3c;">Tresnaning Karyo</td>
-        <td>Ridha Hartatik</td>
-        <td style="font-family: monospace; font-weight: 600;">081334198519</td>
-        <td>Kriya / Kerajinan</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">26</td>
-        <td style="font-weight: bold; color: #001c3c;">Happy Food</td>
-        <td>Happy Izvestya Andhini</td>
-        <td style="font-family: monospace; font-weight: 600;">081564899723</td>
-        <td>Kuliner</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">27</td>
-        <td style="font-weight: bold; color: #001c3c;">Lwegitcake</td>
-        <td>Voni Arianti</td>
-        <td style="font-family: monospace; font-weight: 600;">081236692449</td>
-        <td>Kuliner</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">28</td>
-        <td style="font-weight: bold; color: #001c3c;">Salty Tasty By Azr Kitchen</td>
-        <td>Anggun Sinta Maretasari</td>
-        <td style="font-family: monospace; font-weight: 600;">081392085321</td>
-        <td>Kuliner</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">29</td>
-        <td style="font-weight: bold; color: #001c3c;">Petite Plates</td>
-        <td>Lana Winda</td>
-        <td style="font-family: monospace; font-weight: 600;">082229029992</td>
-        <td>Kuliner</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">30</td>
-        <td style="font-weight: bold; color: #001c3c;">Binka Shop</td>
-        <td>Sri Astuti</td>
-        <td style="font-family: monospace; font-weight: 600;">081249674137</td>
-        <td>Kriya / Kerajinan</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">31</td>
-        <td style="font-weight: bold; color: #001c3c;">Galery Kepon</td>
-        <td>Indrayanti Alfa Sulaiman</td>
-        <td style="font-family: monospace; font-weight: 600;">081615641044</td>
-        <td>Kriya / Kerajinan</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">32</td>
-        <td style="font-weight: bold; color: #001c3c;">Pentol Juara Ngalam</td>
-        <td>Pemilik Usaha</td>
-        <td style="font-family: monospace; font-weight: 600;">087808091991</td>
-        <td>Kuliner</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">33</td>
-        <td style="font-weight: bold; color: #001c3c;">Pastlove</td>
-        <td>Dya Anggraeni</td>
-        <td style="font-family: monospace; font-weight: 600;">081334503518</td>
-        <td>Kuliner</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">34</td>
-        <td style="font-weight: bold; color: #001c3c;">Sawetu</td>
-        <td>Pemilik Usaha</td>
-        <td style="font-family: monospace; font-weight: 600;">081252622176</td>
-        <td>Kuliner</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-<tr>
-        <td style="text-align: center; font-weight: bold; font-family: monospace;">35</td>
-        <td style="font-weight: bold; color: #001c3c;">Arsyelly 19collection</td>
-        <td>Marlina Sari</td>
-        <td style="font-family: monospace; font-weight: 600;">081517643083</td>
-        <td>Kriya / Kerajinan</td>
-        <td style="text-align: center;"><span style="background: #e6fcf5; color: #087f5b; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">Terkirim</span></td>
-      </tr>
-
-    </tbody>
-  </table>
-
-  <div class="footer-signatures">
-    <div class="sig-box">
-      <div>Mengetahui,</div>
-      <div style="color: #64748b; font-size: 10px;">Ketua DPC Gekrafs Kota Batu</div>
-      <div class="sig-line">Panitia PartnerUp 2026</div>
-    </div>
-    <div class="sig-box" style="text-align: right;">
-      <div>Diverifikasi Oleh,</div>
-      <div style="color: #64748b; font-size: 10px;">Tim Kurator & Rekap Data</div>
-      <div class="sig-line">Admin PartnerUp Sesi 2</div>
-    </div>
-  </div>
-
-  <div class="system-footer">
-    <span>Gekrafs PartnerUp 2026 • Sumber Data Tunggal: Google Spreadsheet (Gekraf_PartnerUp#2)</span>
-    <span>Dokumen Resmi Rekapitulasi Internal</span>
-  </div>
-
 </body>
 </html>

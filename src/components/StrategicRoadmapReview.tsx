@@ -98,6 +98,11 @@ export const StrategicRoadmapReview: React.FC<StrategicRoadmapReviewProps> = ({
 
   React.useEffect(() => {
     refreshTasks();
+    // Otomatis tarik data tugas terbaru dari Google Sheets saat kurator membuka halaman
+    taskService.pullTasksFromRemote().then(() => {
+      refreshTasks();
+    });
+
     const handleUpdate = () => refreshTasks();
     window.addEventListener('gkf-tasks-updated', handleUpdate);
     return () => window.removeEventListener('gkf-tasks-updated', handleUpdate);

@@ -114,6 +114,7 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
   const [reviewedBy, setReviewedBy] = useState<string>('');
   const [lastSaved, setLastSaved] = useState<string>('');
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Tanda Terima & Notifikasi WhatsApp Otomatis
   const [submissionReceipt, setSubmissionReceipt] = useState<{
@@ -298,7 +299,7 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const usaha = (selectedNamaUsaha || pesertaSession?.namaUsaha || '').trim();
@@ -336,8 +337,9 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
       return;
     }
 
+    setIsSubmitting(true);
     try {
-      const submitted = taskService.submitTask({
+      const submitted = await taskService.submitTaskAsync({
         id: currentTaskId || undefined,
         namaUsaha: usaha,
         namaPemilik: namaPemilik || pesertaSession?.namaPemilik || 'Founder',
@@ -411,6 +413,8 @@ Salam hangat,
         type: 'error', 
         message: 'Gagal mengirimkan tugas: ' + (err.message || 'Terjadi kendala.') 
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -1054,11 +1058,14 @@ Salam hangat,
 
                 <button
                   type="submit"
-                  className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-[#001c3c] text-xs font-black shadow-md transition-all active:scale-95 cursor-pointer"
+                  disabled={isSubmitting}
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-[#001c3c] text-xs font-black shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <Send className="w-4 h-4 text-[#001c3c]" />
+                  <Send className={`w-4 h-4 text-[#001c3c] ${isSubmitting ? 'animate-bounce' : ''}`} />
                   <span>
-                    {currentStatus === 'submitted'
+                    {isSubmitting
+                      ? 'Menyimpan & Mengirimkan...'
+                      : currentStatus === 'submitted'
                       ? 'Perbarui Tugas Terkirim'
                       : currentStatus === 'revision'
                       ? 'Kirim Ulang Revisi'
