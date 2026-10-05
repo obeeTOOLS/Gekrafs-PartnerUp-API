@@ -28,6 +28,7 @@ import { taskService } from '../services/taskService';
 import { HEADLESS_GAS_CODE } from '../services/headlessGasCode';
 import { getAiRoadmapReview, AiReviewResult } from '../services/aiReviewService';
 import { StrategicCanvasTask } from '../types';
+import { RekapPesertaTugasPdfModal } from './RekapPesertaTugasPdfModal';
 
 interface StrategicRoadmapReviewProps {
   reviewerName?: string;
@@ -44,6 +45,7 @@ export const StrategicRoadmapReview: React.FC<StrategicRoadmapReviewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedTask, setSelectedTask] = useState<StrategicCanvasTask | null>(null);
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
 
   // Review Modal state
   const [reviewScore, setReviewScore] = useState<number>(85);
@@ -195,6 +197,16 @@ export const StrategicRoadmapReview: React.FC<StrategicRoadmapReviewProps> = ({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsPdfModalOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-[#001c3c] text-xs font-black transition-all cursor-pointer whitespace-nowrap shadow-xs"
+            title="Buka Dokumen PDF Rekapitulasi Peserta Masuk"
+          >
+            <Printer className="w-3.5 h-3.5" />
+            <span>📄 Rekap PDF Peserta</span>
+          </button>
+
           <button
             type="button"
             onClick={handleCopyFullCode}
@@ -758,6 +770,13 @@ export const StrategicRoadmapReview: React.FC<StrategicRoadmapReviewProps> = ({
           </div>
         </div>
       )}
+
+      {/* MODAL REKAPITULASI RESMI PESERTA PENGIRIM TUGAS (PDF) */}
+      <RekapPesertaTugasPdfModal
+        isOpen={isPdfModalOpen}
+        onClose={() => setIsPdfModalOpen(false)}
+        tasks={tasks}
+      />
     </div>
   );
 };
