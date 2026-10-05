@@ -1921,6 +1921,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <StrategicRoadmapReview 
             reviewerName={activeAdminProfile?.nama || 'Tim Kurator Gekrafs'} 
             onOpenQuestionEditor={() => setActiveTab('kelola_soal')}
+            userRole={userRole}
+            isDeveloper={userRole === 'developer' || !!engineerSession}
           />
         </div>
       )}
