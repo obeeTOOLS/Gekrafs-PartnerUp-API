@@ -175,6 +175,12 @@ function doPost(e) {
       case 'checkinKehadiran':
         return createJsonResponse(checkinKehadiran(payload.idSesi, payload.namaUsaha, payload.whatsapp));
 
+      case 'initSheetKehadiran':
+        return createJsonResponse({ status: 'success', message: inisialisasiSheetKehadiran() });
+
+      case 'initAllSheets':
+        return createJsonResponse({ status: 'success', message: inisialisasiSemuaTab() });
+
       case 'saveKehadiranManual':
         return createJsonResponse(saveKehadiranManual(payload.idSesi, payload.namaUsaha));
 
@@ -256,6 +262,70 @@ function doPost(e) {
 // ============================================================
 // MODUL KEHADIRAN (DENGAN PENGECEKAN DUPLIKASI KETAT)
 // ============================================================
+
+/**
+ * FUNGSI LANGSUNG RUN DI GOOGLE APPS SCRIPT:
+ * Pilih fungsi 'inisialisasiSheetKehadiran' di toolbar atas Apps Script
+ * lalu klik 'Jalankan / Run' (▶️) untuk langsung membuat tab 'Kehadiran' beserta Header.
+ */
+function inisialisasiSheetKehadiran() {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_KEHADIRAN);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_KEHADIRAN);
+    Logger.log('Tab "' + SHEET_KEHADIRAN + '" baru berhasil dibuat.');
+  }
+
+  const headers = [
+    'Timestamp', 
+    'ID Sesi', 
+    'Tanggal Sesi', 
+    'Topik Sesi', 
+    'Nama Usaha', 
+    'Nomor WhatsApp', 
+    'Sesi PartnerUp', 
+    'Metode'
+  ];
+
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(headers);
+    const headerRange = sheet.getRange(1, 1, 1, headers.length);
+    headerRange.setFontWeight('bold');
+    headerRange.setBackground('#001c3c');
+    headerRange.setFontColor('#ffffff');
+    sheet.setFrozenRows(1);
+    Logger.log('Header tab Kehadiran berhasil ditambahkan dan diformat rapi.');
+  }
+
+  return '✅ Tab "' + SHEET_KEHADIRAN + '" siap digunakan di Google Spreadsheet!';
+}
+
+/**
+ * Inisialisasi Seluruh Tab Sekaligus (Kehadiran & Tugas)
+ */
+function inisialisasiSemuaTab() {
+  inisialisasiSheetKehadiran();
+
+  const ss = getSpreadsheet();
+  let tugasSheet = ss.getSheetByName(SHEET_TUGAS);
+  if (!tugasSheet) {
+    tugasSheet = ss.insertSheet(SHEET_TUGAS);
+    tugasSheet.appendRow([
+      'Timestamp', 'ID Tugas', 'Nama Usaha', 'Nama Pemilik', 'Nomor WhatsApp',
+      'Subsektor', 'Sesi PartnerUp', 'Status Tugas', 'Nilai', 'Catatan Kurator',
+      'Visi', 'Misi', 'Goal', 'Objective', 'Nilai Usaha', 'Keahlian Organisasi',
+      'Matriks Problem Solving', 'Matriks Incremental', 'Matriks Breakthrough', 'Full JSON Payload'
+    ]);
+    const hr = tugasSheet.getRange(1, 1, 1, 20);
+    hr.setFontWeight('bold');
+    hr.setBackground('#001c3c');
+    hr.setFontColor('#ffffff');
+    tugasSheet.setFrozenRows(1);
+    Logger.log('Tab "' + SHEET_TUGAS + '" berhasil dibuat.');
+  }
+
+  return '✅ Seluruh tab database (Kehadiran & Tugas) berhasil disiapkan!';
+}
 
 function checkinKehadiran(idSesi, namaUsaha, whatsapp) {
   if (!idSesi || !namaUsaha) {

@@ -797,15 +797,24 @@ export const DeveloperTools: React.FC = () => {
           </pre>
         </div>
 
-        <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-700 leading-relaxed">
-          <strong className="text-slate-900">Petunjuk Deployment Headless:</strong>
-          <ol className="list-decimal list-inside mt-1.5 space-y-1 text-slate-600">
-            <li>Buka project Google Apps Script Anda di <code>script.google.com</code></li>
-            <li>Ganti isi file <code>Code.gs</code> dengan kode di atas</li>
-            <li>Klik <strong>Deploy &rarr; Manage deployments &rarr; Edit &rarr; New version &rarr; Deploy</strong></li>
-            <li>Pastikan akses diatur <strong>"Who has access: Anyone"</strong></li>
-            <li>Salin URL <code>/exec</code> ke input di atas. Data akan langsung tersinkron secara headless tanpa banner Google!</li>
-          </ol>
+        <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-700 leading-relaxed space-y-2">
+          <div>
+            <strong className="text-slate-900">Petunjuk Deployment Headless:</strong>
+            <ol className="list-decimal list-inside mt-1.5 space-y-1 text-slate-600">
+              <li>Buka project Google Apps Script Anda di <code>script.google.com</code></li>
+              <li>Ganti isi file <code>Code.gs</code> dengan kode di atas</li>
+              <li>Klik <strong>Deploy &rarr; Manage deployments &rarr; Edit &rarr; New version &rarr; Deploy</strong></li>
+              <li>Pastikan akses diatur <strong>"Who has access: Anyone"</strong></li>
+              <li>Salin URL <code>/exec</code> ke input di atas. Data akan langsung tersinkron secara headless tanpa banner Google!</li>
+            </ol>
+          </div>
+
+          <div className="pt-2 border-t border-slate-200">
+            <strong className="text-emerald-800">💡 Cara Membentuk Tab 'Kehadiran' & 'Tugas' Seketika:</strong>
+            <p className="mt-1 text-slate-600">
+              Setelah menempelkan kode ke <code>Code.gs</code>, Anda tidak perlu menunggu ada absensi masuk. Cukup pilih fungsi <code className="bg-slate-200 text-slate-900 px-1 py-0.5 rounded font-mono font-bold">inisialisasiSheetKehadiran</code> atau <code className="bg-slate-200 text-slate-900 px-1 py-0.5 rounded font-mono font-bold">inisialisasiSemuaTab</code> pada dropdown di toolbar atas editor Apps Script, lalu klik tombol <strong>Run (Jalankan ▶️)</strong>. Tab baru beserta header lengkap akan langsung tercipta di Google Spreadsheet Anda!
+            </p>
+          </div>
         </div>
       </div>
 
