@@ -326,6 +326,16 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
       return;
     }
 
+    // PENGAMANAN ANTI-DUPLIKASI & INTEGRITAS:
+    // Jika tugas sudah disetujui & dinilai kurator, tolak pengiriman baru oleh peserta
+    if (currentStatus === 'reviewed' && !isPrivilegedAdmin) {
+      setNotification({
+        type: 'error',
+        message: `🔒 Lembar kerja usaha ini sudah dinilai oleh Kurator (Skor: ${nilai}/100). Pengiriman baru ditolak untuk menjaga integritas penilaian.`
+      });
+      return;
+    }
+
     try {
       const submitted = taskService.submitTask({
         id: currentTaskId || undefined,
@@ -1026,22 +1036,37 @@ Salam hangat,
           </div>
 
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            <button
-              type="button"
-              onClick={handleSaveDraft}
-              className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all active:scale-95 cursor-pointer"
-            >
-              <Save className="w-4 h-4 text-slate-500" />
-              <span>Simpan Draf</span>
-            </button>
+            {currentStatus === 'reviewed' && !isPrivilegedAdmin ? (
+              <div className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold">
+                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Tugas Selesai Dinilai ({nilai}/100) • Data Terkunci</span>
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={handleSaveDraft}
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all active:scale-95 cursor-pointer"
+                >
+                  <Save className="w-4 h-4 text-slate-500" />
+                  <span>Simpan Draf</span>
+                </button>
 
-            <button
-              type="submit"
-              className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-[#001c3c] text-xs font-black shadow-md transition-all active:scale-95 cursor-pointer"
-            >
-              <Send className="w-4 h-4 text-[#001c3c]" />
-              <span>Kirim ke Kurator</span>
-            </button>
+                <button
+                  type="submit"
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-[#001c3c] text-xs font-black shadow-md transition-all active:scale-95 cursor-pointer"
+                >
+                  <Send className="w-4 h-4 text-[#001c3c]" />
+                  <span>
+                    {currentStatus === 'submitted'
+                      ? 'Perbarui Tugas Terkirim'
+                      : currentStatus === 'revision'
+                      ? 'Kirim Ulang Revisi'
+                      : 'Kirim ke Kurator'}
+                  </span>
+                </button>
+              </>
+            )}
           </div>
         </div>
       </form>
