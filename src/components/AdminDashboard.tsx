@@ -785,17 +785,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
           <h1 className="text-lg sm:text-2xl font-black mt-1">Dashboard Kurator & Pimpinan</h1>
           <p className="text-[11px] sm:text-xs text-slate-300 mt-0.5">
-            Sesi Aktif: <strong className="text-white">{settingsForm.sesiAktif}</strong>
-            {userRole === 'developer' && (
-              <span> &middot; Data langsung tersambung ke Google Spreadsheet</span>
-            )}
+            Sesi Aktif: <strong className="text-white">{settingsForm.sesiAktif}</strong> &middot; Data langsung tersambung ke Google Spreadsheet
           </p>
-          {userRole === 'developer' && engineerSession && (
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-200 border border-purple-400/30 text-[11px] mt-1.5 font-medium">
-              <Terminal className="w-3 h-3 text-amber-300 flex-shrink-0" />
-              <span>Akses Penuh: <strong className="text-white">{engineerSession.name}</strong> ({engineerSession.email}) &middot; {engineerSession.title}</span>
-            </div>
-          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
