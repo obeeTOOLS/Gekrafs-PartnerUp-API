@@ -76,6 +76,7 @@ import {
 import { StrategicRoadmapReview } from './StrategicRoadmapReview';
 import { TaskQuestionEditor } from './TaskQuestionEditor';
 import { taskService } from '../services/taskService';
+import { HEADLESS_GAS_CODE } from '../services/headlessGasCode';
 
 import { 
   EngineerSession, 
@@ -242,6 +243,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Notifications
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [copiedCodeGs, setCopiedCodeGs] = useState(false);
+
+  const handleCopyCodeGs = () => {
+    navigator.clipboard.writeText(HEADLESS_GAS_CODE);
+    setCopiedCodeGs(true);
+    showToast('✅ Seluruh kode "Code.gs" versi utuh berhasil disalin ke clipboard!');
+    setTimeout(() => setCopiedCodeGs(false), 3000);
+  };
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -2058,6 +2067,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 )}
               </>
             )}
+
+            {/* CARD BACKEND GOOGLE APPS SCRIPT (CODE.GS) VERSI UTUH */}
+            <div className="bg-gradient-to-r from-purple-50 via-indigo-50/40 to-slate-50 border border-purple-200 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Terminal className="w-4 h-4 text-purple-700" />
+                  <span className="text-xs font-black text-purple-900 uppercase tracking-wider">
+                    Backend Google Apps Script (REST / JSON API)
+                  </span>
+                  <span className="text-[10px] bg-purple-100 text-purple-800 font-mono font-bold px-2 py-0.5 rounded-full border border-purple-200">
+                    Versi Utuh (All-In-One)
+                  </span>
+                </div>
+                <h4 className="text-sm font-extrabold text-[#001c3c]">
+                  Kode Sumber Lengkap Backend (Code.gs)
+                </h4>
+                <p className="text-xs text-slate-600 max-w-2xl leading-relaxed">
+                  Salin seluruh isi file <code>Code.gs</code> versi utuh ke editor Google Apps Script. Kode ini mencakup penerima data tugas peserta (tab <strong>Tugas</strong>), presensi QR (tab <strong>Kehadiran</strong>), pendaftaran, timeline, asesmen, dan seluruh fitur sinkronisasi tanpa potongan.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={handleCopyCodeGs}
+                  className="px-4 py-2.5 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 active:scale-95 text-white text-xs font-black rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                  title="Salin seluruh isi Code.gs versi utuh ke clipboard Anda"
+                >
+                  {copiedCodeGs ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4 text-amber-300" />}
+                  <span>{copiedCodeGs ? '✅ Code.gs Tersalin!' : '📋 Salin Utuh Code.gs'}</span>
+                </button>
+              </div>
+            </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-[#eaf2fb] p-4 rounded-xl border border-blue-200">
               <div>

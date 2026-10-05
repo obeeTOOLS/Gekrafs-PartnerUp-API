@@ -20,9 +20,12 @@ import {
   Bot,
   ArrowDown,
   Check,
-  RefreshCw
+  RefreshCw,
+  Copy,
+  FileCode
 } from 'lucide-react';
 import { taskService } from '../services/taskService';
+import { HEADLESS_GAS_CODE } from '../services/headlessGasCode';
 import { getAiRoadmapReview, AiReviewResult } from '../services/aiReviewService';
 import { StrategicCanvasTask } from '../types';
 
@@ -55,6 +58,17 @@ export const StrategicRoadmapReview: React.FC<StrategicRoadmapReviewProps> = ({
 
   // Sync to Sheet state
   const [isSyncingSheet, setIsSyncingSheet] = useState(false);
+  const [copiedCodeGs, setCopiedCodeGs] = useState(false);
+
+  const handleCopyFullCode = () => {
+    navigator.clipboard.writeText(HEADLESS_GAS_CODE);
+    setCopiedCodeGs(true);
+    setToast('✅ Kode "Code.gs" versi utuh & lengkap berhasil disalin ke clipboard Anda!');
+    setTimeout(() => {
+      setCopiedCodeGs(false);
+      setToast(null);
+    }, 4000);
+  };
 
   const handleSyncAllToSheet = async () => {
     setIsSyncingSheet(true);
@@ -181,6 +195,16 @@ export const StrategicRoadmapReview: React.FC<StrategicRoadmapReviewProps> = ({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleCopyFullCode}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 text-xs font-bold transition-all cursor-pointer whitespace-nowrap shadow-2xs"
+            title="Salin seluruh isi file Code.gs versi utuh dan lengkap ke clipboard"
+          >
+            {copiedCodeGs ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-purple-600" />}
+            <span>{copiedCodeGs ? '✅ Code.gs Tersalin!' : '📋 Salin Utuh Code.gs'}</span>
+          </button>
+
           <button
             type="button"
             onClick={handleSyncAllToSheet}

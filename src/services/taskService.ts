@@ -419,11 +419,22 @@ class TaskService {
     for (const task of validTasks) {
       try {
         const queueNumber = this.getSubmissionQueueNumber(task.id);
-        await gasService.dispatchRemoteAction('submitTask', { task, queueNumber });
-        successCount++;
+        const res = await gasService.dispatchRemoteAction('submitTask', { task, queueNumber });
+        if (res && (res.status === 'success' || res.status === 'ok')) {
+          successCount++;
+        }
       } catch (err) {
         console.error('Gagal mengirim tugas untuk ' + task.namaUsaha, err);
       }
+    }
+
+    if (successCount === 0) {
+      return {
+        success: false,
+        total: validTasks.length,
+        successCount: 0,
+        message: 'Gagal menyinkronkan tugas ke Google Spreadsheet. Server belum merespon status sukses.'
+      };
     }
 
     return {

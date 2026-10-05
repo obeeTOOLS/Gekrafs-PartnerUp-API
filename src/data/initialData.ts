@@ -477,7 +477,7 @@ export const INITIAL_SETTINGS: AppSettings = {
   assessmentOpenDate: '2026-09-01',
   assessmentCloseDate: '2026-11-15',
   modeUjicoba: false,
-  gasEndpointUrl: 'https://script.google.com/macros/s/AKfycbwwaVC7GNTlNC5qFSj0VZDD89fB36rNdUokLwnr_nfYsP9yzVyfYhSKnYQtEIWDcqar/exec',
+  gasEndpointUrl: 'https://script.google.com/macros/s/AKfycbwpLuT1HtWX7I9l1ABa2YthchqYEZ4cEuLcmXjeyW_PHOgXw9D9GhoOROySnKFHr1vO/exec',
   autoSync: true,
   passcode: '123456'
 };

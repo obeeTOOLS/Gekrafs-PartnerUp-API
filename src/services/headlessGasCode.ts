@@ -247,6 +247,9 @@ function doPost(e) {
       case 'reviewTask':
         return createJsonResponse(saveOrSubmitTask(payload.task, payload.task ? payload.task.status || 'reviewed' : 'reviewed'));
 
+      case 'deleteTask':
+        return createJsonResponse(deleteTaskRow(payload.id));
+
       default:
         return createJsonResponse({ status: 'error', message: 'Aksi tidak dikenali: ' + action });
     }
@@ -260,13 +263,13 @@ function doPost(e) {
 }
 
 // ============================================================
-// MODUL KEHADIRAN (DENGAN PENGECEKAN DUPLIKASI KETAT)
+// MODUL INISIALISASI OTOMATIS SELURUH TAB SPREADSHEET
 // ============================================================
 
 /**
- * FUNGSI LANGSUNG RUN DI GOOGLE APPS SCRIPT:
+ * FUNGSI LANGSUNG RUN DI APPS SCRIPT:
  * Pilih fungsi 'inisialisasiSheetKehadiran' di toolbar atas Apps Script
- * lalu klik 'Jalankan / Run' (▶️) untuk langsung membuat tab 'Kehadiran' beserta Header.
+ * lalu klik 'Jalankan / Run' (▶️) untuk membuat tab 'Kehadiran' beserta Header.
  */
 function inisialisasiSheetKehadiran() {
   const ss = getSpreadsheet();
@@ -301,30 +304,60 @@ function inisialisasiSheetKehadiran() {
 }
 
 /**
+ * FUNGSI LANGSUNG RUN DI APPS SCRIPT:
+ * Pilih fungsi 'inisialisasiSheetTugas' di toolbar atas Apps Script
+ * lalu klik 'Jalankan / Run' (▶️) untuk membuat tab 'Tugas' beserta Header.
+ */
+function inisialisasiSheetTugas() {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_TUGAS);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_TUGAS);
+    Logger.log('Tab "' + SHEET_TUGAS + '" baru berhasil dibuat.');
+  }
+
+  const headers = [
+    'Timestamp', 'ID Tugas', 'Nama Usaha', 'Nama Pemilik', 'Nomor WhatsApp',
+    'Subsektor', 'Sesi PartnerUp', 'Status Tugas', 'Nilai (0-100)', 'Catatan Kurator',
+    'Visi Usaha', 'Misi Usaha', 'Goal (Sasaran)', 'Objective (Target)', 'Nilai-nilai Usaha', 'Keahlian Organisasi',
+    'Problem Solving (JSON)', 'Incremental (JSON)', 'Breakthrough (JSON)', 'Data Lengkap Task (JSON)'
+  ];
+
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(headers);
+    const headerRange = sheet.getRange(1, 1, 1, headers.length);
+    headerRange.setFontWeight('bold');
+    headerRange.setBackground('#001c3c');
+    headerRange.setFontColor('#ffffff');
+    sheet.setFrozenRows(1);
+    Logger.log('Header tab Tugas berhasil dibuat dan diformat rapi.');
+  }
+
+  return '✅ Tab "' + SHEET_TUGAS + '" siap digunakan di Google Spreadsheet!';
+}
+
+/**
  * Inisialisasi Seluruh Tab Sekaligus (Kehadiran & Tugas)
  */
 function inisialisasiSemuaTab() {
   inisialisasiSheetKehadiran();
+  inisialisasiSheetTugas();
+  return '✅ Seluruh tab database (Kehadiran & Tugas) berhasil disiapkan dan diformat rapi!';
+}
 
+function deleteTaskRow(id) {
+  if (!id) return { status: 'error', message: 'ID Tugas kosong' };
   const ss = getSpreadsheet();
-  let tugasSheet = ss.getSheetByName(SHEET_TUGAS);
-  if (!tugasSheet) {
-    tugasSheet = ss.insertSheet(SHEET_TUGAS);
-    tugasSheet.appendRow([
-      'Timestamp', 'ID Tugas', 'Nama Usaha', 'Nama Pemilik', 'Nomor WhatsApp',
-      'Subsektor', 'Sesi PartnerUp', 'Status Tugas', 'Nilai', 'Catatan Kurator',
-      'Visi', 'Misi', 'Goal', 'Objective', 'Nilai Usaha', 'Keahlian Organisasi',
-      'Matriks Problem Solving', 'Matriks Incremental', 'Matriks Breakthrough', 'Full JSON Payload'
-    ]);
-    const hr = tugasSheet.getRange(1, 1, 1, 20);
-    hr.setFontWeight('bold');
-    hr.setBackground('#001c3c');
-    hr.setFontColor('#ffffff');
-    tugasSheet.setFrozenRows(1);
-    Logger.log('Tab "' + SHEET_TUGAS + '" berhasil dibuat.');
+  const sheet = ss.getSheetByName(SHEET_TUGAS);
+  if (!sheet) return { status: 'error', message: 'Tab Tugas belum dibuat' };
+  const rows = sheet.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][1] || '').trim() === String(id).trim()) {
+      sheet.deleteRow(i + 1);
+      return { status: 'success', message: 'Baris tugas ' + id + ' berhasil dihapus.' };
+    }
   }
-
-  return '✅ Seluruh tab database (Kehadiran & Tugas) berhasil disiapkan!';
+  return { status: 'error', message: 'Data tugas dengan ID ' + id + ' tidak ditemukan di sheet.' };
 }
 
 function checkinKehadiran(idSesi, namaUsaha, whatsapp) {

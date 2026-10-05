@@ -79,6 +79,13 @@ class GasService {
       const storedSettings = localStorage.getItem(STORAGE_KEYS.SETTINGS);
       this.settings = storedSettings ? JSON.parse(storedSettings) : INITIAL_SETTINGS;
 
+      // OTOMATIS MIGRASI: Jika localStorage masih menyimpan URL deployment lama, perbarui seketika ke URL aktif baru
+      const OLD_DEPLOYMENT_ID = 'AKfycbwwaVC7GNTlNC5qFSj0VZDD89fB36rNdUokLwnr_nfYsP9yzVyfYhSKnYQtEIWDcqar';
+      if (!this.settings.gasEndpointUrl || this.settings.gasEndpointUrl.includes(OLD_DEPLOYMENT_ID)) {
+        this.settings.gasEndpointUrl = INITIAL_SETTINGS.gasEndpointUrl;
+        localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(this.settings));
+      }
+
       this.lastSyncTime = localStorage.getItem(STORAGE_KEYS.LAST_SYNC) || '';
     } catch {
       this.timeline = INITIAL_TIMELINE;
