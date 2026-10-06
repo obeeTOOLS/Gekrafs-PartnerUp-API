@@ -70,13 +70,16 @@ import {
   Download,
   FileText,
   FileEdit,
-  AlertCircle
+  AlertCircle,
+  Target,
+  TrendingUp
 } from 'lucide-react';
 
 import { StrategicRoadmapReview } from './StrategicRoadmapReview';
 import { TaskQuestionEditor } from './TaskQuestionEditor';
 import { taskService } from '../services/taskService';
 import { HEADLESS_GAS_CODE } from '../services/headlessGasCode';
+import { diagnoseAssessment } from '../services/assessmentDiagnosisService';
 
 import { 
   EngineerSession, 
@@ -230,9 +233,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [manualNamaUsaha, setManualNamaUsaha] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
 
-  // Asesmen expand
+  // Asesmen expand & diagnosis state
   const [expandedAsesmenIdx, setExpandedAsesmenIdx] = useState<number | null>(null);
   const [expandedB3Idx, setExpandedB3Idx] = useState<number | null>(null);
+  const [asesmenSearchQuery, setAsesmenSearchQuery] = useState('');
+  const [asesmenStageFilter, setAsesmenStageFilter] = useState<'all' | 'Level 1' | 'Level 2' | 'Level 3' | 'Level 4'>('all');
+  const [copiedAsesmenWaIdx, setCopiedAsesmenWaIdx] = useState<number | null>(null);
+  const [asesmenToast, setAsesmenToast] = useState<string | null>(null);
+
+  const handleCopyAsesmenWa = (idx: number, draftMsg: string) => {
+    navigator.clipboard.writeText(draftMsg);
+    setCopiedAsesmenWaIdx(idx);
+    setAsesmenToast('✅ Format pesan WhatsApp hasil asesmen berhasil disalin ke clipboard!');
+    setTimeout(() => {
+      setCopiedAsesmenWaIdx(null);
+      setAsesmenToast(null);
+    }, 3000);
+  };
+
+  const handleSendAsesmenWa = (a: AsesmenItem, draftMsg: string) => {
+    if (!a.whatsapp) return;
+    const cleanPhone = a.whatsapp.replace(/[^0-9]/g, '');
+    const phone = cleanPhone.startsWith('0') 
+      ? '62' + cleanPhone.slice(1) 
+      : (cleanPhone.startsWith('62') ? cleanPhone : '62' + cleanPhone);
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(draftMsg)}`, '_blank');
+  };
 
   // Settings form
   const [settingsForm, setSettingsForm] = useState(gasService.getSettings());
@@ -1064,170 +1090,504 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       )}
 
       {/* TAB 2: ASESMEN MANDIRI */}
-      {activeTab === 'asesmen' && (
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-            <div>
-              <h2 className="text-base font-extrabold text-[#001c3c]">Hasil Asesmen Mandiri ({asesmenList.length} Usaha)</h2>
-              <p className="text-xs text-slate-500">Klik "Lihat Detail" untuk memeriksa rincian 35 jawaban diagnosa mendalam</p>
+      {activeTab === 'asesmen' && (() => {
+        // Pre-kalkulasi diagnosis untuk seluruh asesmen
+        const diagnosedList = asesmenList.map((a) => ({
+          item: a,
+          diag: diagnoseAssessment(a)
+        }));
+
+        const countL4 = diagnosedList.filter(d => d.diag.stage === 'Tangguh & Potensi Mentor').length;
+        const countL3 = diagnosedList.filter(d => d.diag.stage === 'Siap Skala (Scale-Up)').length;
+        const countL2 = diagnosedList.filter(d => d.diag.stage === 'Bertumbuh & Stabilisasi').length;
+        const countL1 = diagnosedList.filter(d => d.diag.stage === 'Perintisan & Fondasi').length;
+
+        const filtered = diagnosedList.filter(({ item: a, diag }) => {
+          const q = asesmenSearchQuery.toLowerCase().trim();
+          const matchQ = !q || 
+            a.namaUsaha.toLowerCase().includes(q) || 
+            a.whatsapp.includes(q) ||
+            (a.poinBisaAjarkan && a.poinBisaAjarkan.toLowerCase().includes(q)) ||
+            (a.poinPerluDipelajari && a.poinPerluDipelajari.toLowerCase().includes(q)) ||
+            diag.pilarTerkuat.nama.toLowerCase().includes(q) ||
+            diag.pilarKritis.nama.toLowerCase().includes(q);
+
+          if (!matchQ) return false;
+          if (asesmenStageFilter === 'Level 1') return diag.stage === 'Perintisan & Fondasi';
+          if (asesmenStageFilter === 'Level 2') return diag.stage === 'Bertumbuh & Stabilisasi';
+          if (asesmenStageFilter === 'Level 3') return diag.stage === 'Siap Skala (Scale-Up)';
+          if (asesmenStageFilter === 'Level 4') return diag.stage === 'Tangguh & Potensi Mentor';
+          return true;
+        });
+
+        return (
+          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+            {/* Toast Asesmen */}
+            {asesmenToast && (
+              <div className="p-3 bg-emerald-600 text-white rounded-xl text-xs font-bold text-center shadow animate-in fade-in">
+                {asesmenToast}
+              </div>
+            )}
+
+            {/* Header Tab Asesmen */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-extrabold text-[#001c3c]">
+                    Hasil Asesmen Mandiri ({asesmenList.length} Usaha)
+                  </h2>
+                  <span className="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-[10px] font-bold border border-indigo-200 flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-indigo-600" />
+                    <span>Diagnosis Cepat Otomatis</span>
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Sistem otomatis mendiagnosis level kematangan bisnis, pilar kritis, serta menyiapkan draf tindak lanjut WhatsApp kurator.
+                </p>
+              </div>
             </div>
-          </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="bg-[#eaf2fb] text-[#001c3c] font-bold border-b border-slate-200">
-                  <th className="p-3">Waktu</th>
-                  <th className="p-3">Nama Usaha</th>
-                  <th className="p-3">WhatsApp</th>
-                  <th className="p-3">Total Skor</th>
-                  <th className="p-3">Kekuatan Utama</th>
-                  <th className="p-3">Perlu Perhatian</th>
-                  <th className="p-3 text-center">Rincian</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {asesmenList.map((a, idx) => {
-                  const isExpanded = expandedAsesmenIdx === idx;
-                  const isB3Expanded = expandedB3Idx === idx;
+            {/* KPI Cards: Distribusi Kematangan Bisnis */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <button
+                type="button"
+                onClick={() => setAsesmenStageFilter(asesmenStageFilter === 'Level 4' ? 'all' : 'Level 4')}
+                className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                  asesmenStageFilter === 'Level 4'
+                    ? 'bg-purple-100 border-purple-400 ring-2 ring-purple-500/20 shadow-xs'
+                    : 'bg-purple-50/60 border-purple-200 hover:bg-purple-100/70'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-purple-900">Level 4: Tangguh / Mentor</span>
+                  <Award className="w-4 h-4 text-purple-600" />
+                </div>
+                <div className="text-xl font-black text-purple-950 mt-1">{countL4} Usaha</div>
+                <div className="text-[10px] text-purple-700 mt-0.5">Skor tinggi & siap berbagi materi</div>
+              </button>
 
-                  return (
-                    <React.Fragment key={idx}>
-                      <tr className="hover:bg-slate-50">
-                        <td className="p-3 text-slate-500 font-mono text-[11px] whitespace-nowrap">{a.timestamp}</td>
-                        <td className="p-3 font-bold text-[#001c3c]">{a.namaUsaha}</td>
-                        <td className="p-3 font-mono">{a.whatsapp}</td>
-                        <td className="p-3">
-                          <span className="font-extrabold text-sm text-[#004c80]">{a.totalSkor}</span>
-                          <span className="text-[10px] text-slate-400">/75</span>
-                        </td>
-                        <td className="p-3">
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 font-bold border border-emerald-200 text-[11px]">
-                            {a.kekuatan || a.poinBisaAjarkan}
-                          </span>
-                        </td>
-                        <td className="p-3">
-                          <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 font-bold border border-amber-200 text-[11px]">
-                            {a.kelemahan || a.poinPerluDipelajari}
-                          </span>
-                        </td>
-                        <td className="p-3 text-center">
-                          <button
-                            onClick={() => setExpandedAsesmenIdx(isExpanded ? null : idx)}
-                            className="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 font-bold text-[11px] text-slate-700"
-                          >
-                            {isExpanded ? 'Tutup' : 'Lihat Detail'}
-                          </button>
-                        </td>
-                      </tr>
+              <button
+                type="button"
+                onClick={() => setAsesmenStageFilter(asesmenStageFilter === 'Level 3' ? 'all' : 'Level 3')}
+                className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                  asesmenStageFilter === 'Level 3'
+                    ? 'bg-emerald-100 border-emerald-400 ring-2 ring-emerald-500/20 shadow-xs'
+                    : 'bg-emerald-50/60 border-emerald-200 hover:bg-emerald-100/70'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-900">Level 3: Siap Skala</span>
+                  <TrendingUp className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div className="text-xl font-black text-emerald-950 mt-1">{countL3} Usaha</div>
+                <div className="text-[10px] text-emerald-700 mt-0.5">Fokus kemitraan komersial & B2B</div>
+              </button>
 
-                      {isExpanded && (
-                        <tr>
-                          <td colSpan={7} className="p-5 bg-slate-50 border-y border-slate-200">
-                            <div className="space-y-4">
-                              <div className="flex flex-wrap items-center justify-between gap-2">
-                                <div className="flex flex-wrap gap-2 text-xs">
-                                  <span className="p-2 rounded-lg bg-emerald-100 text-emerald-800 font-bold">
-                                    💪 Bisa Diajarkan: {a.poinBisaAjarkan}
-                                  </span>
-                                  <span className="p-2 rounded-lg bg-amber-100 text-amber-900 font-bold">
-                                    📚 Perlu Belajar: {a.poinPerluDipelajari}
-                                  </span>
-                                </div>
-                                <button
-                                  onClick={() => openSingleAsesmenPdfPreview(a)}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#001c3c] text-white text-xs font-bold hover:bg-[#004c80]"
-                                >
-                                  <FileDown className="w-3.5 h-3.5" />
-                                  <span>Export PDF Dokumen Ini</span>
-                                </button>
-                              </div>
+              <button
+                type="button"
+                onClick={() => setAsesmenStageFilter(asesmenStageFilter === 'Level 2' ? 'all' : 'Level 2')}
+                className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                  asesmenStageFilter === 'Level 2'
+                    ? 'bg-blue-100 border-blue-400 ring-2 ring-blue-500/20 shadow-xs'
+                    : 'bg-blue-50/60 border-blue-200 hover:bg-blue-100/70'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-900">Level 2: Bertumbuh</span>
+                  <Target className="w-4 h-4 text-blue-600" />
+                </div>
+                <div className="text-xl font-black text-blue-950 mt-1">{countL2} Usaha</div>
+                <div className="text-[10px] text-blue-700 mt-0.5">Validasi SOP & pembagian tim</div>
+              </button>
 
-                              {a.materiBisaAjarkan && a.materiBisaAjarkan !== '-' && (
-                                <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 text-xs text-blue-900">
-                                  <strong>Materi Spesifik yang Bisa Diajarkan:</strong> {a.materiBisaAjarkan}
-                                </div>
+              <button
+                type="button"
+                onClick={() => setAsesmenStageFilter(asesmenStageFilter === 'Level 1' ? 'all' : 'Level 1')}
+                className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                  asesmenStageFilter === 'Level 1'
+                    ? 'bg-amber-100 border-amber-400 ring-2 ring-amber-500/20 shadow-xs'
+                    : 'bg-amber-50/60 border-amber-200 hover:bg-amber-100/70'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-900">Level 1: Perintisan</span>
+                  <AlertCircle className="w-4 h-4 text-amber-600" />
+                </div>
+                <div className="text-xl font-black text-amber-950 mt-1">{countL1} Usaha</div>
+                <div className="text-[10px] text-amber-700 mt-0.5">Butuh penguatan kas & legalitas</div>
+              </button>
+            </div>
+
+            {/* Filter & Pencarian */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+              <div className="relative w-full sm:w-80">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={asesmenSearchQuery}
+                  onChange={(e) => setAsesmenSearchQuery(e.target.value)}
+                  placeholder="Cari nama usaha, WA, atau pilar..."
+                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                <span className="text-[11px] font-bold text-slate-500 mr-1">Filter Kategori:</span>
+                {[
+                  { id: 'all', label: `Semua (${asesmenList.length})` },
+                  { id: 'Level 4', label: `Level 4 (${countL4})` },
+                  { id: 'Level 3', label: `Level 3 (${countL3})` },
+                  { id: 'Level 2', label: `Level 2 (${countL2})` },
+                  { id: 'Level 1', label: `Level 1 (${countL1})` }
+                ].map((flt) => (
+                  <button
+                    key={flt.id}
+                    type="button"
+                    onClick={() => setAsesmenStageFilter(flt.id as any)}
+                    className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
+                      asesmenStageFilter === flt.id
+                        ? 'bg-[#001c3c] text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    {flt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Tabel Asesmen Mandiri dengan Diagnosis Cepat */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="bg-[#eaf2fb] text-[#001c3c] font-bold border-b border-slate-200">
+                    <th className="p-3">Waktu</th>
+                    <th className="p-3">Nama Usaha & Kontak</th>
+                    <th className="p-3 text-center">Skor Total</th>
+                    <th className="p-3">Diagnosis Cepat & Fase</th>
+                    <th className="p-3">Pilar Kuat vs Kritis</th>
+                    <th className="p-3 text-center">Aksi / Rincian</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filtered.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="p-6 text-center text-slate-500 italic">
+                        Tidak ada data asesmen yang sesuai dengan filter pencarian.
+                      </td>
+                    </tr>
+                  ) : (
+                    filtered.map(({ item: a, diag }, idx) => {
+                      const isExpanded = expandedAsesmenIdx === idx;
+                      const isB3Expanded = expandedB3Idx === idx;
+
+                      return (
+                        <React.Fragment key={idx}>
+                          <tr className="hover:bg-slate-50 transition-colors">
+                            <td className="p-3 text-slate-500 font-mono text-[11px] whitespace-nowrap align-top">
+                              {a.timestamp}
+                            </td>
+                            <td className="p-3 align-top">
+                              <div className="font-extrabold text-[#001c3c] text-sm">{a.namaUsaha}</div>
+                              <div className="text-slate-500 font-mono text-[11px] mt-0.5">{a.whatsapp}</div>
+                              {a.sesi && (
+                                <span className="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">
+                                  {a.sesi}
+                                </span>
                               )}
+                            </td>
+                            <td className="p-3 text-center align-top whitespace-nowrap">
+                              <span className="font-black text-base text-[#004c80]">{a.totalSkor}</span>
+                              <span className="text-[10px] text-slate-400">/75</span>
+                            </td>
+                            <td className="p-3 align-top max-w-xs">
+                              <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black border ${diag.stageBadgeBg}`}>
+                                {diag.stageBadgeText}
+                              </span>
+                              <p className="text-[11px] text-slate-700 mt-1 leading-snug line-clamp-2" title={diag.ringkasanDiagnosis}>
+                                {diag.ringkasanDiagnosis}
+                              </p>
+                            </td>
+                            <td className="p-3 align-top whitespace-nowrap">
+                              <div className="space-y-1">
+                                <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 font-bold border border-emerald-200 text-[10px] flex items-center gap-1">
+                                  <span>💪</span>
+                                  <span>{diag.pilarTerkuat.nama} ({diag.pilarTerkuat.skor}/5)</span>
+                                </span>
+                                <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-800 font-bold border border-amber-200 text-[10px] flex items-center gap-1">
+                                  <span>⚠️</span>
+                                  <span>{diag.pilarKritis.nama} ({diag.pilarKritis.skor}/5)</span>
+                                </span>
+                              </div>
+                            </td>
+                            <td className="p-3 text-center align-top whitespace-nowrap">
+                              <div className="flex flex-col sm:flex-row items-center justify-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => setExpandedAsesmenIdx(isExpanded ? null : idx)}
+                                  className={`px-3 py-1.5 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
+                                    isExpanded 
+                                      ? 'bg-slate-700 text-white' 
+                                      : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200'
+                                  }`}
+                                >
+                                  {isExpanded ? 'Tutup Detail' : '🔍 Lihat Diagnosis'}
+                                </button>
+                                {a.whatsapp && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSendAsesmenWa(a, diag.waFeedbackDraft)}
+                                    title="Kirim Hasil Diagnosis Asesmen ke WhatsApp Peserta"
+                                    className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-colors cursor-pointer"
+                                  >
+                                    <MessageSquare className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
 
-                              {/* Bagian 1 Scores */}
-                              {a.bagian3 && a.bagian3.length > 0 && (
-                                <div className="pt-2">
-                                  <div className="font-bold text-xs text-[#001c3c] mb-2 uppercase">
-                                    Bagian 1: Skor Rata-rata 8 Pilar Bisnis (/5)
-                                  </div>
-                                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                    {a.bagian3.map((b) => (
-                                      <div key={b.kategori} className="p-2 bg-white rounded border border-slate-200 text-xs">
-                                        <div className="text-[10px] text-slate-500 font-medium truncate">{b.kategori}</div>
-                                        <div className="font-bold text-sm text-[#004c80]">{b.skorRataRata} / 5</div>
+                          {/* Detail Ekspansi: Diagnosis Lengkap & Rincian */}
+                          {isExpanded && (
+                            <tr>
+                              <td colSpan={6} className="p-4 sm:p-5 bg-slate-50/80 border-y border-slate-200">
+                                <div className="space-y-4 max-w-4xl">
+                                  {/* KARTU DIAGNOSIS OTOMATIS AI & REKOMENDASI KURATOR */}
+                                  <div className="bg-gradient-to-br from-indigo-50/90 via-purple-50/60 to-white p-4 sm:p-5 rounded-2xl border-2 border-indigo-200 shadow-sm space-y-3.5">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-indigo-100">
+                                      <div className="flex items-center gap-2.5">
+                                        <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-xs">
+                                          <Sparkles className="w-4 h-4" />
+                                        </div>
+                                        <div>
+                                          <h4 className="font-black text-xs sm:text-sm text-indigo-950 flex items-center gap-1.5">
+                                            <span>Hasil Diagnosis Cepat Otomatis Kesiapan Usaha</span>
+                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${diag.stageBadgeBg}`}>
+                                              {diag.stage}
+                                            </span>
+                                          </h4>
+                                          <p className="text-[11px] text-slate-600">
+                                            Analisis berbasis skor 8 pilar bisnis, kesiapan kolaborasi, dan mitigasi bottleneck operasional.
+                                          </p>
+                                        </div>
                                       </div>
-                                    ))}
+
+                                      <div className="flex items-center gap-2">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleCopyAsesmenWa(idx, diag.waFeedbackDraft)}
+                                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-indigo-50 text-indigo-900 border border-indigo-200 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                                        >
+                                          {copiedAsesmenWaIdx === idx ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-indigo-600" />}
+                                          <span>{copiedAsesmenWaIdx === idx ? 'Tersalin!' : 'Salin Draf WA'}</span>
+                                        </button>
+
+                                        {a.whatsapp && (
+                                          <button
+                                            type="button"
+                                            onClick={() => handleSendAsesmenWa(a, diag.waFeedbackDraft)}
+                                            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all cursor-pointer shadow-xs"
+                                          >
+                                            <MessageSquare className="w-3.5 h-3.5" />
+                                            <span>Kirim ke WA</span>
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* Ringkasan Analisis Diagnostik */}
+                                    <div className="p-3 bg-white/90 rounded-xl border border-indigo-100 text-xs text-slate-800 font-medium italic">
+                                      "{diag.ringkasanDiagnosis}"
+                                    </div>
+
+                                    {/* Perbandingan Pilar Unggulan vs Pilar Kritis */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                      <div className="p-3 bg-emerald-50/70 rounded-xl border border-emerald-200 space-y-1">
+                                        <div className="flex items-center justify-between">
+                                          <span className="font-extrabold text-emerald-950 text-xs flex items-center gap-1.5">
+                                            <span>🏆 Pilar Paling Matang:</span>
+                                            <strong className="text-emerald-700">{diag.pilarTerkuat.nama}</strong>
+                                          </span>
+                                          <span className="font-black text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded text-[11px]">
+                                            {diag.pilarTerkuat.skor} / 5
+                                          </span>
+                                        </div>
+                                        <p className="text-[11px] text-emerald-800/80 leading-relaxed">
+                                          {diag.pilarTerkuat.keterangan}
+                                        </p>
+                                      </div>
+
+                                      <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200 space-y-1">
+                                        <div className="flex items-center justify-between">
+                                          <span className="font-extrabold text-amber-950 text-xs flex items-center gap-1.5">
+                                            <span>⚠️ Pilar Kritis (Prioritas Intervensi):</span>
+                                            <strong className="text-amber-700">{diag.pilarKritis.nama}</strong>
+                                          </span>
+                                          <span className="font-black text-amber-800 bg-amber-100 px-2 py-0.5 rounded text-[11px]">
+                                            {diag.pilarKritis.skor} / 5
+                                          </span>
+                                        </div>
+                                        <p className="text-[11px] text-amber-800/80 leading-relaxed">
+                                          {diag.pilarKritis.keterangan}
+                                        </p>
+                                      </div>
+                                    </div>
+
+                                    {/* 3 Rekomendasi Tindakan Aksi Nyata */}
+                                    <div className="p-3 bg-white rounded-xl border border-indigo-100 space-y-1.5">
+                                      <span className="font-extrabold text-[#001c3c] text-xs block">
+                                        🎯 3 Rekomendasi Tindakan Terarah (Action Plan Kurator):
+                                      </span>
+                                      <ul className="space-y-1">
+                                        {diag.rekomendasiAksi.map((rek, rIdx) => (
+                                          <li key={rIdx} className="text-[11px] text-slate-700 flex items-start gap-2">
+                                            <span className="text-indigo-600 font-bold">•</span>
+                                            <span>{rek}</span>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+
+                                    {/* Potensi Peer-Mentoring */}
+                                    {diag.potensiPeerMentor && (
+                                      <div className="p-2.5 bg-purple-50/60 rounded-xl border border-purple-200 text-[11px] text-purple-900 flex items-start gap-2">
+                                        <Award className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                                        <span>
+                                          <strong>Potensi Peer-Mentoring:</strong> {diag.potensiPeerMentor}
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {/* Draf Pesan WhatsApp Resmi Hasil Asesmen */}
+                                    <div className="p-3 bg-emerald-50/50 rounded-xl border border-emerald-200 space-y-1.5">
+                                      <div className="flex items-center justify-between">
+                                        <span className="font-bold text-emerald-950 text-[11px] flex items-center gap-1.5">
+                                          <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
+                                          <span>Draf Pesan WhatsApp Resmi Hasil Asesmen Mandiri:</span>
+                                        </span>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleCopyAsesmenWa(idx, diag.waFeedbackDraft)}
+                                          className="text-[10px] text-emerald-700 font-bold hover:underline"
+                                        >
+                                          {copiedAsesmenWaIdx === idx ? '✓ Berhasil Disalin' : 'Salin Teks'}
+                                        </button>
+                                      </div>
+                                      <pre className="p-2.5 bg-white/90 rounded-lg border border-emerald-100 text-[10px] text-slate-700 font-mono whitespace-pre-wrap max-h-36 overflow-y-auto leading-relaxed">
+                                        {diag.waFeedbackDraft}
+                                      </pre>
+                                    </div>
                                   </div>
 
-                                  {a.bagian3Detail && a.bagian3Detail.length > 0 && (
-                                    <div className="mt-3">
-                                      <button
-                                        onClick={() => setExpandedB3Idx(isB3Expanded ? null : idx)}
-                                        className="text-xs text-[#004c80] font-bold underline"
-                                      >
-                                        {isB3Expanded ? 'Sembunyikan 35 Jawaban Detail' : 'Tampilkan 35 Jawaban Detail Lengkap'}
-                                      </button>
+                                  {/* Baris Tombol Aksi & Dokumen */}
+                                  <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
+                                    <div className="flex flex-wrap gap-2 text-xs">
+                                      <span className="p-2 rounded-lg bg-emerald-100 text-emerald-800 font-bold">
+                                        💪 Bisa Diajarkan: {a.poinBisaAjarkan}
+                                      </span>
+                                      <span className="p-2 rounded-lg bg-amber-100 text-amber-900 font-bold">
+                                        📚 Perlu Belajar: {a.poinPerluDipelajari}
+                                      </span>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => openSingleAsesmenPdfPreview(a)}
+                                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#001c3c] text-white text-xs font-bold hover:bg-[#004c80] transition-colors cursor-pointer"
+                                    >
+                                      <FileDown className="w-3.5 h-3.5" />
+                                      <span>Export PDF Dokumen Ini</span>
+                                    </button>
+                                  </div>
 
-                                      {isB3Expanded && (
-                                        <div className="mt-3 space-y-3 bg-white p-4 rounded-xl border border-slate-200 max-h-96 overflow-y-auto">
-                                          {a.bagian3Detail.map((kat) => (
-                                            <div key={kat.kategori} className="border-b border-slate-100 pb-2">
-                                              <div className="font-bold text-xs text-[#001c3c] mb-1.5">{kat.kategori}</div>
-                                              <div className="space-y-1.5">
-                                                {kat.rincian.map((qa, qI) => (
-                                                  <div key={qI} className="text-[11px] p-2 bg-slate-50 rounded">
-                                                    <div className="font-medium text-slate-900">{qa.pertanyaan}</div>
-                                                    <div className="text-slate-600 mt-0.5">
-                                                      👉 {qa.jawaban} <strong className="text-[#004c80]">({qa.skor}/5)</strong>
-                                                    </div>
+                                  {a.materiBisaAjarkan && a.materiBisaAjarkan !== '-' && (
+                                    <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 text-xs text-blue-900">
+                                      <strong>Materi Spesifik yang Bisa Diajarkan:</strong> {a.materiBisaAjarkan}
+                                    </div>
+                                  )}
+
+                                  {/* Bagian 1 Scores: 8 Pilar Bisnis */}
+                                  {a.bagian3 && a.bagian3.length > 0 && (
+                                    <div className="pt-2">
+                                      <div className="font-bold text-xs text-[#001c3c] mb-2 uppercase">
+                                        Bagian 1: Skor Rata-rata 8 Pilar Bisnis (/5)
+                                      </div>
+                                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                        {a.bagian3.map((b) => (
+                                          <div key={b.kategori} className="p-2 bg-white rounded-xl border border-slate-200 text-xs">
+                                            <div className="text-[10px] text-slate-500 font-medium truncate">{b.kategori}</div>
+                                            <div className="font-bold text-sm text-[#004c80]">{b.skorRataRata} / 5</div>
+                                          </div>
+                                        ))}
+                                      </div>
+
+                                      {a.bagian3Detail && a.bagian3Detail.length > 0 && (
+                                        <div className="mt-3">
+                                          <button
+                                            type="button"
+                                            onClick={() => setExpandedB3Idx(isB3Expanded ? null : idx)}
+                                            className="text-xs text-[#004c80] font-bold underline cursor-pointer"
+                                          >
+                                            {isB3Expanded ? 'Sembunyikan 35 Jawaban Detail' : 'Tampilkan 35 Jawaban Detail Lengkap'}
+                                          </button>
+
+                                          {isB3Expanded && (
+                                            <div className="mt-3 space-y-3 bg-white p-4 rounded-xl border border-slate-200 max-h-96 overflow-y-auto">
+                                              {a.bagian3Detail.map((kat) => (
+                                                <div key={kat.kategori} className="border-b border-slate-100 pb-2">
+                                                  <div className="font-bold text-xs text-[#001c3c] mb-1.5">{kat.kategori}</div>
+                                                  <div className="space-y-1.5">
+                                                    {kat.rincian.map((qa, qI) => (
+                                                      <div key={qI} className="text-[11px] p-2 bg-slate-50 rounded">
+                                                        <div className="font-medium text-slate-900">{qa.pertanyaan}</div>
+                                                        <div className="text-slate-600 mt-0.5">
+                                                          👉 {qa.jawaban} <strong className="text-[#004c80]">({qa.skor}/5)</strong>
+                                                        </div>
+                                                      </div>
+                                                    ))}
                                                   </div>
-                                                ))}
-                                              </div>
+                                                </div>
+                                              ))}
                                             </div>
-                                          ))}
+                                          )}
+                                        </div>
+                                      )}
+                                      {/* 15 Kriteria Details */}
+                                      {a.rincian && a.rincian.length > 0 && (
+                                        <div className="pt-2">
+                                          <div className="font-bold text-xs text-[#001c3c] mb-2 uppercase">
+                                            Bagian 2 & 3: Rincian 15 Kriteria & Penjelasan
+                                          </div>
+                                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            {a.rincian.map((r, rIdx) => (
+                                              <div key={rIdx} className="p-2.5 bg-white rounded-lg border border-slate-200 text-xs">
+                                                <div className="flex items-center justify-between">
+                                                  <strong className="text-[#001c3c]">{r.kriteria}</strong>
+                                                  <span className="font-bold text-[#004c80]">{r.skor}/5</span>
+                                                </div>
+                                                <p className="text-[11px] text-slate-500 mt-1 italic">
+                                                  "{r.catatan || 'Tidak ada catatan'}"
+                                                </p>
+                                              </div>
+                                            ))}
+                                          </div>
                                         </div>
                                       )}
                                     </div>
                                   )}
                                 </div>
-                              )}
-
-                              {/* 15 Kriteria Details */}
-                              <div className="pt-2">
-                                <div className="font-bold text-xs text-[#001c3c] mb-2 uppercase">
-                                  Bagian 2 & 3: Rincian 15 Kriteria & Penjelasan
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                  {a.rincian.map((r, rIdx) => (
-                                    <div key={rIdx} className="p-2.5 bg-white rounded-lg border border-slate-200 text-xs">
-                                      <div className="flex items-center justify-between">
-                                        <strong className="text-[#001c3c]">{r.kriteria}</strong>
-                                        <span className="font-bold text-[#004c80]">{r.skor}/5</span>
-                                      </div>
-                                      <p className="text-[11px] text-slate-500 mt-1 italic">
-                                        "{r.catatan || 'Tidak ada catatan'}"
-                                      </p>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* TAB 3: STATISTIK & RADAR (DASHBOARD ANALITIK VISUAL) */}
       {activeTab === 'statistik' && (
