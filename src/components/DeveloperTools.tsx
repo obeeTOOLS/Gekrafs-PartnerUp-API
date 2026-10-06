@@ -269,6 +269,16 @@ export const DeveloperTools: React.FC = () => {
         <div className="flex flex-wrap items-center gap-2.5">
           <button
             type="button"
+            onClick={handleCopyCode}
+            className="flex-shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 border border-purple-400/40 font-bold text-xs shadow-md transition-all group cursor-pointer"
+            title="Salin seluruh isi file Code.gs versi utuh dan lengkap ke clipboard (Khusus Developer/Engineer)"
+          >
+            {copiedCode ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-amber-300" />}
+            <span>{copiedCode ? '✅ Code.gs Tersalin!' : '📋 Salin Utuh Code.gs'}</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setIsPanduanPdfOpen(true)}
             className="flex-shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs shadow-md transition-all group cursor-pointer"
             title="Buka & Cetak Buku Panduan Hak Akses & SOP Login (Format PDF)"
@@ -864,7 +874,7 @@ export const DeveloperTools: React.FC = () => {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#001c3c] text-white hover:bg-[#004c80] text-xs font-bold transition-colors"
           >
             {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-            <span>{copiedCode ? 'Tersalin!' : 'Salin Code.gs'}</span>
+            <span>{copiedCode ? '✅ Code.gs Tersalin!' : '📋 Salin Utuh Code.gs'}</span>
           </button>
         </div>
 
