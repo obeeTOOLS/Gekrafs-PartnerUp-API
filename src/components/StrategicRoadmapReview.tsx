@@ -17,14 +17,23 @@ import {
   Phone,
   Printer,
   ChevronRight,
+  ChevronLeft,
   Bot,
   ArrowDown,
   Check,
+  Copy,
   RefreshCw,
-  FileCode
+  FileCode,
+  Zap,
+  CheckCheck
 } from 'lucide-react';
 import { taskService } from '../services/taskService';
-import { getAiRoadmapReview, AiReviewResult } from '../services/aiReviewService';
+import { 
+  getAiRoadmapReview, 
+  getCachedAiReview, 
+  batchAnalyzeUnreviewedTasks, 
+  AiReviewResult 
+} from '../services/aiReviewService';
 import { StrategicCanvasTask, UserRole } from '../types';
 import { RekapPesertaTugasPdfModal } from './RekapPesertaTugasPdfModal';
 
@@ -59,6 +68,9 @@ export const StrategicRoadmapReview: React.FC<StrategicRoadmapReviewProps> = ({
   const [isAnalyzingAi, setIsAnalyzingAi] = useState(false);
   const [aiAnalysisResult, setAiAnalysisResult] = useState<AiReviewResult | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [isBatchRunning, setIsBatchRunning] = useState(false);
+  const [batchProgress, setBatchProgress] = useState<{ done: number; total: number } | null>(null);
+  const [copiedWa, setCopiedWa] = useState(false);
 
   // Sync to Sheet state
   const [isSyncingSheet, setIsSyncingSheet] = useState(false);
@@ -112,8 +124,32 @@ export const StrategicRoadmapReview: React.FC<StrategicRoadmapReviewProps> = ({
     setReviewScore(task.nilai !== undefined ? task.nilai : 85);
     setCatatan(task.catatanKurator || '');
     setReviewStatus(task.status === 'revision' ? 'revision' : 'reviewed');
-    setAiAnalysisResult(null);
+    
+    // Auto-muat hasil AI dari cache jika sudah pernah dianalisis
+    const cached = getCachedAiReview(task.id);
+    if (cached) {
+      setAiAnalysisResult(cached);
+    } else {
+      setAiAnalysisResult(null);
+    }
     setAiError(null);
+  };
+
+  // Navigasi Cepat Antar Peserta di dalam Modal
+  const selectedIndex = selectedTask ? filteredTasks.findIndex(t => t.id === selectedTask.id) : -1;
+  const hasPrev = selectedIndex > 0;
+  const hasNext = selectedIndex >= 0 && selectedIndex < filteredTasks.length - 1;
+
+  const handlePrevParticipant = () => {
+    if (hasPrev) {
+      handleOpenReviewModal(filteredTasks[selectedIndex - 1]);
+    }
+  };
+
+  const handleNextParticipant = () => {
+    if (hasNext) {
+      handleOpenReviewModal(filteredTasks[selectedIndex + 1]);
+    }
   };
 
   const handleRunAiAnalysis = async () => {
@@ -121,13 +157,39 @@ export const StrategicRoadmapReview: React.FC<StrategicRoadmapReviewProps> = ({
     setIsAnalyzingAi(true);
     setAiError(null);
     try {
-      const data = await getAiRoadmapReview(selectedTask);
+      const data = await getAiRoadmapReview(selectedTask, true); // bypass cache untuk pembaruan
       setAiAnalysisResult(data);
     } catch (err: any) {
       console.error('AI Analysis failed:', err);
       setAiError(err.message || 'Gagal memproses analisis AI.');
     } finally {
       setIsAnalyzingAi(false);
+    }
+  };
+
+  const handleRunBatchAi = async () => {
+    const unreviewed = tasks.filter(t => t.status === 'submitted' || t.status === 'draft');
+    if (unreviewed.length === 0) {
+      setToast('Semua lembar aksi yang masuk sudah direview!');
+      setTimeout(() => setToast(null), 3000);
+      return;
+    }
+
+    setIsBatchRunning(true);
+    setBatchProgress({ done: 0, total: unreviewed.length });
+    try {
+      await batchAnalyzeUnreviewedTasks(tasks, (done, total) => {
+        setBatchProgress({ done, total });
+      });
+      setToast(`🎉 Berhasil menyiapkan draf evaluasi AI untuk ${unreviewed.length} peserta!`);
+      setTimeout(() => setToast(null), 4000);
+    } catch (err: any) {
+      console.error('Batch error:', err);
+      setToast('Gagal memproses analisis serentak AI.');
+      setTimeout(() => setToast(null), 3000);
+    } finally {
+      setIsBatchRunning(false);
+      setBatchProgress(null);
     }
   };
 
@@ -138,6 +200,17 @@ export const StrategicRoadmapReview: React.FC<StrategicRoadmapReviewProps> = ({
     setCatatan(aiAnalysisResult.draftMentorNotes);
     setToast('Rekomendasi skor & draf umpan balik AI berhasil disalin ke formulir mentor di bawah!');
     setTimeout(() => setToast(null), 3500);
+  };
+
+  const handleCopyWaText = () => {
+    if (!aiAnalysisResult?.waDraftMessage) return;
+    navigator.clipboard.writeText(aiAnalysisResult.waDraftMessage);
+    setCopiedWa(true);
+    setToast('✅ Format pesan WhatsApp resmi berhasil disalin ke clipboard!');
+    setTimeout(() => {
+      setCopiedWa(false);
+      setToast(null);
+    }, 3000);
   };
 
   const handleSaveReview = () => {
@@ -156,21 +229,44 @@ export const StrategicRoadmapReview: React.FC<StrategicRoadmapReviewProps> = ({
     setTimeout(() => setToast(null), 4000);
   };
 
+  const handleSaveAndNext = () => {
+    if (!selectedTask) return;
+
+    taskService.reviewTask(selectedTask.id, {
+      nilai: Number(reviewScore),
+      catatanKurator: reviewNotes,
+      reviewerName,
+      status: reviewStatus
+    });
+
+    refreshTasks();
+    setToast(`Penilaian untuk ${selectedTask.namaUsaha} berhasil disimpan!`);
+
+    if (hasNext) {
+      handleOpenReviewModal(filteredTasks[selectedIndex + 1]);
+    } else {
+      setSelectedTask(null);
+    }
+    setTimeout(() => setToast(null), 3500);
+  };
+
   const handleSendWaFeedback = (task: StrategicCanvasTask) => {
     if (!task.whatsapp) return;
     const cleanPhone = task.whatsapp.replace(/[^0-9]/g, '');
-    const phone = cleanPhone.startsWith('0') ? '62' + cleanPhone.slice(1) : cleanPhone;
+    const phone = cleanPhone.startsWith('0') 
+      ? '62' + cleanPhone.slice(1) 
+      : (cleanPhone.startsWith('62') ? cleanPhone : '62' + cleanPhone);
 
-    const message = encodeURIComponent(
+    const waText = aiAnalysisResult?.waDraftMessage || (
       `*Halo Kak ${task.namaPemilik} (${task.namaUsaha})!* 👋\n\n` +
       `Lembar Aksi & Peta Jalan Bisnis Anda di *GEKRAFS PartnerUp 2026 Kota Batu* telah selesai direview oleh tim kurator:\n\n` +
-      `🏆 *Status:* ${task.status === 'reviewed' ? 'Disetujui (Lulus)' : 'Perlu Revisi'}\n` +
+      `🏆 *Status:* ${task.status === 'reviewed' ? 'Disetujui (Lulus Kurasi)' : 'Perlu Revisi Ringan'}\n` +
       (task.nilai !== undefined ? `⭐ *Skor:* ${task.nilai}/100\n` : '') +
-      `📝 *Catatan Kurator:*\n"${task.catatanKurator || '-'}"\n\n` +
+      `📝 *Catatan Kurator:*\n"${task.catatanKurator || reviewNotes || '-'}"\n\n` +
       `_Salam Kreatif,_\n*Tim Kurator GEKRAFS Kota Batu*`
     );
 
-    window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(waText)}`, '_blank');
   };
 
   return (
@@ -193,6 +289,17 @@ export const StrategicRoadmapReview: React.FC<StrategicRoadmapReviewProps> = ({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleRunBatchAi}
+            disabled={isBatchRunning}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold transition-all cursor-pointer whitespace-nowrap shadow-xs disabled:opacity-50"
+            title="Otomatis siapkan draf rekomendasi evaluasi AI untuk seluruh lembar aksi yang belum direview"
+          >
+            <Sparkles className={`w-3.5 h-3.5 text-amber-300 ${isBatchRunning ? 'animate-spin' : ''}`} />
+            <span>{isBatchRunning ? `Mengevaluasi (${batchProgress?.done || 0}/${batchProgress?.total || 0})...` : '🤖 Auto-Draf AI Semua'}</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setIsPdfModalOpen(true)}
@@ -225,6 +332,29 @@ export const StrategicRoadmapReview: React.FC<StrategicRoadmapReviewProps> = ({
           )}
         </div>
       </div>
+
+      {/* Batch AI Progress Banner */}
+      {isBatchRunning && batchProgress && (
+        <div className="p-4 bg-purple-50 border border-purple-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in shadow-xs">
+          <div className="flex items-center gap-3">
+            <Sparkles className="w-5 h-5 text-purple-600 animate-spin flex-shrink-0" />
+            <div>
+              <h4 className="text-xs font-black text-purple-900">
+                Memproses Evaluasi Cerdas AI untuk Seluruh Peserta...
+              </h4>
+              <p className="text-[11px] text-purple-700">
+                Membedah target SMART, matriks 3x3, dan menyiapkan draf rekomendasi ({batchProgress.done} dari {batchProgress.total} peserta selesai)
+              </p>
+            </div>
+          </div>
+          <div className="w-full sm:w-44 bg-purple-200 rounded-full h-2.5 overflow-hidden flex-shrink-0">
+            <div 
+              className="bg-purple-600 h-2.5 rounded-full transition-all duration-300"
+              style={{ width: `${Math.round((batchProgress.done / Math.max(1, batchProgress.total)) * 100)}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -408,13 +538,40 @@ export const StrategicRoadmapReview: React.FC<StrategicRoadmapReviewProps> = ({
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setSelectedTask(null)}
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2 self-end sm:self-center">
+                {/* Navigasi Cepat Antar Peserta */}
+                <div className="flex items-center gap-1 bg-white/10 p-1 rounded-xl border border-white/10">
+                  <button
+                    type="button"
+                    onClick={handlePrevParticipant}
+                    disabled={!hasPrev}
+                    className="p-1.5 rounded-lg hover:bg-white/20 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                    title="Peserta Sebelumnya"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="text-[11px] font-bold px-2 text-slate-200 whitespace-nowrap">
+                    #{selectedIndex + 1} / {filteredTasks.length}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleNextParticipant}
+                    disabled={!hasNext}
+                    className="p-1.5 rounded-lg hover:bg-white/20 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                    title="Peserta Berikutnya"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedTask(null)}
+                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer ml-1"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* Modal Body - Scrollable Content */}
@@ -640,6 +797,48 @@ export const StrategicRoadmapReview: React.FC<StrategicRoadmapReviewProps> = ({
                         </div>
                       </div>
 
+                      {/* SMART Evaluation & Matriks Inovasi Analysis */}
+                      {aiAnalysisResult.smartEvaluation && (
+                        <div className="p-3 bg-indigo-50/70 rounded-xl border border-indigo-200/80 space-y-1.5">
+                          <div className="flex flex-wrap items-center justify-between gap-1">
+                            <span className="font-bold text-indigo-950 text-[11px] flex items-center gap-1.5">
+                              🎯 Evaluasi Target Objective 90 Hari (SMART):
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${aiAnalysisResult.smartEvaluation.isSpecific ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                                Spesifik {aiAnalysisResult.smartEvaluation.isSpecific ? '✓' : '✗'}
+                              </span>
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${aiAnalysisResult.smartEvaluation.isMeasurable ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                                Terukur {aiAnalysisResult.smartEvaluation.isMeasurable ? '✓' : '✗'}
+                              </span>
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${aiAnalysisResult.smartEvaluation.isActionable ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'}`}>
+                                Realistis {aiAnalysisResult.smartEvaluation.isActionable ? '✓' : '✗'}
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-[11px] text-slate-600">
+                            {aiAnalysisResult.smartEvaluation.notes}
+                          </p>
+                        </div>
+                      )}
+
+                      {aiAnalysisResult.matrixAnalysis && (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] pt-1">
+                          <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 space-y-0.5">
+                            <strong className="text-[#001c3c] block font-bold">1. Problem Solving:</strong>
+                            <p className="text-slate-600 leading-relaxed text-[10px]">{aiAnalysisResult.matrixAnalysis.problemSolvingFeedback}</p>
+                          </div>
+                          <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 space-y-0.5">
+                            <strong className="text-[#001c3c] block font-bold">2. Incremental:</strong>
+                            <p className="text-slate-600 leading-relaxed text-[10px]">{aiAnalysisResult.matrixAnalysis.incrementalFeedback}</p>
+                          </div>
+                          <div className="p-2.5 bg-amber-50/60 rounded-xl border border-amber-200 space-y-0.5">
+                            <strong className="text-amber-900 block font-bold">3. Breakthrough:</strong>
+                            <p className="text-slate-700 leading-relaxed text-[10px]">{aiAnalysisResult.matrixAnalysis.breakthroughFeedback}</p>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Draf Catatan Mentor */}
                       <div className="pt-2 border-t border-slate-100">
                         <span className="font-bold text-indigo-950 text-[11px] block mb-1">
@@ -649,6 +848,29 @@ export const StrategicRoadmapReview: React.FC<StrategicRoadmapReviewProps> = ({
                           {aiAnalysisResult.draftMentorNotes}
                         </div>
                       </div>
+
+                      {/* Draf WhatsApp Resmi */}
+                      {aiAnalysisResult.waDraftMessage && (
+                        <div className="pt-2 border-t border-slate-100 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-emerald-950 text-[11px] flex items-center gap-1.5">
+                              <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Format Pesan WhatsApp Resmi (Siap Dikirimkan):</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={handleCopyWaText}
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold transition-all cursor-pointer"
+                            >
+                              {copiedWa ? <Check className="w-3 h-3 text-emerald-200" /> : <Copy className="w-3 h-3" />}
+                              <span>{copiedWa ? 'Tersalin!' : 'Salin Pesan WA'}</span>
+                            </button>
+                          </div>
+                          <pre className="p-2.5 bg-emerald-50/50 rounded-lg border border-emerald-200 text-[10px] text-slate-700 font-mono whitespace-pre-wrap max-h-36 overflow-y-auto leading-relaxed">
+                            {aiAnalysisResult.waDraftMessage}
+                          </pre>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -736,7 +958,8 @@ export const StrategicRoadmapReview: React.FC<StrategicRoadmapReviewProps> = ({
                   <button
                     type="button"
                     onClick={() => handleSendWaFeedback(selectedTask)}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all cursor-pointer"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all cursor-pointer shadow-xs"
+                    title="Buka WhatsApp dengan pesan ulasan resmi kurator"
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline">Kirim ke WA</span>
@@ -746,11 +969,23 @@ export const StrategicRoadmapReview: React.FC<StrategicRoadmapReviewProps> = ({
                 <button
                   type="button"
                   onClick={handleSaveReview}
-                  className="flex items-center gap-2 px-6 py-2 rounded-xl bg-[#001c3c] hover:bg-[#002855] text-amber-400 text-xs font-black shadow-md transition-all active:scale-95 cursor-pointer"
+                  className="flex items-center gap-2 px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold shadow-md transition-all active:scale-95 cursor-pointer"
                 >
                   <Save className="w-4 h-4" />
-                  <span>Simpan Penilaian</span>
+                  <span>Simpan</span>
                 </button>
+
+                {hasNext && (
+                  <button
+                    type="button"
+                    onClick={handleSaveAndNext}
+                    className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-[#001c3c] text-xs font-black shadow-md transition-all active:scale-95 cursor-pointer"
+                    title="Simpan penilaian peserta ini dan langsung lanjut buka peserta berikutnya"
+                  >
+                    <span>Simpan & Lanjut</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
           </div>

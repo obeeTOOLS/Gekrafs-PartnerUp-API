@@ -37,48 +37,97 @@ app.post('/api/ai/review-roadmap', async (req, res) => {
       // Fallback rule-based intelligent analysis if API key not configured
       const hasVision = Boolean(task.visi && task.visi.length > 20);
       const hasMission = Boolean(task.misi && task.misi.length > 20);
+      const objText = (task.objective || '').trim();
+      const hasNumbers = /[0-9]+/.test(objText) || /omzet|rp|jt|juta|persen|%|pcs|pack|botol/i.test(objText);
       const hasMatrix = Boolean(task.matriks && Object.keys(task.matriks).length > 0);
+      const hasBreakthrough = Boolean(task.matriks?.breakthrough?.recent || task.matriks?.breakthrough?.midTerm);
       
-      const calculatedScore = (hasVision ? 30 : 15) + (hasMission ? 30 : 15) + (hasMatrix ? 28 : 10);
+      let calculatedScore = 70;
+      if (hasVision) calculatedScore += 7;
+      if (hasMission) calculatedScore += 7;
+      if (hasNumbers) calculatedScore += 5;
+      if (hasMatrix) calculatedScore += 4;
+      if (hasBreakthrough) calculatedScore += 4;
+      calculatedScore = Math.min(Math.max(calculatedScore, 68), 95);
+
       const isApproved = calculatedScore >= 75;
+      const strengths = [
+        hasVision ? 'Visi usaha terartikulasi dengan orientasi masa depan yang jelas' : 'Produk memiliki keterkaitan kuat dengan potensi lokal Kota Batu',
+        hasBreakthrough ? 'Inisiatif breakthrough inovasi produk terencana dengan matang' : 'Terdapat pemetaan aksi bertahap pada matriks inovasi'
+      ];
+      const improvements = [
+        hasNumbers ? 'Pecah target 90 hari ke dalam milestone mingguan agar beban kerja tim merata' : 'Pertajam indikator capaian terukur (omzet/kuantitas target) pada objective 90 hari',
+        'Pastikan kepatuhan legalitas (NIB/Halal/PIRT) dan pencatatan keuangan terpisah dari kas pribadi'
+      ];
+      const draftNotes = `Pondasi perencanaan strategis untuk ${task.namaUsaha || 'usaha ini'} sudah memiliki arah yang baik (${calculatedScore}/100). Fokuskan eksekusi pada kuartal pertama dan perkuat jejaring kolaborasi ekosistem kreatif Kota Batu.`;
+
+      const waDraftMessage = `Halo Kak *${task.namaPemilik || 'Founder'}* (*${task.namaUsaha}*)! 👋✨\n\n` +
+        `Lembar Aksi & Peta Jalan Bisnis Anda di *GEKRAFS PartnerUp 2026 Kota Batu* telah selesai direview oleh tim kurator:\n\n` +
+        `🏆 *Hasil Kurasi:* ${isApproved ? '✅ Disetujui (Lulus Kurasi)' : '⚠️ Perlu Revisi Ringan'}\n` +
+        `⭐ *Skor Penilaian:* *${calculatedScore}/100*\n\n` +
+        `💡 *Kekuatan Utama Usaha Kakak:*\n${strengths.map(s => `• ${s}`).join('\n')}\n\n` +
+        `🎯 *Saran Aksi Konkret (90 Hari Kedepan):*\n${improvements.map(i => `• ${i}`).join('\n')}\n\n` +
+        `📝 *Catatan Mentor:*\n"${draftNotes}"\n\n` +
+        `Tetap semangat mengakselerasi pertumbuhan bisnis bersama ekosistem ekonomi kreatif Kota Batu! 🚀\n\n` +
+        `Salam hormat,\n*Tim Kurator GEKRAFS PartnerUp 2026 Kota Batu*`;
 
       return res.json({
         recommendedScore: calculatedScore,
         recommendedStatus: isApproved ? 'reviewed' : 'revision',
         summary: `Analisis roadmap untuk ${task.namaUsaha || 'peserta'}: pondasi visi dan misi ${hasVision && hasMission ? 'sudah terstruktur dengan baik' : 'masih membutuhkan penajaman'}.`,
-        strengths: [
-          hasVision ? 'Visi jangka panjang terartikulasi dengan orientasi masa depan' : 'Usaha memiliki potensi sektor kreatif yang relevan',
-          hasMatrix ? 'Terdapat pemetaan inisiatif aksi pada matriks inovasi' : 'Identifikasi segmen usaha sudah cukup terarah'
-        ],
-        improvements: [
-          'Pertajam indikator keberhasilan (KPI) terukur pada setiap kuartal aksi',
-          'Pastikan strategi mitigasi risiko operasional dan kepatuhan legalitas diprioritaskan'
-        ],
-        draftMentorNotes: `Pondasi perencanaan untuk ${task.namaUsaha || 'usaha ini'} sudah memiliki arah yang baik. Pada implementasi program, fokuskan eksekusi pada matriks breakthrough kuartal pertama dan perkuat kolaborasi jejaring rantai pasok lokal.`
+        strengths,
+        improvements,
+        smartEvaluation: {
+          isSpecific: objText.length > 20,
+          isMeasurable: hasNumbers,
+          isActionable: objText.length > 30,
+          notes: hasNumbers ? 'Target 90 hari sudah memiliki indikator angka terukur.' : 'Target masih perlu ditambahkan angka capaian kuantitatif.'
+        },
+        matrixAnalysis: {
+          problemSolvingFeedback: 'Fokus penanganan kendala dasar operasional harian sudah teridentifikasi.',
+          incrementalFeedback: 'Rencana peningkatan bertahap selaras dengan kapasitas usaha.',
+          breakthroughFeedback: hasBreakthrough ? 'Inovasi terobosan potensial membuka ceruk pasar baru.' : 'Perlu dipikirkan terobosan produk unik sebagai pembeda.'
+        },
+        draftMentorNotes: draftNotes,
+        waDraftMessage
       });
     }
 
     const prompt = `Anda adalah Kurator Senior dan Mentor Bisnis UMKM untuk program Gekrafs PartnerUp Kota Batu (Gerakan Ekonomi Kreatif Nasional).
-Tugas Anda adalah menganalisis lembar rencana strategis (Strategic Roadmap Canvas) peserta UMKM berikut secara objektif, kritis, dan suportif:
+Tugas Anda adalah menganalisis lembar rencana strategis (Strategic Roadmap Canvas) peserta UMKM berikut secara objektif, mendalam, kritis, dan berakar pada ekosistem lokal Kota Wisata Batu:
 
 Nama Usaha: ${task.namaUsaha || '-'}
 Nama Pemilik: ${task.namaPemilik || '-'}
 Subsektor Kreatif: ${task.subsektor || '-'}
 Visi Jangka Panjang: ${task.visi || '-'}
 Misi Usaha: ${task.misi || '-'}
+Target Sasaran (Goal): ${task.goal || '-'}
+Objective 90 Hari: ${task.objective || '-'}
 Nilai Inti Usaha (Core Values): ${task.nilaiUsaha || '-'}
 Keahlian Inti Organisasi: ${task.keahlianOrganisasi || '-'}
-Matriks Inovasi & Rencana Aksi Nyata:
+Matriks Inovasi Horizon 3x3 (Problem Solving, Incremental, Breakthrough):
 ${JSON.stringify(task.matriks || {}, null, 2)}
 
 Berikan analisis kurasi profesional dalam format JSON valid (wajib JSON murni tanpa markdown fence/backticks) dengan struktur berikut:
 {
-  "recommendedScore": <angka bulat antara 65 sampai 96>,
+  "recommendedScore": <angka bulat antara 68 sampai 96>,
   "recommendedStatus": "<'reviewed' jika skor >= 75, atau 'revision' jika ada kelemahan fatal>",
-  "summary": "<ringkasan singkat 1-2 kalimat tentang kematangan roadmap usaha>",
-  "strengths": ["<poin kekuatan strategis 1>", "<poin kekuatan strategis 2>"],
-  "improvements": ["<area perbaikan / risiko yang perlu diwaspadai 1>", "<area perbaikan / risiko yang perlu diwaspadai 2>"],
-  "draftMentorNotes": "<paragraf ulasan mentor yang ramah, solutif, berbasis aksi nyata yang siap disalin ke kartu catatan umpan balik mentor>"
+  "summary": "<ringkasan tajam 1-2 kalimat tentang potensi dan kematangan strategi usaha>",
+  "strengths": ["<poin kekuatan strategis 1 yang spesifik terhadap produk/layanan usaha ini>", "<poin kekuatan strategis 2>"],
+  "improvements": ["<area perbaikan konkret 1 yang harus dieksekusi dalam 90 hari ke depan>", "<area perbaikan konkret 2>"],
+  "smartEvaluation": {
+    "isSpecific": <true/false>,
+    "isMeasurable": <true/false>,
+    "isActionable": <true/false>,
+    "notes": "<analisis singkat apakah target objective 90 hari sudah SMART atau masih abstrak>"
+  },
+  "matrixAnalysis": {
+    "problemSolvingFeedback": "<ulasan solusi kendala harian>",
+    "incrementalFeedback": "<ulasan peningkatan bertahap>",
+    "breakthroughFeedback": "<ulasan lompatan inovasi terobosan>"
+  },
+  "draftMentorNotes": "<paragraf ulasan mentor yang ramah, berbobot, dan solutif>",
+  "waDraftMessage": "<teks lengkap pesan WhatsApp resmi yang ramah, sopan, memuat nama pemilik, nama brand, status, nilai, poin kekuatan, saran aksi, serta catatan kurator, diformat rapi dengan emoji>"
 }`;
 
     try {
