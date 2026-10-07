@@ -20,6 +20,7 @@ import {
   FileText
 } from 'lucide-react';
 import { PanduanHakAksesPdfModal } from './PanduanHakAksesPdfModal';
+import { PanduanAksesKasPinPdfModal } from './PanduanAksesKasPinPdfModal';
 
 interface EngineerModalProps {
   isOpen: boolean;
@@ -42,6 +43,7 @@ export const EngineerModal: React.FC<EngineerModalProps> = ({
   const [customEmail, setCustomEmail] = useState('');
   const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
   const [isPanduanPdfOpen, setIsPanduanPdfOpen] = useState(false);
+  const [isPanduanKasPdfOpen, setIsPanduanKasPdfOpen] = useState(false);
 
   if (!isOpen) return null;
 
@@ -353,8 +355,17 @@ export const EngineerModal: React.FC<EngineerModalProps> = ({
             </div>
           )}
 
-          {/* Tombol Cetak / Simpan Panduan Hak Akses (PDF) */}
-          <div className="pt-2 border-t border-slate-100">
+          {/* Tombol Cetak / Simpan Panduan Hak Akses & Kas PIN (PDF) */}
+          <div className="pt-2 border-t border-slate-100 space-y-2">
+            <button
+              type="button"
+              onClick={() => setIsPanduanKasPdfOpen(true)}
+              className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-teal-700 via-emerald-700 to-teal-800 hover:from-teal-600 hover:to-emerald-600 text-white font-extrabold text-xs shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all"
+            >
+              <KeyRound className="w-4 h-4 text-amber-300" />
+              <span>💼 Buku Panduan Akses Kas & Reset PIN (PDF)</span>
+            </button>
+
             <button
               type="button"
               onClick={() => setIsPanduanPdfOpen(true)}
@@ -393,6 +404,12 @@ export const EngineerModal: React.FC<EngineerModalProps> = ({
       <PanduanHakAksesPdfModal
         isOpen={isPanduanPdfOpen}
         onClose={() => setIsPanduanPdfOpen(false)}
+      />
+
+      {/* Dokumen PDF Panduan Akses Kas & Reset PIN */}
+      <PanduanAksesKasPinPdfModal
+        isOpen={isPanduanKasPdfOpen}
+        onClose={() => setIsPanduanKasPdfOpen(false)}
       />
     </div>
   );

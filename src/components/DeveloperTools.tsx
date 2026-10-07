@@ -13,6 +13,7 @@ import { WhatsAppSettingsModal } from './WhatsAppSettingsModal';
 import { WhatsAppBroadcastModal } from './WhatsAppBroadcastModal';
 import { ExecutiveDossier } from './ExecutiveDossier';
 import { PanduanHakAksesPdfModal } from './PanduanHakAksesPdfModal';
+import { PanduanAksesKasPinPdfModal } from './PanduanAksesKasPinPdfModal';
 import { TaskQuestionEditor } from './TaskQuestionEditor';
 import { 
   Terminal, 
@@ -48,6 +49,7 @@ import {
   Trash2,
   Compass,
   Wallet,
+  Printer,
   X
 } from 'lucide-react';
 import { UntunginKasModal } from './UntunginKasModal';
@@ -92,6 +94,7 @@ export const DeveloperTools: React.FC = () => {
   const [isWaSettingsOpen, setIsWaSettingsOpen] = useState(false);
   const [isWaBroadcastOpen, setIsWaBroadcastOpen] = useState(false);
   const [isPanduanPdfOpen, setIsPanduanPdfOpen] = useState(false);
+  const [isPanduanKasPdfOpen, setIsPanduanKasPdfOpen] = useState(false);
   const [waSettings, setWaSettings] = useState(whatsappService.getSettings());
   const [quickTokenInput, setQuickTokenInput] = useState(waSettings.fonnteToken || '');
   const [showQuickToken, setShowQuickToken] = useState(false);
@@ -334,6 +337,16 @@ export const DeveloperTools: React.FC = () => {
           >
             <FileText className="w-4 h-4 text-amber-300 group-hover:scale-110 transition-transform" />
             <span>Panduan Hak Akses (PDF)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsPanduanKasPdfOpen(true)}
+            className="flex-shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-700 to-emerald-700 hover:from-teal-600 hover:to-emerald-600 text-white font-black text-xs shadow-md transition-all group cursor-pointer"
+            title="Buka & Cetak Buku Panduan Akses Kas & Reset PIN Peserta (Format PDF)"
+          >
+            <KeyRound className="w-4 h-4 text-amber-300 group-hover:scale-110 transition-transform" />
+            <span>Panduan Kas & PIN (PDF)</span>
           </button>
 
           <a
@@ -588,14 +601,23 @@ export const DeveloperTools: React.FC = () => {
                 </p>
               </div>
 
-              {/* Pencarian */}
-              <div className="w-full sm:w-72">
+              {/* Pencarian & Tombol Cetak PDF */}
+              <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => setIsPanduanKasPdfOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-teal-700 to-emerald-700 hover:from-teal-600 hover:to-emerald-600 text-white font-extrabold text-xs shadow-sm cursor-pointer whitespace-nowrap transition-all"
+                  title="Buka Dokumen Cetak/PDF Panduan Akses Kas & Reset PIN"
+                >
+                  <Printer className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Cetak Panduan (PDF)</span>
+                </button>
                 <input
                   type="text"
                   placeholder="Cari nama usaha / pemilik / WA..."
                   value={pesertaPinSearch}
                   onChange={(e) => setPesertaPinSearch(e.target.value)}
-                  className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#004c80] outline-none"
+                  className="w-full sm:w-60 px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#004c80] outline-none"
                 />
               </div>
             </div>
@@ -1229,6 +1251,12 @@ export const DeveloperTools: React.FC = () => {
       <PanduanHakAksesPdfModal
         isOpen={isPanduanPdfOpen}
         onClose={() => setIsPanduanPdfOpen(false)}
+      />
+
+      {/* Modal Cetak Dokumen Panduan Akses Kas & Reset PIN (PDF) */}
+      <PanduanAksesKasPinPdfModal
+        isOpen={isPanduanKasPdfOpen}
+        onClose={() => setIsPanduanKasPdfOpen(false)}
       />
 
       {/* Modal Penggantian PIN / Password Khusus Developer */}
