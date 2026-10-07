@@ -7,7 +7,8 @@ import {
   ShieldCheck,
   Terminal,
   Store,
-  Compass
+  Compass,
+  Wallet
 } from 'lucide-react';
 import { EngineerSession } from '../services/authService';
 
@@ -17,6 +18,7 @@ interface MobileNavProps {
   isAdminLoggedIn: boolean;
   engineerSession?: EngineerSession | null;
   onOpenEngineerModal?: () => void;
+  onOpenUntungin?: () => void;
 }
 
 export const MobileNav: React.FC<MobileNavProps> = ({
@@ -24,15 +26,13 @@ export const MobileNav: React.FC<MobileNavProps> = ({
   setActiveTab,
   isAdminLoggedIn,
   engineerSession,
-  onOpenEngineerModal
+  onOpenEngineerModal,
+  onOpenUntungin
 }) => {
   const isEngineer = !!engineerSession;
   const isPesertaPerspective = isEngineer && engineerSession.activePerspective === 'peserta';
   const showAdminTab = (isAdminLoggedIn || isEngineer) && !isPesertaPerspective;
   const showDevTab = isEngineer && engineerSession.activePerspective === 'developer';
-
-  // Total columns calculation for mobile bottom bar
-  const colCount = showDevTab ? 'grid-cols-8' : showAdminTab ? 'grid-cols-7' : 'grid-cols-6';
 
   return (
     <nav 
@@ -40,7 +40,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
       className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-slate-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] print:hidden"
       style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 6px)' }}
     >
-      <div className={`grid ${colCount} h-16 max-w-md mx-auto px-1 items-center`}>
+      <div className="flex items-center justify-around h-16 max-w-md mx-auto px-1">
         {/* Tab 1: Pendaftaran */}
         <button
           type="button"
@@ -159,6 +159,21 @@ export const MobileNav: React.FC<MobileNavProps> = ({
           </div>
           <span className="text-[10px] font-medium tracking-tight mt-1 leading-none">Direktori</span>
         </button>
+
+        {/* Tab: Buku Kas Untungin */}
+        {onOpenUntungin && (
+          <button
+            type="button"
+            onClick={onOpenUntungin}
+            className="flex flex-col items-center justify-center h-full min-h-[48px] py-1 transition-all rounded-lg active:scale-95 text-purple-700 hover:text-purple-950"
+            title="Buka Buku Kas & Laporan Keuangan Untungin"
+          >
+            <div className="relative">
+              <Wallet className="w-5 h-5 stroke-[2.5] text-purple-600" />
+            </div>
+            <span className="text-[10px] font-bold tracking-tight mt-1 leading-none text-purple-700">Kas</span>
+          </button>
+        )}
 
         {/* Tab 5: Admin (Visible if Admin or Engineer) */}
         {showAdminTab && (

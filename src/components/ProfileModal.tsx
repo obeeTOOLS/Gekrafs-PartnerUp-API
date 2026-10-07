@@ -1,7 +1,8 @@
 import React from 'react';
 import { PesertaItem } from '../types';
-import { X, MessageCircle, Mail, Instagram, MapPin, Building, FileCheck, Wallet } from 'lucide-react';
+import { X, MessageCircle, Mail, Instagram, MapPin, Building, FileCheck, Wallet, KeyRound } from 'lucide-react';
 import { toWaLink } from '../utils/qrUtils';
+import { kasService } from '../services/kasService';
 
 interface ProfileModalProps {
   peserta: PesertaItem | null;
@@ -112,17 +113,31 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ peserta, onClose, on
           {/* Action Links */}
           <div className="pt-3 border-t border-slate-100 space-y-2">
             {onOpenUntungin && (
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onOpenUntungin(peserta);
-                }}
-                className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#001c3c] to-[#003366] text-white font-bold hover:from-[#002b55] transition-all shadow-sm cursor-pointer"
-              >
-                <Wallet className="w-4 h-4 text-amber-300" />
-                <span>Buka Buku Kas Untungin ({peserta.namaUsaha})</span>
-              </button>
+              <div className="space-y-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenUntungin(peserta);
+                  }}
+                  className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#001c3c] to-[#003366] text-white font-bold hover:from-[#002b55] transition-all shadow-sm cursor-pointer"
+                >
+                  <Wallet className="w-4 h-4 text-amber-300" />
+                  <span>Buka Buku Kas Untungin ({peserta.namaUsaha})</span>
+                </button>
+                {(() => {
+                  const pinData = kasService.getKasPin(peserta.namaUsaha);
+                  return (
+                    <div className="flex items-center justify-between px-2 text-[11px] text-slate-500">
+                      <span className="flex items-center gap-1">
+                        <KeyRound className="w-3 h-3 text-amber-600" />
+                        <span>Status PIN: {pinData.isDefaultPin ? 'Standar (123456)' : 'Kustom Terproteksi'}</span>
+                      </span>
+                      <span className="text-slate-400">Dapat di-reset via Dev Hub</span>
+                    </div>
+                  );
+                })()}
+              </div>
             )}
 
             <a

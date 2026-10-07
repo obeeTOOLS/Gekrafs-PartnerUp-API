@@ -47,12 +47,14 @@ import {
   Wrench,
   Trash2,
   Compass,
-  Wallet
+  Wallet,
+  X
 } from 'lucide-react';
 import { UntunginKasModal } from './UntunginKasModal';
+import { kasService, DEFAULT_KAS_PIN } from '../services/kasService';
 
 export const DeveloperTools: React.FC = () => {
-  const [devView, setDevView] = useState<'accounts' | 'questions' | 'dossier' | 'tools'>('accounts');
+  const [devView, setDevView] = useState<'accounts' | 'questions' | 'dossier' | 'kas_pin' | 'tools'>('accounts');
   const [copiedCode, setCopiedCode] = useState(false);
   const [isUntunginDevModalOpen, setIsUntunginDevModalOpen] = useState(false);
   const [testUrl, setTestUrl] = useState(gasService.getSettings().gasEndpointUrl);
@@ -70,6 +72,12 @@ export const DeveloperTools: React.FC = () => {
     confirmLabel?: string;
     onConfirm: () => void;
   } | null>(null);
+
+  // State Manajemen Reset PIN Kas Peserta
+  const [pesertaPinSearch, setPesertaPinSearch] = useState('');
+  const [selectedPesertaForCustomPin, setSelectedPesertaForCustomPin] = useState<string | null>(null);
+  const [customPesertaPinInput, setCustomPesertaPinInput] = useState('');
+  const [activeUntunginPeserta, setActiveUntunginPeserta] = useState<{ namaUsaha: string; namaPemilik?: string; whatsapp?: string } | null>(null);
 
   // Developer Accounts & PIN states
   const [devAccounts, setDevAccounts] = useState<AdminAccount[]>(() => authService.getDeveloperAccounts());
@@ -384,6 +392,19 @@ export const DeveloperTools: React.FC = () => {
 
         <button
           type="button"
+          onClick={() => setDevView('kas_pin')}
+          className={`flex-1 py-3 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            devView === 'kas_pin'
+              ? 'bg-[#001c3c] text-white shadow-md'
+              : 'text-slate-700 hover:bg-white/60'
+          }`}
+        >
+          <KeyRound className="w-4 h-4 text-amber-400" />
+          <span>Reset PIN Kas Peserta</span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => setDevView('tools')}
           className={`flex-1 py-3 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
             devView === 'tools'
@@ -548,6 +569,189 @@ export const DeveloperTools: React.FC = () => {
 
       {devView === 'dossier' && (
         <ExecutiveDossier />
+      )}
+
+      {devView === 'kas_pin' && (
+        <div className="space-y-6 animate-in fade-in">
+          <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+              <div>
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-600">
+                  <KeyRound className="w-4 h-4" />
+                  <span>Manajemen Keamanan PIN Kas Peserta (Untungin)</span>
+                </div>
+                <h2 className="text-lg sm:text-xl font-black text-[#001c3c] mt-0.5">
+                  Reset & Pemulihan PIN Buku Kas UMKM
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Sebagai Lead Developer / Core Engineer, Anda dapat memantau status PIN peserta dan melakukan reset instan jika ada peserta yang lupa PIN mereka.
+                </p>
+              </div>
+
+              {/* Pencarian */}
+              <div className="w-full sm:w-72">
+                <input
+                  type="text"
+                  placeholder="Cari nama usaha / pemilik / WA..."
+                  value={pesertaPinSearch}
+                  onChange={(e) => setPesertaPinSearch(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#004c80] outline-none"
+                />
+              </div>
+            </div>
+
+            {/* List Peserta */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50/60 text-slate-700 font-extrabold uppercase tracking-wider text-[11px]">
+                    <th className="py-3 px-3">Nama Usaha / Brand</th>
+                    <th className="py-3 px-3">Pemilik & WhatsApp</th>
+                    <th className="py-3 px-3 text-center">Status PIN Kas</th>
+                    <th className="py-3 px-3 text-center">Tindakan Developer</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {(() => {
+                    const allPeserta = gasService.getPeserta();
+                    const filtered = allPeserta.filter(p => {
+                      const q = pesertaPinSearch.toLowerCase().trim();
+                      if (!q) return true;
+                      return (
+                        (p.namaUsaha || '').toLowerCase().includes(q) ||
+                        (p.namaPemilik || '').toLowerCase().includes(q) ||
+                        (p.whatsapp || '').includes(q)
+                      );
+                    });
+
+                    if (filtered.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={4} className="py-8 text-center text-slate-400 font-medium">
+                            Tidak ditemukan peserta yang sesuai pencarian "{pesertaPinSearch}".
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    return filtered.map((p, idx) => {
+                      const pinData = kasService.getKasPin(p.namaUsaha);
+                      return (
+                        <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                          <td className="py-3 px-3">
+                            <span className="font-extrabold text-[#001c3c] text-sm block">
+                              {p.namaUsaha}
+                            </span>
+                            <span className="text-[11px] text-slate-400">
+                              {p.subsektor || 'Ekraf Batu'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3">
+                            <span className="font-bold text-slate-800 block">
+                              {p.namaPemilik || '—'}
+                            </span>
+                            <a
+                              href={`https://wa.me/${(p.whatsapp || '').replace(/[^0-9]/g, '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[11px] text-[#004c80] hover:underline font-mono"
+                            >
+                              {p.whatsapp || '—'}
+                            </a>
+                          </td>
+                          <td className="py-3 px-3 text-center">
+                            {pinData.isDefaultPin ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                <span>Standar: <code>123456</code></span>
+                              </span>
+                            ) : (
+                              <div className="inline-flex flex-col items-center">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                  <span>Diubah Peserta</span>
+                                </span>
+                                <span className="text-[10px] text-slate-500 font-mono mt-0.5">
+                                  PIN: <strong>{pinData.pin}</strong>
+                                </span>
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-3 px-3 text-center">
+                            <div className="flex items-center justify-center gap-1.5">
+                              {/* Reset ke 123456 */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPartnerUpConfirm({
+                                    isOpen: true,
+                                    title: 'PartnerUp Says',
+                                    message: `Reset PIN Buku Kas "${p.namaUsaha}" ke default (123456)?`,
+                                    details: `Peserta atas nama ${p.namaPemilik || p.namaUsaha} akan dapat langsung membuka buku kas kembali menggunakan PIN 123456.`,
+                                    confirmLabel: 'Ya, Reset ke 123456',
+                                    onConfirm: () => {
+                                      const res = kasService.resetKasPin(p.namaUsaha, DEFAULT_KAS_PIN, 'Lead Developer');
+                                      setResetMessage(res.message);
+                                      setTimeout(() => setResetMessage(null), 4000);
+                                      setPartnerUpConfirm(null);
+                                    }
+                                  });
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-xs transition-colors flex items-center gap-1 cursor-pointer"
+                                title="Reset PIN ke standar 123456"
+                              >
+                                <RotateCcw className="w-3.5 h-3.5" />
+                                <span>Reset 123456</span>
+                              </button>
+
+                              {/* Set PIN Kustom */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedPesertaForCustomPin(p.namaUsaha);
+                                  setCustomPesertaPinInput('');
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors flex items-center gap-1 cursor-pointer"
+                                title="Atur PIN baru secara khusus untuk peserta ini"
+                              >
+                                <Key className="w-3.5 h-3.5 text-purple-600" />
+                                <span>Set Kustom</span>
+                              </button>
+
+                              {/* Buka Buku Kas */}
+                              <button
+                                type="button"
+                                onClick={() => setActiveUntunginPeserta({
+                                  namaUsaha: p.namaUsaha,
+                                  namaPemilik: p.namaPemilik,
+                                  whatsapp: p.whatsapp
+                                })}
+                                className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-900 font-bold text-xs transition-colors flex items-center gap-1 cursor-pointer"
+                                title="Buka buku kas usaha peserta ini"
+                              >
+                                <Wallet className="w-3.5 h-3.5 text-purple-600" />
+                                <span>Buka Kas</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    });
+                  })()}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Kotak Petunjuk Developer */}
+            <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-4 text-xs text-amber-950 space-y-1">
+              <div className="font-bold flex items-center gap-1.5 text-amber-900">
+                <ShieldCheck className="w-4 h-4 text-amber-700" />
+                <span>Petunjuk Penanganan Peserta Lupa PIN:</span>
+              </div>
+              <p className="leading-relaxed text-slate-700">
+                Setiap peserta memiliki PIN kas bawaan <strong>123456</strong>. Jika ada peserta yang menghubungi panitia karena lupa PIN yang telah digantinya, klik tombol <strong>"Reset 123456"</strong> untuk mengembalikannya ke bawaan atau gunakan <strong>"Set Kustom"</strong> untuk menentukan PIN sesuai keinginan peserta.
+              </p>
+            </div>
+          </div>
+        </div>
       )}
 
       {devView === 'tools' && (
@@ -1134,6 +1338,100 @@ export const DeveloperTools: React.FC = () => {
           readOnly={false}
           viewerRole="developer"
         />
+      )}
+
+      {/* Modal Untungin Kas untuk Peserta Terpilih */}
+      {activeUntunginPeserta && (
+        <UntunginKasModal
+          isOpen={true}
+          onClose={() => setActiveUntunginPeserta(null)}
+          namaUsaha={activeUntunginPeserta.namaUsaha}
+          namaPemilik={activeUntunginPeserta.namaPemilik}
+          whatsapp={activeUntunginPeserta.whatsapp}
+          readOnly={false}
+          viewerRole="developer"
+        />
+      )}
+
+      {/* Modal Atur PIN Kustom Peserta oleh Developer */}
+      {selectedPesertaForCustomPin && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-[#001c3c]">
+                    Atur PIN Baru Peserta
+                  </h4>
+                  <p className="text-[11px] text-slate-400">
+                    {selectedPesertaForCustomPin}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedPesertaForCustomPin(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!customPesertaPinInput.trim() || customPesertaPinInput.trim().length < 4) {
+                  return;
+                }
+                const res = kasService.resetKasPin(
+                  selectedPesertaForCustomPin,
+                  customPesertaPinInput.trim(),
+                  'Lead Developer'
+                );
+                setResetMessage(res.message);
+                setTimeout(() => setResetMessage(null), 4000);
+                setSelectedPesertaForCustomPin(null);
+                setCustomPesertaPinInput('');
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide mb-1">
+                  PIN Baru untuk Peserta (4-8 Digit Angka)
+                </label>
+                <input
+                  type="text"
+                  maxLength={8}
+                  required
+                  placeholder="contoh: 262626"
+                  value={customPesertaPinInput}
+                  onChange={(e) => setCustomPesertaPinInput(e.target.value)}
+                  className="w-full px-3 py-2 text-center text-lg font-mono font-black border border-slate-300 rounded-xl focus:border-amber-500 focus:ring-2 focus:ring-amber-100 outline-none"
+                  autoFocus
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedPesertaForCustomPin(null)}
+                  className="py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-100 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="py-2.5 rounded-xl bg-[#001c3c] hover:bg-[#002c5c] text-white font-bold text-xs shadow-sm cursor-pointer"
+                >
+                  Simpan PIN
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* Custom Confirmation Modal "PartnerUp Says" di Tengah Layar */}

@@ -23,11 +23,6 @@ import { Check, Lock, Terminal } from 'lucide-react';
 export default function App() {
   // Cek apakah ada sesi login aktif (Engineer, Admin Whitelist, atau Peserta)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('logout') === 'true' || params.get('keluar') === 'true') {
-      authService.clearAllSessions();
-      return false;
-    }
     return authService.isAnyUserLoggedIn();
   });
   // Query param auto-routing (?page=admin, ?page=info, ?page=asesmen, ?page=kehadiran, ?sesi_id=...)
@@ -150,8 +145,8 @@ export default function App() {
 
     checkSync();
 
-    // Rahasia bagi Lead Developer untuk membuka konsol: Ctrl+Shift+D atau URL query ?dev=true
-    if (window.location.search.includes('dev=true') || window.location.search.includes('developer=1')) {
+    // Rahasia bagi Lead Developer untuk membuka konsol: Ctrl+Shift+D atau URL query ?dev=true (hanya jika sudah login sebagai engineer)
+    if ((window.location.search.includes('dev=true') || window.location.search.includes('developer=1')) && authService.getCurrentSession()) {
       setIsEngineerModalOpen(true);
     }
 
@@ -278,7 +273,6 @@ export default function App() {
         onOpenShare={() => setIsShareOpen(true)}
         onOpenHelp={() => setIsHelpOpen(true)}
         onLogout={handleAdminLogout}
-        onOpenUntungin={handleOpenGlobalUntungin}
       />
 
       {/* Main Content Workspace with Sleek Top Header */}
@@ -467,6 +461,7 @@ export default function App() {
         isAdminLoggedIn={isAdminLoggedIn || !!engineerSession}
         engineerSession={engineerSession}
         onOpenEngineerModal={() => setIsEngineerModalOpen(true)}
+        onOpenUntungin={handleOpenGlobalUntungin}
       />
 
       {/* Modals */}

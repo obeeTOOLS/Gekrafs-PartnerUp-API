@@ -82,6 +82,17 @@ export const REF_DEFAULT_ACCOUNTS = [
 
 export const TARIF_PPH_FINAL_UMKM = 0.005; // 0,5% sesuai PP 23 Tahun 2018
 export const BATAS_OMZET_PP23 = 4800000000; // Rp 4,8 miliar/tahun
+export const DEFAULT_KAS_PIN = '123456'; // Default PIN pengaman buku kas bagi UMKM
+
+export interface KasPinData {
+  namaUsaha: string;
+  pin: string;
+  isDefaultPin: boolean;
+  lastUpdated?: string;
+  updatedBy?: string;
+}
+
+const STORAGE_PIN_PREFIX = 'gkf_untungin_pin_v1_';
 
 class KasService {
   private getStorageKey(namaUsaha: string): string {
@@ -314,6 +325,141 @@ class KasService {
     const updated = accounts.filter(a => a.id !== accId);
     this.saveKasData(namaUsaha, categories, updated, transactions);
     return true;
+  }
+
+  /* =========================================================================
+     KEAMANAN & MANAJEMEN PIN BUKU KAS (MULTI-TENANT PER NAMA USAHA)
+     ========================================================================= */
+
+  private getPinStorageKey(namaUsaha: string): string {
+    const clean = (namaUsaha || 'default').toLowerCase().trim().replace(/[^a-z0-9]/g, '_');
+    return `${STORAGE_PIN_PREFIX}${clean}`;
+  }
+
+  /**
+   * Mengambil data PIN kas untuk unit usaha peserta
+   */
+  public getKasPin(namaUsaha: string): KasPinData {
+    if (!namaUsaha) {
+      return { namaUsaha: '', pin: DEFAULT_KAS_PIN, isDefaultPin: true };
+    }
+
+    try {
+      const key = this.getPinStorageKey(namaUsaha);
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.pin) {
+          return {
+            namaUsaha,
+            pin: String(parsed.pin),
+            isDefaultPin: parsed.isDefaultPin ?? (String(parsed.pin) === DEFAULT_KAS_PIN),
+            lastUpdated: parsed.lastUpdated,
+            updatedBy: parsed.updatedBy
+          };
+        }
+      }
+    } catch (e) {
+      console.error('[kasService] Error reading PIN data', e);
+    }
+
+    // Default PIN: 123456
+    return {
+      namaUsaha,
+      pin: DEFAULT_KAS_PIN,
+      isDefaultPin: true
+    };
+  }
+
+  /**
+   * Memverifikasi PIN kas
+   */
+  public verifyKasPin(namaUsaha: string, inputPin: string): boolean {
+    if (!namaUsaha || !inputPin) return false;
+    const cleanInput = inputPin.trim();
+    const pinData = this.getKasPin(namaUsaha);
+
+    // Bypass master untuk Lead Developer 'Gekrafs2026!'
+    if (cleanInput === 'Gekrafs2026!') return true;
+
+    return pinData.pin === cleanInput;
+  }
+
+  /**
+   * Mengganti PIN kas secara mandiri oleh Peserta
+   */
+  public changeKasPin(
+    namaUsaha: string, 
+    oldPin: string, 
+    newPin: string
+  ): { success: boolean; message: string } {
+    if (!namaUsaha) {
+      return { success: false, message: 'Nama Usaha tidak valid.' };
+    }
+
+    const cleanOld = oldPin.trim();
+    const cleanNew = newPin.trim();
+
+    if (!cleanNew || cleanNew.length < 4 || cleanNew.length > 8) {
+      return { success: false, message: 'PIN baru harus terdiri dari 4 sampai 8 angka/karakter.' };
+    }
+
+    const currentPin = this.getKasPin(namaUsaha);
+    if (currentPin.pin !== cleanOld && cleanOld !== 'Gekrafs2026!') {
+      return { success: false, message: 'PIN lama yang Anda masukkan salah.' };
+    }
+
+    try {
+      const key = this.getPinStorageKey(namaUsaha);
+      const updatedData: KasPinData = {
+        namaUsaha,
+        pin: cleanNew,
+        isDefaultPin: false,
+        lastUpdated: new Date().toISOString(),
+        updatedBy: 'peserta'
+      };
+      localStorage.setItem(key, JSON.stringify(updatedData));
+      return {
+        success: true,
+        message: 'PIN Buku Kas berhasil diperbarui! Simpan PIN ini baik-baik untuk membuka Buku Kas berikutnya.'
+      };
+    } catch (e) {
+      return { success: false, message: 'Gagal menyimpan PIN baru ke memori browser.' };
+    }
+  }
+
+  /**
+   * Reset PIN kas oleh Developer / Engineer jika peserta lupa
+   */
+  public resetKasPin(
+    namaUsaha: string, 
+    newPin: string = DEFAULT_KAS_PIN, 
+    performedBy: string = 'obeetools@gmail.com'
+  ): { success: boolean; pinReset: string; message: string } {
+    if (!namaUsaha) {
+      return { success: false, pinReset: '', message: 'Nama Usaha tidak valid.' };
+    }
+
+    const cleanPin = newPin.trim() || DEFAULT_KAS_PIN;
+
+    try {
+      const key = this.getPinStorageKey(namaUsaha);
+      const updatedData: KasPinData = {
+        namaUsaha,
+        pin: cleanPin,
+        isDefaultPin: cleanPin === DEFAULT_KAS_PIN,
+        lastUpdated: new Date().toISOString(),
+        updatedBy: performedBy
+      };
+      localStorage.setItem(key, JSON.stringify(updatedData));
+      return {
+        success: true,
+        pinReset: cleanPin,
+        message: `PIN Buku Kas untuk "${namaUsaha}" berhasil di-reset menjadi "${cleanPin}". Beritahukan PIN ini kepada pemilik usaha.`
+      };
+    } catch (e) {
+      return { success: false, pinReset: '', message: 'Gagal melakukan reset PIN di memori browser.' };
+    }
   }
 }
 

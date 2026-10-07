@@ -22,7 +22,12 @@ import {
   DollarSign,
   HelpCircle,
   Building2,
-  Info
+  Info,
+  Lock,
+  Unlock,
+  Key,
+  KeyRound,
+  ShieldCheck
 } from 'lucide-react';
 import {
   kasService,
@@ -32,7 +37,8 @@ import {
   REF_INCOME_CATEGORIES,
   REF_EXPENSE_CATEGORIES,
   TARIF_PPH_FINAL_UMKM,
-  BATAS_OMZET_PP23
+  BATAS_OMZET_PP23,
+  DEFAULT_KAS_PIN
 } from '../services/kasService';
 
 interface UntunginKasModalProps {
@@ -106,6 +112,70 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
     confirmLabel?: string;
     onConfirm: () => void;
   } | null>(null);
+
+  // Keamanan PIN Kas
+  const isDeveloperUser = viewerRole === 'developer' || isObeeCreatives;
+  const [isKasUnlocked, setIsKasUnlocked] = useState<boolean>(() => {
+    return isDeveloperUser;
+  });
+  const [enteredPin, setEnteredPin] = useState('');
+  const [showEnteredPin, setShowEnteredPin] = useState(false);
+  const [pinError, setPinError] = useState<string | null>(null);
+
+  // Modal Ganti PIN Peserta
+  const [isChangePinModalOpen, setIsChangePinModalOpen] = useState(false);
+  const [oldPinInput, setOldPinInput] = useState('');
+  const [newPinInput, setNewPinInput] = useState('');
+  const [confirmNewPinInput, setConfirmNewPinInput] = useState('');
+  const [showPinInputFields, setShowPinInputFields] = useState(false);
+  const [changePinError, setChangePinError] = useState<string | null>(null);
+
+  // Handle Buka Buku Kas dengan PIN
+  const handleUnlockKas = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPinError(null);
+    if (!enteredPin.trim()) {
+      setPinError('Silakan masukkan PIN Buku Kas Anda.');
+      return;
+    }
+    const isValid = kasService.verifyKasPin(namaUsaha, enteredPin.trim());
+    if (isValid) {
+      setIsKasUnlocked(true);
+      setEnteredPin('');
+      showToast('Buku Kas Terbuka!', 'success');
+    } else {
+      setPinError('PIN salah. PIN bawaan awal adalah 123456. Hubungi Developer / Kurator jika Anda lupa PIN.');
+    }
+  };
+
+  // Handle Ganti PIN Peserta
+  const handleChangePinSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setChangePinError(null);
+    if (!oldPinInput.trim()) {
+      setChangePinError('PIN Lama wajib dimasukkan.');
+      return;
+    }
+    if (!newPinInput.trim() || newPinInput.trim().length < 4 || newPinInput.trim().length > 8) {
+      setChangePinError('PIN Baru harus terdiri dari 4 sampai 8 karakter/angka.');
+      return;
+    }
+    if (newPinInput.trim() !== confirmNewPinInput.trim()) {
+      setChangePinError('Konfirmasi PIN Baru tidak sesuai.');
+      return;
+    }
+
+    const res = kasService.changeKasPin(namaUsaha, oldPinInput.trim(), newPinInput.trim());
+    if (res.success) {
+      showToast(res.message, 'success');
+      setIsChangePinModalOpen(false);
+      setOldPinInput('');
+      setNewPinInput('');
+      setConfirmNewPinInput('');
+    } else {
+      setChangePinError(res.message);
+    }
+  };
 
   const showToast = (text: string, type: 'success' | 'error' | 'warning' = 'success') => {
     setToastMsg({ text, type });
@@ -453,14 +523,62 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setHideAmount(!hideAmount)}
-              title={hideAmount ? 'Tampilkan Nominal' : 'Sembunyikan Nominal (Mode Privasi)'}
-              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white transition-all cursor-pointer"
-            >
-              {hideAmount ? <EyeOff className="w-4 h-4 text-amber-300" /> : <Eye className="w-4 h-4" />}
-            </button>
+            {isKasUnlocked && (
+              <>
+                {/* Tombol Ganti PIN Peserta */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsChangePinModalOpen(true);
+                    setOldPinInput('');
+                    setNewPinInput('');
+                    setConfirmNewPinInput('');
+                    setChangePinError(null);
+                  }}
+                  title="Ganti PIN Pengaman Buku Kas Saya"
+                  className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white transition-all text-xs font-bold flex items-center gap-1.5 cursor-pointer border border-white/15"
+                >
+                  <KeyRound className="w-3.5 h-3.5 text-amber-300" />
+                  <span className="hidden sm:inline">Ganti PIN</span>
+                </button>
+
+                {/* Tombol Reset PIN Khusus Developer / Engineer */}
+                {isDeveloperUser && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConfirmDialog({
+                        isOpen: true,
+                        title: 'Untungin Says',
+                        message: `Reset PIN Buku Kas "${namaUsaha}" ke standar (123456)?`,
+                        details: 'Peserta akan dapat kembali membuka buku kas menggunakan PIN 123456.',
+                        confirmLabel: 'Ya, Reset ke 123456',
+                        onConfirm: () => {
+                          setConfirmDialog(null);
+                          const res = kasService.resetKasPin(namaUsaha, DEFAULT_KAS_PIN, 'Lead Developer');
+                          showToast(res.message, 'success');
+                        }
+                      });
+                    }}
+                    title="Reset PIN Peserta ke 123456 (Khusus Developer)"
+                    className="px-2.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#001c3c] transition-all text-xs font-extrabold flex items-center gap-1.5 cursor-pointer shadow-sm"
+                  >
+                    <Key className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Reset PIN</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setHideAmount(!hideAmount)}
+                  title={hideAmount ? 'Tampilkan Nominal' : 'Sembunyikan Nominal (Mode Privasi)'}
+                  className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white transition-all cursor-pointer"
+                >
+                  {hideAmount ? <EyeOff className="w-4 h-4 text-amber-300" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </>
+            )}
+
             <button
               type="button"
               onClick={onClose}
@@ -471,8 +589,94 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
           </div>
         </div>
 
-        {/* 2. SUB-NAVBAR TAB */}
-        <div className="bg-white border-b border-slate-200 px-4 flex items-center justify-between gap-2 overflow-x-auto scrollbar-none flex-shrink-0">
+        {!isKasUnlocked ? (
+          /* TAMPILAN KUNCI PIN BUKU KAS */
+          <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-10 text-center max-w-md mx-auto my-auto space-y-5 animate-in fade-in">
+            <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-blue-600 text-white flex items-center justify-center shadow-xl shadow-purple-500/25">
+              <Lock className="w-8 h-8" />
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="text-lg sm:text-xl font-black text-[#001c3c]">
+                Buku Kas Terproteksi PIN
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Data keuangan dan transaksi <strong className="text-[#004c80]">{namaUsaha}</strong> bersifat privat. Masukkan PIN keamanan untuk membuka.
+              </p>
+            </div>
+
+            {/* Banner Informasi PIN Awal */}
+            <div className="w-full bg-purple-50 border border-purple-200/80 rounded-2xl p-3.5 text-xs text-purple-900 flex items-start gap-3 text-left">
+              <ShieldCheck className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold">
+                  PIN Bawaan Awal: <code className="bg-purple-200/80 px-2 py-0.5 rounded font-mono font-black text-purple-950 tracking-wider">123456</code>
+                </p>
+                <p className="text-[11px] text-purple-700 mt-1">
+                  Setelah terbuka, Anda dapat mengganti PIN ini secara mandiri kapan saja.
+                </p>
+              </div>
+            </div>
+
+            {pinError && (
+              <div className="w-full p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold text-left animate-in fade-in">
+                {pinError}
+              </div>
+            )}
+
+            {/* Form Input PIN */}
+            <form onSubmit={handleUnlockKas} className="w-full space-y-4">
+              <div className="relative">
+                <input
+                  type={showEnteredPin ? 'text' : 'password'}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={8}
+                  placeholder="Masukkan PIN (default: 123456)"
+                  value={enteredPin}
+                  onChange={(e) => {
+                    setEnteredPin(e.target.value);
+                    setPinError(null);
+                  }}
+                  className="w-full py-3.5 px-4 text-center text-xl font-mono tracking-widest font-black bg-white border-2 border-slate-300 focus:border-purple-600 focus:ring-4 focus:ring-purple-100 rounded-2xl outline-none transition-all text-slate-800"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowEnteredPin(!showEnteredPin)}
+                  className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                  title={showEnteredPin ? 'Sembunyikan PIN' : 'Lihat PIN'}
+                >
+                  {showEnteredPin ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="w-full py-3 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-100 cursor-pointer"
+                >
+                  Tutup
+                </button>
+                <button
+                  type="submit"
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 active:scale-98 text-white font-black text-xs shadow-md cursor-pointer flex items-center justify-center gap-1.5 transition-all"
+                >
+                  <Unlock className="w-4 h-4" />
+                  <span>Buka Buku Kas</span>
+                </button>
+              </div>
+            </form>
+
+            <div className="pt-2 text-[11px] text-slate-400 border-t border-slate-200 w-full">
+              Lupa PIN? Hubungi Lead Developer / Tim Kurator untuk reset PIN instan.
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* 2. SUB-NAVBAR TAB */}
+            <div className="bg-white border-b border-slate-200 px-4 flex items-center justify-between gap-2 overflow-x-auto scrollbar-none flex-shrink-0">
           <div className="flex items-center gap-1 py-2">
             {[
               { id: 'beranda', label: '🏠 Beranda' },
@@ -1120,8 +1324,124 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
             Untungin &middot; All Rights Reserved &middot; obeecreatives &middot; Developed by Lalu Mahendra
           </div>
         </div>
+        </>
+        )}
 
       </div>
+
+      {/* 6. MODAL GANTI PIN BUKU KAS PESERTA */}
+      {isChangePinModalOpen && (
+        <div className="fixed inset-0 z-[85] flex items-center justify-center p-4 bg-black/65 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-[#001c3c]">
+                    Ganti PIN Buku Kas
+                  </h4>
+                  <p className="text-[11px] text-slate-400">
+                    {namaUsaha}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsChangePinModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {changePinError && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold animate-in fade-in">
+                {changePinError}
+              </div>
+            )}
+
+            <form onSubmit={handleChangePinSubmit} className="space-y-3.5">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide mb-1">
+                  PIN Lama
+                </label>
+                <input
+                  type={showPinInputFields ? 'text' : 'password'}
+                  inputMode="numeric"
+                  maxLength={8}
+                  required
+                  placeholder="PIN saat ini (default: 123456)"
+                  value={oldPinInput}
+                  onChange={(e) => setOldPinInput(e.target.value)}
+                  className="w-full px-3 py-2 text-xs font-mono border border-slate-300 rounded-xl focus:border-purple-600 focus:ring-2 focus:ring-purple-100 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide mb-1">
+                  PIN Baru (4-8 Digit)
+                </label>
+                <input
+                  type={showPinInputFields ? 'text' : 'password'}
+                  inputMode="numeric"
+                  maxLength={8}
+                  required
+                  placeholder="Masukkan PIN baru Anda..."
+                  value={newPinInput}
+                  onChange={(e) => setNewPinInput(e.target.value)}
+                  className="w-full px-3 py-2 text-xs font-mono border border-slate-300 rounded-xl focus:border-purple-600 focus:ring-2 focus:ring-purple-100 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide mb-1">
+                  Konfirmasi PIN Baru
+                </label>
+                <input
+                  type={showPinInputFields ? 'text' : 'password'}
+                  inputMode="numeric"
+                  maxLength={8}
+                  required
+                  placeholder="Ulangi PIN baru Anda..."
+                  value={confirmNewPinInput}
+                  onChange={(e) => setConfirmNewPinInput(e.target.value)}
+                  className="w-full px-3 py-2 text-xs font-mono border border-slate-300 rounded-xl focus:border-purple-600 focus:ring-2 focus:ring-purple-100 outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showPinInputFields}
+                    onChange={(e) => setShowPinInputFields(e.target.checked)}
+                    className="rounded text-purple-600"
+                  />
+                  <span>Tampilkan Karakter PIN</span>
+                </label>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsChangePinModalOpen(false)}
+                  className="py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-100 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white font-bold text-xs shadow-sm cursor-pointer"
+                >
+                  Simpan PIN Baru
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* 5. CUSTOM MODAL KONFIRMASI DI TENGAH LAYAR (Pengganti dialog browser 'says') */}
       {confirmDialog?.isOpen && (
