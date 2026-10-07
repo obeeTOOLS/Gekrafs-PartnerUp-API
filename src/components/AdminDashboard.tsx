@@ -2711,8 +2711,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           namaUsaha={untunginModalPeserta.namaUsaha}
           namaPemilik={untunginModalPeserta.namaPemilik}
           whatsapp={untunginModalPeserta.whatsapp}
-          readOnly={userRole !== 'developer'}
-          viewerRole={userRole}
+          readOnly={
+            // Developer, akun engineer, dan obeecreatives selalu memiliki hak akses input/edit penuh
+            !(
+              userRole === 'developer' ||
+              Boolean(engineerSession) ||
+              untunginModalPeserta.namaUsaha.toLowerCase().trim() === 'obeecreatives'
+            )
+          }
+          viewerRole={userRole === 'developer' || !!engineerSession ? 'developer' : userRole || 'kurator'}
         />
       )}
 

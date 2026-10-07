@@ -62,6 +62,12 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
   const [activeTab, setActiveTab] = useState<'beranda' | 'transaksi' | 'akun' | 'labarugi' | 'pajak'>('beranda');
   const [hideAmount, setHideAmount] = useState(false);
 
+  // obeecreatives adalah unit bisnis pengembang yang selalu memiliki hak akses penuh input data
+  const isObeeCreatives = (namaUsaha || '').toLowerCase().trim() === 'obeecreatives';
+  const isPrivileged = isObeeCreatives || viewerRole === 'developer' || viewerRole === 'peserta';
+  const [isSimulasiMode, setIsSimulasiMode] = useState(false);
+  const effectiveReadOnly = isPrivileged ? false : (readOnly && !isSimulasiMode);
+
   // Data Kas
   const [categories, setCategories] = useState<KasCategories>({ income: [], expense: [] });
   const [accounts, setAccounts] = useState<KasAccount[]>([]);
@@ -186,56 +192,85 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
   // Handler Submit Transaksi
   const handleSaveTransaction = (e: React.FormEvent) => {
     e.preventDefault();
-    if (readOnly) return;
+    if (effectiveReadOnly) return;
 
     const amt = Number(txAmount);
-    if (!txDate || !txAccountId || !amt || amt <= 0) {
-      showToast('Lengkapi tanggal, akun, dan nominal transaksi terlebih dahulu.', 'error');
+    const finalAccountId = txAccountId || (accounts.length > 0 ? accounts[0].id : '');
+    const finalCategory = txCategory || (txType === 'income' ? (categories.income[0] || 'Penjualan Produk') : (categories.expense[0] || 'Pengeluaran Lain-lain'));
+
+    if (!txDate || !finalAccountId || !amt || amt <= 0) {
+      showToast('Lengkapi tanggal, akun kas, dan nominal transaksi terlebih dahulu.', 'error');
       return;
     }
 
     if (txType === 'transfer') {
-      if (!txToAccountId) {
-        showToast('Pilih akun tujuan transfer.', 'error');
+      const finalToAccountId = txToAccountId || (accounts.length > 1 ? accounts.find(a => a.id !== finalAccountId)?.id : '');
+      if (!finalToAccountId) {
+        showToast('Pilih akun tujuan transfer yang berbeda.', 'error');
         return;
       }
-      if (txAccountId === txToAccountId) {
+      if (finalAccountId === finalToAccountId) {
         showToast('Akun asal dan akun tujuan tidak boleh sama.', 'error');
         return;
       }
-    } else if (!txCategory) {
-      showToast('Pilih kategori transaksi.', 'error');
-      return;
-    }
 
-    if (editingTxId) {
-      kasService.updateTransaction(namaUsaha, {
-        id: editingTxId,
-        namaUsaha,
-        date: txDate,
-        type: txType,
-        accountId: txAccountId,
-        toAccountId: txType === 'transfer' ? txToAccountId : undefined,
-        category: txType === 'transfer' ? '' : txCategory,
-        desc: txDesc.trim(),
-        amount: amt,
-        createdBy: viewerRole,
-        createdAt: new Date().toISOString()
-      });
-      showToast('Transaksi berhasil diperbarui.', 'success');
-      setEditingTxId(null);
+      if (editingTxId) {
+        kasService.updateTransaction(namaUsaha, {
+          id: editingTxId,
+          namaUsaha,
+          date: txDate,
+          type: txType,
+          accountId: finalAccountId,
+          toAccountId: finalToAccountId,
+          category: '',
+          desc: txDesc.trim(),
+          amount: amt,
+          createdBy: viewerRole,
+          createdAt: new Date().toISOString()
+        });
+        showToast('Transfer antar akun berhasil diperbarui.', 'success');
+        setEditingTxId(null);
+      } else {
+        kasService.addTransaction(namaUsaha, {
+          date: txDate,
+          type: txType,
+          accountId: finalAccountId,
+          toAccountId: finalToAccountId,
+          category: '',
+          desc: txDesc.trim(),
+          amount: amt,
+          createdBy: viewerRole
+        });
+        showToast('Transfer antar akun berhasil dicatat!', 'success');
+      }
     } else {
-      kasService.addTransaction(namaUsaha, {
-        date: txDate,
-        type: txType,
-        accountId: txAccountId,
-        toAccountId: txType === 'transfer' ? txToAccountId : undefined,
-        category: txType === 'transfer' ? '' : txCategory,
-        desc: txDesc.trim(),
-        amount: amt,
-        createdBy: viewerRole
-      });
-      showToast('Transaksi berhasil dicatat!', 'success');
+      if (editingTxId) {
+        kasService.updateTransaction(namaUsaha, {
+          id: editingTxId,
+          namaUsaha,
+          date: txDate,
+          type: txType,
+          accountId: finalAccountId,
+          category: finalCategory,
+          desc: txDesc.trim(),
+          amount: amt,
+          createdBy: viewerRole,
+          createdAt: new Date().toISOString()
+        });
+        showToast('Transaksi berhasil diperbarui.', 'success');
+        setEditingTxId(null);
+      } else {
+        kasService.addTransaction(namaUsaha, {
+          date: txDate,
+          type: txType,
+          accountId: finalAccountId,
+          category: finalCategory,
+          desc: txDesc.trim(),
+          amount: amt,
+          createdBy: viewerRole
+        });
+        showToast('Transaksi kas berhasil dicatat!', 'success');
+      }
     }
 
     // Reset Input
@@ -268,7 +303,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
   // Handler Tambah Akun
   const handleAddAccount = (e: React.FormEvent) => {
     e.preventDefault();
-    if (readOnly || !newAccName.trim()) return;
+    if (effectiveReadOnly || !newAccName.trim()) return;
 
     kasService.addAccount(namaUsaha, newAccName.trim(), newAccType, Number(newAccBalance) || 0);
     showToast(`Akun "${newAccName.trim()}" berhasil ditambahkan.`, 'success');
@@ -337,9 +372,40 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                 <h3 className="font-black text-base sm:text-lg tracking-tight">
                   Untungin &middot; Buku Kas & Keuangan UMKM
                 </h3>
-                {readOnly && (
-                  <span className="px-2 py-0.5 rounded-full bg-white/20 text-amber-300 text-[10px] font-bold">
-                    Mode Pantau Kurator (Read-Only)
+                {effectiveReadOnly ? (
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-full bg-white/20 text-amber-300 text-[10px] font-bold">
+                      Mode Pantau Kurator (Read-Only)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsSimulasiMode(true)}
+                      className="px-2 py-0.5 rounded-full bg-amber-400 text-[#001c3c] hover:bg-amber-300 text-[10px] font-extrabold transition-all cursor-pointer shadow-xs"
+                      title="Klik untuk membuka formulir input data transaksi"
+                    >
+                      ✏️ Aktifkan Input / Simulasi
+                    </button>
+                  </div>
+                ) : isObeeCreatives ? (
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 border border-emerald-400/40 text-[10px] font-bold">
+                    🚀 Akun Resmi obeecreatives (Akses Penuh Input & Edit)
+                  </span>
+                ) : isSimulasiMode ? (
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-full bg-blue-400/20 text-blue-200 border border-blue-400/40 text-[10px] font-bold">
+                      Mode Simulasi Aktif
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsSimulasiMode(false)}
+                      className="text-[10px] text-slate-300 hover:text-white underline cursor-pointer"
+                    >
+                      Kunci Read-Only
+                    </button>
+                  </div>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full bg-white/10 text-emerald-300 text-[10px] font-bold">
+                    Akses Input Penuh
                   </span>
                 )}
               </div>
@@ -564,7 +630,23 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
           {activeTab === 'transaksi' && (
             <div className="space-y-5">
               {/* Form Input Transaksi Cepat (Hanya jika bukan read-only) */}
-              {!readOnly && (
+              {effectiveReadOnly && (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-xs text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <Info className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                    <span>Mode Pantau Kurator (Read-Only) aktif. Anda dapat meninjau buku kas dan mengekspor CSV.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsSimulasiMode(true)}
+                    className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-[#001c3c] font-black text-xs transition-colors cursor-pointer self-start sm:self-auto shadow-xs"
+                  >
+                    ✏️ Buka Formulir Input
+                  </button>
+                </div>
+              )}
+
+              {!effectiveReadOnly && (
                 <form onSubmit={handleSaveTransaction} className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3.5">
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                     <h4 className="font-extrabold text-xs sm:text-sm text-[#001c3c]">
@@ -722,13 +804,13 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                         <th className="p-3">Akun</th>
                         <th className="p-3">Kategori & Keterangan</th>
                         <th className="p-3 text-right">Nominal</th>
-                        {!readOnly && <th className="p-3 text-center">Aksi</th>}
+                        {!effectiveReadOnly && <th className="p-3 text-center">Aksi</th>}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {filteredTransactions.length === 0 ? (
                         <tr>
-                          <td colSpan={readOnly ? 5 : 6} className="p-8 text-center text-slate-400 italic">
+                          <td colSpan={effectiveReadOnly ? 5 : 6} className="p-8 text-center text-slate-400 italic">
                             Tidak ada transaksi yang cocok pada filter periode ini.
                           </td>
                         </tr>
@@ -764,7 +846,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                               }`}>
                                 {t.type === 'income' ? '+' : t.type === 'expense' ? '-' : ''} {rupiah(t.amount)}
                               </td>
-                              {!readOnly && (
+                              {!effectiveReadOnly && (
                                 <td className="p-3 text-center whitespace-nowrap">
                                   <div className="flex items-center justify-center gap-1">
                                     <button
@@ -800,7 +882,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
           {/* TAB 3: AKUN KAS */}
           {activeTab === 'akun' && (
             <div className="space-y-4">
-              {!readOnly && (
+              {!effectiveReadOnly && (
                 <form onSubmit={handleAddAccount} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
                   <h4 className="font-bold text-xs text-[#001c3c]">Tambah Akun Kas / Bank Baru</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
@@ -861,7 +943,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                           {rupiah(bal)}
                         </span>
                       </div>
-                      {!readOnly && !hasTx && accounts.length > 1 && (
+                      {!effectiveReadOnly && !hasTx && accounts.length > 1 && (
                         <button
                           type="button"
                           onClick={() => {

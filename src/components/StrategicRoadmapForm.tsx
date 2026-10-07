@@ -25,13 +25,15 @@ import {
   Copy,
   Check,
   ExternalLink,
-  X
+  X,
+  Wallet
 } from 'lucide-react';
 import { taskService } from '../services/taskService';
 import { taskConfigService } from '../services/taskConfigService';
 import { gasService } from '../services/gasService';
 import { authService } from '../services/authService';
 import { StrategicCanvasTask, StrategicInnovationMatrix, PesertaItem, TaskModuleDef, TaskQuestionDef } from '../types';
+import { UntunginKasModal } from './UntunginKasModal';
 
 interface StrategicRoadmapFormProps {
   onBack?: () => void;
@@ -50,6 +52,7 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
   const [modules, setModules] = useState<TaskModuleDef[]>(() => taskConfigService.getModules());
   const [activeModule, setActiveModule] = useState<TaskModuleDef>(() => taskConfigService.getActiveModule());
   const [jawabanDinamis, setJawabanDinamis] = useState<Record<string, string>>({});
+  const [isUntunginKasOpen, setIsUntunginKasOpen] = useState(false);
 
   // Deteksi sesi login aktif untuk pengamanan identitas peserta
   const pesertaSession = authService.getPesertaSession();
@@ -447,6 +450,17 @@ Salam hangat,
           <div>Pemilik: <strong className="text-slate-900">{namaPemilik || pesertaSession?.namaPemilik || '-'}</strong></div>
           <div>WhatsApp: <strong className="text-slate-900">{whatsapp || pesertaSession?.whatsapp || '-'}</strong></div>
           <div>Status: <strong className="text-slate-900">{currentStatus === 'reviewed' ? `Disetujui (${nilai}/100)` : currentStatus === 'submitted' ? 'Terkirim (Menunggu Review)' : 'Draf Lembar Kerja'}</strong></div>
+          <div className="pt-1.5 flex justify-end">
+            <button
+              type="button"
+              onClick={() => setIsUntunginKasOpen(true)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 text-[11px] font-bold transition-all shadow-2xs cursor-pointer"
+              title="Buka Buku Kas & Laporan Keuangan Untungin"
+            >
+              <Wallet className="w-3 h-3 text-purple-600" />
+              <span>Buku Kas Untungin</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1196,6 +1210,18 @@ Salam hangat,
             </div>
           </div>
         </div>
+      )}
+      {/* Untungin Kas Modal */}
+      {isUntunginKasOpen && (
+        <UntunginKasModal
+          isOpen={isUntunginKasOpen}
+          onClose={() => setIsUntunginKasOpen(false)}
+          namaUsaha={selectedNamaUsaha || pesertaSession?.namaUsaha || 'obeecreatives'}
+          namaPemilik={namaPemilik || pesertaSession?.namaPemilik}
+          whatsapp={whatsapp || pesertaSession?.whatsapp}
+          readOnly={false}
+          viewerRole="peserta"
+        />
       )}
     </div>
   );

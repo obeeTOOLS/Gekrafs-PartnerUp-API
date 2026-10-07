@@ -17,6 +17,7 @@ import { ShareModal } from './components/ShareModal';
 import { EngineerModal } from './components/EngineerModal';
 import { LoginPage } from './components/LoginPage';
 import { StrategicRoadmapForm } from './components/StrategicRoadmapForm';
+import { UntunginKasModal } from './components/UntunginKasModal';
 import { Check, Lock, Terminal } from 'lucide-react';
 
 export default function App() {
@@ -66,6 +67,40 @@ export default function App() {
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isPulling, setIsPulling] = useState(false);
   const [globalToast, setGlobalToast] = useState<string | null>(null);
+
+  // Untungin Global Modal State
+  const [untunginGlobalModalData, setUntunginGlobalModalData] = useState<{
+    isOpen: boolean;
+    namaUsaha: string;
+    namaPemilik?: string;
+    whatsapp?: string;
+    readOnly?: boolean;
+    viewerRole?: string;
+  } | null>(null);
+
+  const handleOpenGlobalUntungin = () => {
+    const pesertaSess = authService.getPesertaSession();
+    if (pesertaSess && pesertaSess.namaUsaha) {
+      setUntunginGlobalModalData({
+        isOpen: true,
+        namaUsaha: pesertaSess.namaUsaha,
+        namaPemilik: pesertaSess.namaPemilik,
+        whatsapp: pesertaSess.whatsapp,
+        readOnly: false,
+        viewerRole: 'peserta'
+      });
+    } else {
+      // Default ke akun unit usaha uji coba pengembang obeecreatives
+      setUntunginGlobalModalData({
+        isOpen: true,
+        namaUsaha: 'obeecreatives',
+        namaPemilik: 'Lalu Mahendra Ali Akbar',
+        whatsapp: '081335125277',
+        readOnly: false,
+        viewerRole: 'developer'
+      });
+    }
+  };
 
   // Auto-sync interval and initial pull if local storage is fresh
   useEffect(() => {
@@ -265,6 +300,7 @@ export default function App() {
           engineerSession={engineerSession}
           onOpenEngineerModal={() => setIsEngineerModalOpen(true)}
           onSwitchPerspective={handleSwitchPerspective}
+          onOpenUntungin={handleOpenGlobalUntungin}
         />
 
         {/* Main View Area */}
@@ -437,6 +473,18 @@ export default function App() {
         onSessionChange={handleSessionChange}
         onSelectTab={(tab) => setActiveTab(tab)}
       />
+      {/* Untungin Global Modal */}
+      {untunginGlobalModalData?.isOpen && (
+        <UntunginKasModal
+          isOpen={untunginGlobalModalData.isOpen}
+          onClose={() => setUntunginGlobalModalData(null)}
+          namaUsaha={untunginGlobalModalData.namaUsaha}
+          namaPemilik={untunginGlobalModalData.namaPemilik}
+          whatsapp={untunginGlobalModalData.whatsapp}
+          readOnly={untunginGlobalModalData.readOnly ?? false}
+          viewerRole={untunginGlobalModalData.viewerRole ?? 'developer'}
+        />
+      )}
     </div>
   );
 }

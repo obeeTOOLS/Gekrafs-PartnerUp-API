@@ -11,7 +11,8 @@ import {
   Minimize2,
   Smartphone,
   LogOut,
-  Store
+  Store,
+  Wallet
 } from 'lucide-react';
 import { EngineerSession } from '../services/authService';
 import { UserRole } from '../types';
@@ -31,6 +32,7 @@ interface HeaderProps {
   engineerSession: EngineerSession | null;
   onOpenEngineerModal: () => void;
   onSwitchPerspective: (role: UserRole) => void;
+  onOpenUntungin?: () => void;
 }
 
 const TAB_TITLES: Record<string, { title: string; subtitle: string; badge?: string }> = {
@@ -95,7 +97,8 @@ export const Header: React.FC<HeaderProps> = ({
   isPulling = false,
   engineerSession,
   onOpenEngineerModal,
-  onSwitchPerspective
+  onSwitchPerspective,
+  onOpenUntungin
 }) => {
   const isObeeTools = engineerSession?.email === 'obeetools@gmail.com';
   const hasEngineerAccess = !!engineerSession;
@@ -312,6 +315,19 @@ export const Header: React.FC<HeaderProps> = ({
               <Store className={`w-3.5 h-3.5 ${activeTab === 'katalog' ? 'text-amber-400' : 'text-amber-600'} flex-shrink-0`} />
               <span className="hidden sm:inline">Direktori Ekraf</span>
             </button>
+
+            {/* Quick Button: Buku Kas Untungin */}
+            {onOpenUntungin && (
+              <button
+                type="button"
+                onClick={onOpenUntungin}
+                title="Buka Buku Kas & Laporan Keuangan Untungin"
+                className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-purple-50 text-purple-900 hover:bg-purple-100 border border-purple-200 transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer shadow-2xs"
+              >
+                <Wallet className="w-3.5 h-3.5 text-purple-600 flex-shrink-0" />
+                <span className="hidden sm:inline">Buku Kas</span>
+              </button>
+            )}
 
             {/* Quick Share Link */}
             <button
