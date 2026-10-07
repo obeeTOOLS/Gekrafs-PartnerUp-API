@@ -61,6 +61,16 @@ export const DeveloperTools: React.FC = () => {
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [autoSync, setAutoSync] = useState(gasService.getSettings().autoSync);
 
+  // Modal Konfirmasi Terpusat "PartnerUp Says" di Tengah Layar
+  const [partnerUpConfirm, setPartnerUpConfirm] = useState<{
+    isOpen: boolean;
+    title?: string;
+    message: string;
+    details?: string;
+    confirmLabel?: string;
+    onConfirm: () => void;
+  } | null>(null);
+
   // Developer Accounts & PIN states
   const [devAccounts, setDevAccounts] = useState<AdminAccount[]>(() => authService.getDeveloperAccounts());
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
@@ -145,11 +155,19 @@ export const DeveloperTools: React.FC = () => {
   };
 
   const handleResetData = () => {
-    if (confirm('Yakin ingin mereset data lokal ke data awal? Data perubahan lokal akan dikembalikan.')) {
-      const res = gasService.resetToDefaultData();
-      setResetMessage(res.message);
-      setTimeout(() => setResetMessage(null), 3000);
-    }
+    setPartnerUpConfirm({
+      isOpen: true,
+      title: 'PartnerUp Says',
+      message: 'Reset data lokal ke data awal?',
+      details: 'Data perubahan lokal akan dikembalikan ke data bawaan.',
+      confirmLabel: 'Ya, Reset Data',
+      onConfirm: () => {
+        const res = gasService.resetToDefaultData();
+        setResetMessage(res.message);
+        setTimeout(() => setResetMessage(null), 3000);
+        setPartnerUpConfirm(null);
+      }
+    });
   };
 
   const handleSavePin = (e: React.FormEvent) => {
@@ -178,11 +196,20 @@ export const DeveloperTools: React.FC = () => {
   };
 
   const handleResetPin = (email: string) => {
-    if (confirm(`Yakin ingin mengembalikan PIN/password akun ini ke bawaan default (${DEFAULT_DEVELOPER_PASSWORD})?`)) {
-      const res = authService.resetDeveloperPin(email);
-      setDevAccounts(authService.getDeveloperAccounts());
-      alert(res.message);
-    }
+    setPartnerUpConfirm({
+      isOpen: true,
+      title: 'PartnerUp Says',
+      message: `Kembalikan PIN/password akun "${email}"?`,
+      details: `Password akun ini akan direset kembali ke default (${DEFAULT_DEVELOPER_PASSWORD}).`,
+      confirmLabel: 'Ya, Reset PIN',
+      onConfirm: () => {
+        const res = authService.resetDeveloperPin(email);
+        setDevAccounts(authService.getDeveloperAccounts());
+        setResetMessage(res.message);
+        setTimeout(() => setResetMessage(null), 3000);
+        setPartnerUpConfirm(null);
+      }
+    });
   };
 
   const handleSaveQuickToken = async () => {
@@ -944,10 +971,19 @@ export const DeveloperTools: React.FC = () => {
 
           <button
             onClick={() => {
-              if (confirm('Yakin ingin membersihkan seluruh data tugas dummy atau uji coba lama?')) {
-                const res = taskService.purgeDummyTasks();
-                alert(res.message);
-              }
+              setPartnerUpConfirm({
+                isOpen: true,
+                title: 'PartnerUp Says',
+                message: 'Bersihkan seluruh data tugas dummy atau uji coba lama?',
+                details: 'Data tugas resmi 34 peserta tetap aman dan tersimpan.',
+                confirmLabel: 'Ya, Bersihkan Data Dummy',
+                onConfirm: () => {
+                  const res = taskService.purgeDummyTasks();
+                  setResetMessage(res.message);
+                  setTimeout(() => setResetMessage(null), 3000);
+                  setPartnerUpConfirm(null);
+                }
+              });
             }}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-amber-300 text-amber-900 bg-amber-50 hover:bg-amber-100 text-xs font-bold transition-colors cursor-pointer"
           >
@@ -1097,6 +1133,49 @@ export const DeveloperTools: React.FC = () => {
           readOnly={false}
           viewerRole="developer"
         />
+      )}
+
+      {/* Custom Confirmation Modal "PartnerUp Says" di Tengah Layar */}
+      {partnerUpConfirm?.isOpen && (
+        <div className="fixed inset-0 z-[75] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 text-center space-y-4 animate-in zoom-in-95">
+            <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center mx-auto shadow-xs">
+              <AlertCircle className="w-7 h-7" />
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-center gap-1.5">
+                <span className="px-3 py-1 rounded-full bg-[#eaf2fb] text-[#004c80] font-black text-xs inline-flex items-center gap-1.5 shadow-2xs border border-blue-200">
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#004c80]" />
+                  <span>{partnerUpConfirm.title || 'PartnerUp Says'}</span>
+                </span>
+              </div>
+              <h4 className="text-sm font-extrabold text-[#001c3c] mt-2 leading-snug">
+                {partnerUpConfirm.message}
+              </h4>
+              {partnerUpConfirm.details && (
+                <p className="text-xs text-slate-500 font-medium leading-relaxed pt-1">
+                  {partnerUpConfirm.details}
+                </p>
+              )}
+            </div>
+            <div className="flex items-center justify-center gap-2.5 pt-3">
+              <button
+                type="button"
+                onClick={() => setPartnerUpConfirm(null)}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 font-bold text-xs transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={partnerUpConfirm.onConfirm}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-[#001c3c] hover:bg-[#002855] text-white font-extrabold text-xs shadow-md transition-all cursor-pointer"
+              >
+                {partnerUpConfirm.confirmLabel || 'Ya, Lanjutkan'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

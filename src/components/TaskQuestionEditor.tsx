@@ -70,6 +70,16 @@ export const TaskQuestionEditor: React.FC<TaskQuestionEditorProps> = ({ userRole
   // Notifikasi Feedback
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
+  // Modal Konfirmasi Terpusat "PartnerUp Says" di Tengah Layar
+  const [partnerUpConfirm, setPartnerUpConfirm] = useState<{
+    isOpen: boolean;
+    title?: string;
+    message: string;
+    details?: string;
+    confirmLabel?: string;
+    onConfirm: () => void;
+  } | null>(null);
+
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ type, message });
     setTimeout(() => setToast(null), 3500);
@@ -173,11 +183,19 @@ export const TaskQuestionEditor: React.FC<TaskQuestionEditorProps> = ({ userRole
   };
 
   const handleDeleteQuestion = (qId: string, qLabel: string) => {
-    if (confirm(`Yakin ingin menghapus pertanyaan: "${qLabel}"?`)) {
-      taskConfigService.deleteQuestion(currentModule.id, qId);
-      refreshModules();
-      showToast('Pertanyaan berhasil dihapus.');
-    }
+    setPartnerUpConfirm({
+      isOpen: true,
+      title: 'PartnerUp Says',
+      message: `Hapus pertanyaan "${qLabel}"?`,
+      details: 'Pertanyaan ini akan dihapus dari lembar aksi modul ini.',
+      confirmLabel: 'Ya, Hapus Pertanyaan',
+      onConfirm: () => {
+        taskConfigService.deleteQuestion(currentModule.id, qId);
+        refreshModules();
+        showToast('Pertanyaan berhasil dihapus.');
+        setPartnerUpConfirm(null);
+      }
+    });
   };
 
   const handleCreateNewModule = (e: React.FormEvent) => {
@@ -206,25 +224,41 @@ export const TaskQuestionEditor: React.FC<TaskQuestionEditorProps> = ({ userRole
   };
 
   const handleDeleteModule = (id: string, name: string) => {
-    if (confirm(`Yakin ingin menghapus modul pelatihan "${name}"? Tindakan ini tidak dapat dibatalkan.`)) {
-      const ok = taskConfigService.deleteModule(id);
-      if (ok) {
-        refreshModules();
-        setSelectedModuleId(taskConfigService.getActiveModule().id);
-        showToast('Modul pelatihan berhasil dihapus.');
-      } else {
-        showToast('Tidak dapat menghapus modul terakhir.', 'error');
+    setPartnerUpConfirm({
+      isOpen: true,
+      title: 'PartnerUp Says',
+      message: `Hapus modul pelatihan "${name}"?`,
+      details: 'Tindakan ini akan menghapus modul serta konfigurasi pertanyaan di dalamnya.',
+      confirmLabel: 'Ya, Hapus Modul',
+      onConfirm: () => {
+        const ok = taskConfigService.deleteModule(id);
+        if (ok) {
+          refreshModules();
+          setSelectedModuleId(taskConfigService.getActiveModule().id);
+          showToast('Modul pelatihan berhasil dihapus.');
+        } else {
+          showToast('Tidak dapat menghapus modul terakhir.', 'error');
+        }
+        setPartnerUpConfirm(null);
       }
-    }
+    });
   };
 
   const handleResetToDefault = () => {
-    if (confirm('Yakin ingin mereset seluruh pertanyaan modul ke standar bawaan (Pelatihan 1: Fondasi Strategi Bisnis)?')) {
-      taskConfigService.resetToDefault();
-      refreshModules();
-      setSelectedModuleId('modul-1');
-      showToast('Pertanyaan tugas telah dikembalikan ke bawaan awal.');
-    }
+    setPartnerUpConfirm({
+      isOpen: true,
+      title: 'PartnerUp Says',
+      message: 'Kembalikan pertanyaan modul ke standar bawaan?',
+      details: 'Modul Pelatihan 1 (Fondasi Strategi Bisnis) dan Modul 2 (1-Page Marketing Plan) akan dikembalikan ke konfigurasi standar awal.',
+      confirmLabel: 'Ya, Reset ke Standar',
+      onConfirm: () => {
+        taskConfigService.resetToDefault();
+        refreshModules();
+        setSelectedModuleId('modul-1');
+        showToast('Pertanyaan tugas telah dikembalikan ke bawaan awal.');
+        setPartnerUpConfirm(null);
+      }
+    });
   };
 
   return (
@@ -850,6 +884,48 @@ export const TaskQuestionEditor: React.FC<TaskQuestionEditorProps> = ({ userRole
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Custom Confirmation Modal "PartnerUp Says" di Tengah Layar */}
+      {partnerUpConfirm?.isOpen && (
+        <div className="fixed inset-0 z-[75] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 text-center space-y-4 animate-in zoom-in-95">
+            <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center mx-auto shadow-xs">
+              <AlertCircle className="w-7 h-7" />
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-center gap-1.5">
+                <span className="px-3 py-1 rounded-full bg-[#eaf2fb] text-[#004c80] font-black text-xs inline-flex items-center gap-1.5 shadow-2xs border border-blue-200">
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#004c80]" />
+                  <span>{partnerUpConfirm.title || 'PartnerUp Says'}</span>
+                </span>
+              </div>
+              <h4 className="text-sm font-extrabold text-[#001c3c] mt-2 leading-snug">
+                {partnerUpConfirm.message}
+              </h4>
+              {partnerUpConfirm.details && (
+                <p className="text-xs text-slate-500 font-medium leading-relaxed pt-1">
+                  {partnerUpConfirm.details}
+                </p>
+              )}
+            </div>
+            <div className="flex items-center justify-center gap-2.5 pt-3">
+              <button
+                type="button"
+                onClick={() => setPartnerUpConfirm(null)}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 font-bold text-xs transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={partnerUpConfirm.onConfirm}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-[#001c3c] hover:bg-[#002855] text-white font-extrabold text-xs shadow-md transition-all cursor-pointer"
+              >
+                {partnerUpConfirm.confirmLabel || 'Ya, Lanjutkan'}
+              </button>
+            </div>
           </div>
         </div>
       )}

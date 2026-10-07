@@ -97,6 +97,16 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
   // Toast Notifikasi
   const [toastMsg, setToastMsg] = useState<{ text: string; type: 'success' | 'error' | 'warning' } | null>(null);
 
+  // Custom Modal Konfirmasi di Tengah Layar (Pengganti dialog confirm bawaan browser)
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    details?: string;
+    confirmLabel?: string;
+    onConfirm: () => void;
+  } | null>(null);
+
   const showToast = (text: string, type: 'success' | 'error' | 'warning' = 'success') => {
     setToastMsg({ text, type });
     setTimeout(() => setToastMsg(null), 3500);
@@ -293,11 +303,36 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
   };
 
   const handleDeleteTx = (t: KasTransaction) => {
-    if (confirm(`Hapus transaksi ${t.type.toUpperCase()} sebesar ${rupiah(t.amount)}?`)) {
-      kasService.deleteTransaction(namaUsaha, t.id);
-      showToast('Transaksi dihapus.', 'warning');
-      loadData();
-    }
+    const jenisLabel = t.type === 'income' ? 'Pendapatan' : t.type === 'expense' ? 'Pengeluaran' : 'Transfer Antar Akun';
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Untungin Says',
+      message: `Hapus transaksi ${jenisLabel} sebesar ${rupiah(t.amount)}?`,
+      details: t.desc ? `Keterangan: "${t.desc}" (${t.category || 'Kas'})` : `Kategori: ${t.category || 'Kas'}`,
+      confirmLabel: 'Ya, Hapus Transaksi',
+      onConfirm: () => {
+        kasService.deleteTransaction(namaUsaha, t.id);
+        showToast('Transaksi berhasil dihapus.', 'warning');
+        loadData();
+        setConfirmDialog(null);
+      }
+    });
+  };
+
+  const handleDeleteAccount = (acc: KasAccount) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Untungin Says',
+      message: `Hapus akun kas "${acc.name}"?`,
+      details: `Saldo awal akun ini adalah ${rupiah(acc.initialBalance)}. Tindakan ini tidak dapat dibatalkan.`,
+      confirmLabel: 'Ya, Hapus Akun',
+      onConfirm: () => {
+        kasService.deleteAccount(namaUsaha, acc.id);
+        loadData();
+        showToast(`Akun "${acc.name}" berhasil dihapus.`, 'warning');
+        setConfirmDialog(null);
+      }
+    });
   };
 
   // Handler Tambah Akun
@@ -946,14 +981,8 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                       {!effectiveReadOnly && !hasTx && accounts.length > 1 && (
                         <button
                           type="button"
-                          onClick={() => {
-                            if (confirm(`Hapus akun ${acc.name}?`)) {
-                              kasService.deleteAccount(namaUsaha, acc.id);
-                              loadData();
-                              showToast('Akun dihapus.', 'warning');
-                            }
-                          }}
-                          className="text-[10px] text-rose-600 hover:underline pt-1 block"
+                          onClick={() => handleDeleteAccount(acc)}
+                          className="text-[10px] text-rose-600 hover:underline pt-1 block cursor-pointer"
                         >
                           Hapus Akun
                         </button>
@@ -1093,6 +1122,49 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
         </div>
 
       </div>
+
+      {/* 5. CUSTOM MODAL KONFIRMASI DI TENGAH LAYAR (Pengganti dialog browser 'says') */}
+      {confirmDialog?.isOpen && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 text-center space-y-4 animate-in zoom-in-95">
+            <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center mx-auto shadow-xs">
+              <Trash2 className="w-7 h-7" />
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-center gap-1.5">
+                <span className="px-3 py-1 rounded-full bg-purple-100 text-purple-900 font-black text-xs inline-flex items-center gap-1.5 shadow-2xs border border-purple-200">
+                  <Wallet className="w-3.5 h-3.5 text-purple-700" />
+                  <span>{confirmDialog.title}</span>
+                </span>
+              </div>
+              <h4 className="text-sm font-extrabold text-[#001c3c] mt-2 leading-snug">
+                {confirmDialog.message}
+              </h4>
+              {confirmDialog.details && (
+                <p className="text-xs text-slate-500 font-medium leading-relaxed pt-1">
+                  {confirmDialog.details}
+                </p>
+              )}
+            </div>
+            <div className="flex items-center justify-center gap-2.5 pt-3">
+              <button
+                type="button"
+                onClick={() => setConfirmDialog(null)}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 font-bold text-xs transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={confirmDialog.onConfirm}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md transition-all cursor-pointer"
+              >
+                {confirmDialog.confirmLabel || 'OK'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

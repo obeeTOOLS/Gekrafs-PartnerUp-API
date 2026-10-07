@@ -138,6 +138,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [adminWhitelist, setAdminWhitelist] = useState<AdminAccount[]>(() => 
     authService.getAdminWhitelist()
   );
+  // Modal Konfirmasi Terpusat "PartnerUp Says" di Tengah Layar
+  const [partnerUpConfirmDialog, setPartnerUpConfirmDialog] = useState<{
+    isOpen: boolean;
+    title?: string;
+    message: string;
+    details?: string;
+    confirmLabel?: string;
+    onConfirm: () => void;
+  } | null>(null);
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [newAdminNama, setNewAdminNama] = useState('');
   const [newAdminPeran, setNewAdminPeran] = useState<AdminRoleType>('Kurator');
@@ -376,22 +385,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Reset Password ke Default oleh Developer
   const handleResetPassword = (email: string) => {
-    if (confirm(`Reset password untuk "${email}" kembali ke password default ("${DEFAULT_DEVELOPER_PASSWORD}")?`)) {
-      const res = authService.resetPasswordToDefault(email);
-      if (res.success) {
+    setPartnerUpConfirmDialog({
+      isOpen: true,
+      title: 'PartnerUp Says',
+      message: `Reset password untuk "${email}"?`,
+      details: `Password akun ini akan dikembalikan ke password bawaan ("${DEFAULT_DEVELOPER_PASSWORD}").`,
+      confirmLabel: 'Ya, Reset Password',
+      onConfirm: () => {
+        const res = authService.resetPasswordToDefault(email);
         showToast(res.message);
         setAdminWhitelist(authService.getAdminWhitelist());
-      } else {
-        alert(res.message);
+        setPartnerUpConfirmDialog(null);
       }
-    }
+    });
   };
 
   // Whitelist Admin Handlers (Model 2)
   const handleAddAdmin = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newAdminEmail.trim()) {
-      alert('Alamat email admin wajib diisi.');
+      showToast('Alamat email admin wajib diisi.');
       return;
     }
 
@@ -400,7 +413,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       newAdminEmail, 
       newAdminNama, 
       newAdminPeran, 
-      newAdminPassword,
+      newAdminPassword, 
       currentActor
     );
 
@@ -412,20 +425,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setNewAdminPeran('Kurator');
       setNewAdminPassword(DEFAULT_DEVELOPER_PASSWORD);
     } else {
-      alert(res.message);
+      showToast(res.message);
     }
   };
 
   const handleRemoveAdmin = (email: string) => {
-    if (confirm(`Yakin ingin mencabut hak akses admin untuk "${email}"? Akun ini tidak akan dapat login lagi.`)) {
-      const res = authService.removeAdminFromWhitelist(email);
-      if (res.success) {
+    setPartnerUpConfirmDialog({
+      isOpen: true,
+      title: 'PartnerUp Says',
+      message: `Cabut hak akses admin untuk "${email}"?`,
+      details: 'Akun ini tidak akan dapat login lagi ke portal kurator/panitia.',
+      confirmLabel: 'Ya, Cabut Akses',
+      onConfirm: () => {
+        const res = authService.removeAdminFromWhitelist(email);
         showToast(res.message);
         setAdminWhitelist(authService.getAdminWhitelist());
-      } else {
-        alert(res.message);
+        setPartnerUpConfirmDialog(null);
       }
-    }
+    });
   };
 
   const handleToggleAdminStatus = (email: string) => {
@@ -470,16 +487,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const handleDeleteTimeline = async (row?: number) => {
     if (!row) return;
-    if (confirm('Hapus tahapan timeline ini?')) {
-      const res = await gasService.deleteTimelineItem(row);
-      showToast(res.message);
-    }
+    setPartnerUpConfirmDialog({
+      isOpen: true,
+      title: 'PartnerUp Says',
+      message: 'Hapus tahapan timeline ini?',
+      details: 'Tahapan ini akan dihapus dari agenda pembinaan.',
+      confirmLabel: 'Ya, Hapus',
+      onConfirm: async () => {
+        const res = await gasService.deleteTimelineItem(row);
+        showToast(res.message);
+        setPartnerUpConfirmDialog(null);
+      }
+    });
   };
 
   // Jadwal Handlers
   const handleSaveJadwal = () => {
     if (!jadwalForm.topik || !jadwalForm.tanggal) {
-      alert('Topik dan tanggal pelatihan wajib diisi.');
+      showToast('Topik dan tanggal pelatihan wajib diisi.');
       return;
     }
     const res = gasService.saveJadwalItem({
@@ -493,10 +518,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const handleDeleteJadwal = (row?: number) => {
     if (!row) return;
-    if (confirm('Hapus jadwal pelatihan ini?')) {
-      const res = gasService.deleteJadwalItem(row);
-      showToast(res.message);
-    }
+    setPartnerUpConfirmDialog({
+      isOpen: true,
+      title: 'PartnerUp Says',
+      message: 'Hapus jadwal pelatihan ini?',
+      details: 'Sesi jadwal pelatihan ini akan dihapus dari sistem.',
+      confirmLabel: 'Ya, Hapus',
+      onConfirm: () => {
+        const res = gasService.deleteJadwalItem(row);
+        showToast(res.message);
+        setPartnerUpConfirmDialog(null);
+      }
+    });
   };
 
   const handleSendReminderJadwal = (item: JadwalItem) => {
@@ -565,7 +598,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const handleManualAddHadir = () => {
     if (!selectedKehadiranSesiId || !manualNamaUsaha) {
-      alert('Pilih sesi dan nama usaha terlebih dahulu.');
+      showToast('Pilih sesi dan nama usaha terlebih dahulu.');
       return;
     }
     const res = gasService.saveKehadiranManual(selectedKehadiranSesiId, manualNamaUsaha);
@@ -573,15 +606,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       showToast(res.message);
       setManualNamaUsaha('');
     } else {
-      alert(res.message);
+      showToast(res.message);
     }
   };
 
   const handleDeleteHadir = (namaUsaha: string) => {
-    if (confirm(`Hapus presensi untuk "${namaUsaha}"?`)) {
-      const res = gasService.deleteKehadiranItem(selectedKehadiranSesiId, namaUsaha);
-      showToast(res.message);
-    }
+    setPartnerUpConfirmDialog({
+      isOpen: true,
+      title: 'PartnerUp Says',
+      message: `Hapus presensi untuk "${namaUsaha}"?`,
+      details: 'Data kehadiran peserta pada sesi ini akan dihapus.',
+      confirmLabel: 'Ya, Hapus Presensi',
+      onConfirm: () => {
+        const res = gasService.deleteKehadiranItem(selectedKehadiranSesiId, namaUsaha);
+        showToast(res.message);
+        setPartnerUpConfirmDialog(null);
+      }
+    });
   };
 
   // Settings Handlers
@@ -2928,6 +2969,48 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               >
                 <LogOut className="w-4 h-4" />
                 <span>Ya, Force Logout Semua Sekarang</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Custom Confirmation Modal "PartnerUp Says" di Tengah Layar */}
+      {partnerUpConfirmDialog?.isOpen && (
+        <div className="fixed inset-0 z-[75] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 text-center space-y-4 animate-in zoom-in-95">
+            <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center mx-auto shadow-xs">
+              <AlertCircle className="w-7 h-7" />
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-center gap-1.5">
+                <span className="px-3 py-1 rounded-full bg-[#eaf2fb] text-[#004c80] font-black text-xs inline-flex items-center gap-1.5 shadow-2xs border border-blue-200">
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#004c80]" />
+                  <span>{partnerUpConfirmDialog.title || 'PartnerUp Says'}</span>
+                </span>
+              </div>
+              <h4 className="text-sm font-extrabold text-[#001c3c] mt-2 leading-snug">
+                {partnerUpConfirmDialog.message}
+              </h4>
+              {partnerUpConfirmDialog.details && (
+                <p className="text-xs text-slate-500 font-medium leading-relaxed pt-1">
+                  {partnerUpConfirmDialog.details}
+                </p>
+              )}
+            </div>
+            <div className="flex items-center justify-center gap-2.5 pt-3">
+              <button
+                type="button"
+                onClick={() => setPartnerUpConfirmDialog(null)}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 font-bold text-xs transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={partnerUpConfirmDialog.onConfirm}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-[#001c3c] hover:bg-[#002855] text-white font-extrabold text-xs shadow-md transition-all cursor-pointer"
+              >
+                {partnerUpConfirmDialog.confirmLabel || 'Ya, Lanjutkan'}
               </button>
             </div>
           </div>
