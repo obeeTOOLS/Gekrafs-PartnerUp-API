@@ -15,6 +15,7 @@ import {
   MessageCircle,
   MapPin,
   CheckCircle,
+  AlertCircle,
   HelpCircle
 } from 'lucide-react';
 
@@ -51,12 +52,12 @@ export const EditUmkmModal: React.FC<EditUmkmModalProps> = ({
 
   const [activeTabUpload, setActiveTabUpload] = useState<'upload' | 'url'>('upload');
   const [isProcessingImage, setIsProcessingImage] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<{ text: string; isError?: boolean } | null>(null);
 
   if (!isOpen) return null;
 
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
+  const showToast = (msg: string, isError = false) => {
+    setToastMessage({ text: msg, isError });
     setTimeout(() => setToastMessage(null), 3500);
   };
 
@@ -67,7 +68,7 @@ export const EditUmkmModal: React.FC<EditUmkmModalProps> = ({
 
     // Validasi ukuran (maks 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('Ukuran foto terlalu besar. Maksimal 5MB.');
+      showToast('Ukuran foto terlalu besar. Maksimal 5MB.', true);
       return;
     }
 
@@ -107,7 +108,7 @@ export const EditUmkmModal: React.FC<EditUmkmModalProps> = ({
 
   const handleSave = () => {
     if (!peserta.row) {
-      alert('Gagal menyimpan: Baris data tidak valid.');
+      showToast('Gagal menyimpan: Baris data tidak valid.', true);
       return;
     }
 
@@ -120,7 +121,7 @@ export const EditUmkmModal: React.FC<EditUmkmModalProps> = ({
       if (onSaved) onSaved(updatedItem);
       onClose();
     } else {
-      alert(res.message);
+      showToast(res.message, true);
     }
   };
 
@@ -166,9 +167,17 @@ export const EditUmkmModal: React.FC<EditUmkmModalProps> = ({
         {/* Modal Body */}
         <div className="p-5 sm:p-6 overflow-y-auto space-y-6 flex-1 scrollbar-thin">
           {toastMessage && (
-            <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-xl flex items-center gap-2 animate-in fade-in">
-              <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-              <span>{toastMessage}</span>
+            <div className={`p-3 border text-xs font-bold rounded-xl flex items-center gap-2 animate-in fade-in ${
+              toastMessage.isError 
+                ? 'bg-rose-50 border-rose-200 text-rose-800' 
+                : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+            }`}>
+              {toastMessage.isError ? (
+                <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+              ) : (
+                <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              )}
+              <span>{toastMessage.text}</span>
             </div>
           )}
 

@@ -18,7 +18,8 @@ import {
   BarChart3,
   Store,
   Settings,
-  Compass
+  Compass,
+  Wallet
 } from 'lucide-react';
 import { EngineerSession } from '../services/authService';
 import { UserRole } from '../types';
@@ -37,6 +38,7 @@ interface SidebarProps {
   onOpenShare: () => void;
   onOpenHelp: () => void;
   onLogout?: () => void;
+  onOpenUntungin?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -52,7 +54,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onRefreshData,
   onOpenShare,
   onOpenHelp,
-  onLogout
+  onLogout,
+  onOpenUntungin
 }) => {
   // Selalu default expanded (false) dan bersihkan cache collapsed lama agar menu Direktori Ekraf langsung terlihat jelas
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
@@ -233,6 +236,43 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
           );
         })}
+
+        {/* Tombol Cepat: Buku Kas Untungin */}
+        {onOpenUntungin && (
+          <button
+            type="button"
+            onClick={onOpenUntungin}
+            title={isCollapsed ? 'Buku Kas & Laporan Keuangan Untungin' : undefined}
+            className={`w-full flex items-center rounded-xl transition-all group relative cursor-pointer mt-1 ${
+              isCollapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2.5'
+            } bg-purple-900/40 hover:bg-purple-800/60 text-purple-200 hover:text-white border border-purple-500/30`}
+          >
+            <div className="relative flex-shrink-0">
+              <Wallet className="w-5 h-5 text-amber-300 transition-transform group-hover:scale-110" />
+            </div>
+            {!isCollapsed && (
+              <div className="text-left min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-xs font-bold leading-tight truncate text-white">
+                    Buku Kas Untungin
+                  </span>
+                  <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-purple-500/80 text-white uppercase tracking-wider">
+                    KAS
+                  </span>
+                </div>
+                <div className="text-[10px] truncate text-purple-300/80">
+                  Laporan Arus Kas UMKM
+                </div>
+              </div>
+            )}
+            {isCollapsed && (
+              <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-[#001428] text-white text-xs font-bold rounded-lg shadow-xl border border-purple-500/40 whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50">
+                <div className="text-amber-300 font-extrabold">Buku Kas Untungin</div>
+                <div className="text-[10px] text-purple-200">Laporan Arus Kas & Keuangan</div>
+              </div>
+            )}
+          </button>
+        )}
 
         {/* Kurator & Developer Special Section */}
         {canShowAdminTools && (

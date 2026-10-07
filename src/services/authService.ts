@@ -110,7 +110,7 @@ const DEFAULT_ADMIN_WHITELIST: AdminAccount[] = [
   }
 ];
 
-export const SYSTEM_BASE_EPOCH = 1759480000000;
+export const SYSTEM_BASE_EPOCH = 1791357600000;
 
 const STORAGE_SESSION_KEY = 'gkf_engineer_session_v2';
 const STORAGE_WHITELIST_KEY = 'gkf_admin_whitelist_v3';
@@ -118,6 +118,8 @@ const STORAGE_ADMIN_AUTH_KEY = 'gkf_admin_auth_v2';
 const STORAGE_PESERTA_SESSION_KEY = 'gkf_peserta_session_v2';
 const STORAGE_GLOBAL_EPOCH_KEY = 'gkf_global_auth_epoch_v2';
 export const STORAGE_FORCE_LOGOUT_EVENT = 'gkf_force_logout_event';
+export const DEFAULT_PESERTA_PIN = '123456';
+export const STORAGE_PESERTA_PINS_KEY = 'gkf_peserta_pins_v2';
 
 export interface PesertaSession {
   namaUsaha: string;
@@ -126,6 +128,7 @@ export interface PesertaSession {
   email?: string;
   isRegistered: boolean;
   loggedInAt: number;
+  expiresAt?: number;
   epoch?: number;
 }
 
@@ -559,7 +562,7 @@ class AuthService {
       if (stored) {
         const val = Number(stored);
         if (!isNaN(val) && val > 0) {
-          return val;
+          return Math.max(val, SYSTEM_BASE_EPOCH);
         }
       }
     } catch {}
@@ -718,18 +721,25 @@ class AuthService {
         return null;
       }
 
+      // Validasi Expiration (24 jam)
+      if (parsed.expiresAt && parsed.expiresAt <= Date.now()) {
+        localStorage.removeItem(STORAGE_PESERTA_SESSION_KEY);
+        return null;
+      }
+
       return parsed as PesertaSession;
     } catch {}
     return null;
   }
 
   /**
-   * Menyimpan sesi peserta
+   * Menyimpan sesi peserta (default masa berlaku 24 jam)
    */
   public setPesertaSession(session: PesertaSession): void {
     try {
       const currentEpoch = this.getGlobalEpoch();
       session.epoch = currentEpoch;
+      session.expiresAt = session.expiresAt || (Date.now() + 24 * 60 * 60 * 1000);
       localStorage.setItem(STORAGE_PESERTA_SESSION_KEY, JSON.stringify(session));
     } catch {}
   }
@@ -742,6 +752,107 @@ class AuthService {
       localStorage.removeItem(STORAGE_PESERTA_SESSION_KEY);
       localStorage.removeItem('gkf_peserta_session_v1');
     } catch {}
+  }
+
+  /**
+   * Mendapatkan mapping seluruh PIN peserta dari localStorage
+   */
+  public getAllPesertaPins(): Record<string, string> {
+    try {
+      const raw = localStorage.getItem(STORAGE_PESERTA_PINS_KEY);
+      if (raw) {
+        return JSON.parse(raw);
+      }
+    } catch {}
+    return {};
+  }
+
+  /**
+   * Mendapatkan PIN untuk suatu nama usaha peserta (default: '123456')
+   */
+  public getPesertaPin(namaUsaha: string): string {
+    if (!namaUsaha) return DEFAULT_PESERTA_PIN;
+    const key = namaUsaha.trim().toLowerCase();
+    const pins = this.getAllPesertaPins();
+    return pins[key] || DEFAULT_PESERTA_PIN;
+  }
+
+  /**
+   * Status PIN peserta: apakah masih bawaan default (123456) atau sudah diubah khusus
+   */
+  public isPesertaPinDefault(namaUsaha: string): boolean {
+    if (!namaUsaha) return true;
+    const key = namaUsaha.trim().toLowerCase();
+    const pins = this.getAllPesertaPins();
+    return !pins[key] || pins[key] === DEFAULT_PESERTA_PIN;
+  }
+
+  /**
+   * Mengubah PIN peserta oleh peserta itu sendiri (wajib memasukkan PIN lama yang benar)
+   */
+  public updatePesertaPin(
+    namaUsaha: string, 
+    oldPin: string, 
+    newPin: string
+  ): { success: boolean; message: string } {
+    if (!namaUsaha) return { success: false, message: 'Nama usaha tidak valid.' };
+    const cleanOld = oldPin.trim();
+    const cleanNew = newPin.trim();
+
+    if (cleanNew.length < 4 || cleanNew.length > 8) {
+      return { success: false, message: 'PIN baru harus terdiri dari 4 sampai 8 digit angka/karakter.' };
+    }
+
+    const currentExpectedPin = this.getPesertaPin(namaUsaha);
+    if (cleanOld !== currentExpectedPin) {
+      return { success: false, message: 'PIN lama yang Anda masukkan salah.' };
+    }
+
+    try {
+      const pins = this.getAllPesertaPins();
+      const key = namaUsaha.trim().toLowerCase();
+      pins[key] = cleanNew;
+      localStorage.setItem(STORAGE_PESERTA_PINS_KEY, JSON.stringify(pins));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('gkf-peserta-pin-changed', { detail: { namaUsaha } }));
+      }
+      return { success: true, message: `PIN akun untuk ${namaUsaha} berhasil diperbarui.` };
+    } catch (e: any) {
+      return { success: false, message: `Gagal menyimpan PIN: ${e.message}` };
+    }
+  }
+
+  /**
+   * Reset PIN peserta kembali ke default (123456) oleh Developer / Kurator / Admin
+   */
+  public resetPesertaPin(namaUsaha: string): { success: boolean; message: string; defaultPin: string } {
+    if (!namaUsaha) {
+      return { success: false, message: 'Nama usaha tidak valid.', defaultPin: DEFAULT_PESERTA_PIN };
+    }
+    try {
+      const pins = this.getAllPesertaPins();
+      const key = namaUsaha.trim().toLowerCase();
+      delete pins[key];
+      localStorage.setItem(STORAGE_PESERTA_PINS_KEY, JSON.stringify(pins));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('gkf-peserta-pin-reset', { detail: { namaUsaha } }));
+      }
+      return {
+        success: true,
+        message: `PIN akun "${namaUsaha}" berhasil di-reset kembali ke bawaan (${DEFAULT_PESERTA_PIN}).`,
+        defaultPin: DEFAULT_PESERTA_PIN
+      };
+    } catch (e: any) {
+      return { success: false, message: `Gagal mereset PIN: ${e.message}`, defaultPin: DEFAULT_PESERTA_PIN };
+    }
+  }
+
+  /**
+   * Membuat draf pesan WhatsApp resmi untuk mengabarkan peserta bahwa PIN mereka telah direset
+   */
+  public generateResetPinWaMessage(namaUsaha: string, namaPemilik?: string): string {
+    const sapaan = namaPemilik ? `Halo Rekan UMKM *${namaPemilik}* (*${namaUsaha}*),` : `Halo Rekan UMKM *${namaUsaha}*,`;
+    return `${sapaan}\n\nPIN login akun aplikasi Gekrafs PartnerUp Anda telah di-reset oleh Tim Kurator/Developer ke PIN standar:\n\n🔑 *PIN Bawaan:* \`${DEFAULT_PESERTA_PIN}\`\n\nSilakan buka aplikasi dan login menggunakan nomor WhatsApp Anda serta PIN di atas. Demi keamanan, Anda dapat mengganti PIN tersebut menjadi PIN pribadi baru kapan saja melalui tombol *Ubah PIN* di bagian atas layar aplikasi.\n\nSalam kreatif,\n*Tim Kurasi & Developer Gekrafs PartnerUp Kota Batu*`;
   }
 
   /**

@@ -26,7 +26,8 @@ import {
   Check,
   ExternalLink,
   X,
-  Wallet
+  Wallet,
+  Key
 } from 'lucide-react';
 import { taskService } from '../services/taskService';
 import { taskConfigService } from '../services/taskConfigService';
@@ -34,6 +35,7 @@ import { gasService } from '../services/gasService';
 import { authService } from '../services/authService';
 import { StrategicCanvasTask, StrategicInnovationMatrix, PesertaItem, TaskModuleDef, TaskQuestionDef } from '../types';
 import { UntunginKasModal } from './UntunginKasModal';
+import { UbahPinPesertaModal } from './UbahPinPesertaModal';
 
 interface StrategicRoadmapFormProps {
   onBack?: () => void;
@@ -53,6 +55,7 @@ export const StrategicRoadmapForm: React.FC<StrategicRoadmapFormProps> = ({
   const [activeModule, setActiveModule] = useState<TaskModuleDef>(() => taskConfigService.getActiveModule());
   const [jawabanDinamis, setJawabanDinamis] = useState<Record<string, string>>({});
   const [isUntunginKasOpen, setIsUntunginKasOpen] = useState(false);
+  const [isUbahPinOpen, setIsUbahPinOpen] = useState(false);
 
   // Deteksi sesi login aktif untuk pengamanan identitas peserta
   const pesertaSession = authService.getPesertaSession();
@@ -450,7 +453,16 @@ Salam hangat,
           <div>Pemilik: <strong className="text-slate-900">{namaPemilik || pesertaSession?.namaPemilik || '-'}</strong></div>
           <div>WhatsApp: <strong className="text-slate-900">{whatsapp || pesertaSession?.whatsapp || '-'}</strong></div>
           <div>Status: <strong className="text-slate-900">{currentStatus === 'reviewed' ? `Disetujui (${nilai}/100)` : currentStatus === 'submitted' ? 'Terkirim (Menunggu Review)' : 'Draf Lembar Kerja'}</strong></div>
-          <div className="pt-1.5 flex justify-end">
+          <div className="pt-1.5 flex justify-end items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsUbahPinOpen(true)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-[11px] font-bold transition-all shadow-2xs cursor-pointer"
+              title="Ubah PIN Keamanan Akun Anda"
+            >
+              <Key className="w-3 h-3 text-amber-600" />
+              <span>Ubah PIN</span>
+            </button>
             <button
               type="button"
               onClick={() => setIsUntunginKasOpen(true)}
@@ -1221,6 +1233,16 @@ Salam hangat,
           whatsapp={whatsapp || pesertaSession?.whatsapp}
           readOnly={false}
           viewerRole="peserta"
+        />
+      )}
+
+      {/* Modal Ubah PIN Peserta */}
+      {isUbahPinOpen && (
+        <UbahPinPesertaModal
+          isOpen={isUbahPinOpen}
+          onClose={() => setIsUbahPinOpen(false)}
+          namaUsaha={selectedNamaUsaha || pesertaSession?.namaUsaha || ''}
+          namaPemilik={namaPemilik || pesertaSession?.namaPemilik}
         />
       )}
     </div>

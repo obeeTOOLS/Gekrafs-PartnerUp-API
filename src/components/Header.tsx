@@ -12,11 +12,13 @@ import {
   Smartphone,
   LogOut,
   Store,
-  Wallet
+  Wallet,
+  Key
 } from 'lucide-react';
-import { EngineerSession } from '../services/authService';
+import { EngineerSession, authService } from '../services/authService';
 import { UserRole } from '../types';
 import { PwaInstallModal } from './PwaInstallModal';
+import { UbahPinPesertaModal } from './UbahPinPesertaModal';
 
 interface HeaderProps {
   activeTab: string;
@@ -104,6 +106,8 @@ export const Header: React.FC<HeaderProps> = ({
   const hasEngineerAccess = !!engineerSession;
   const currentPerspective = engineerSession?.activePerspective || 'peserta';
   const canShowAdminTools = (isAdminLoggedIn || hasEngineerAccess) && currentPerspective !== 'peserta';
+  const pesertaSession = authService.getPesertaSession();
+  const [isUbahPinOpen, setIsUbahPinOpen] = useState(false);
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -351,6 +355,19 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="hidden sm:inline">Bantuan</span>
             </button>
 
+            {/* Ubah PIN Peserta (Hanya tampil saat peserta login) */}
+            {pesertaSession && (
+              <button
+                type="button"
+                onClick={() => setIsUbahPinOpen(true)}
+                title={`Ubah PIN Akun Usaha (${pesertaSession.namaUsaha})`}
+                className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200 transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer shadow-2xs"
+              >
+                <Key className="w-3.5 h-3.5 text-amber-700 flex-shrink-0" />
+                <span className="hidden sm:inline">Ubah PIN</span>
+              </button>
+            )}
+
             {/* Logout Button */}
             <button
               type="button"
@@ -387,6 +404,16 @@ export const Header: React.FC<HeaderProps> = ({
           setDeferredPrompt(null);
         }}
       />
+
+      {/* Modal Ubah PIN Peserta */}
+      {pesertaSession && isUbahPinOpen && (
+        <UbahPinPesertaModal
+          isOpen={isUbahPinOpen}
+          onClose={() => setIsUbahPinOpen(false)}
+          namaUsaha={pesertaSession.namaUsaha}
+          namaPemilik={pesertaSession.namaPemilik}
+        />
+      )}
     </header>
   );
 };

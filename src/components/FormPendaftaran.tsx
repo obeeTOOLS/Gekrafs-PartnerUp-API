@@ -88,7 +88,7 @@ export const FormPendaftaran: React.FC<FormPendaftaranProps> = ({ onSuccessNavig
     if (!file) return;
 
     if (file.size > MAX_FILE_SIZE) {
-      alert(`Ukuran file "${file.name}" melebihi batas 5MB.`);
+      setStatusMsg({ type: 'error', text: `Ukuran file "${file.name}" melebihi batas 5MB.` });
       e.target.value = '';
       return;
     }

@@ -132,7 +132,8 @@ export const DeveloperTools: React.FC = () => {
 
   const handleSaveEndpoint = () => {
     gasService.saveSettings({ gasEndpointUrl: testUrl, autoSync });
-    alert('Pengaturan endpoint GAS berhasil disimpan!');
+    setResetMessage('Pengaturan endpoint GAS berhasil disimpan!');
+    setTimeout(() => setResetMessage(null), 3000);
   };
 
   const handlePullFromLiveSheet = async () => {

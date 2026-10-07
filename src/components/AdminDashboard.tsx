@@ -451,14 +451,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       showToast(res.message);
       setAdminWhitelist(authService.getAdminWhitelist());
     } else {
-      alert(res.message);
+      showToast(res.message);
     }
   };
 
   // Timeline Handlers
   const handleSaveTimeline = async () => {
     if (!timelineForm.tahapan) {
-      alert('Nama tahapan wajib diisi.');
+      showToast('Nama tahapan wajib diisi.');
       return;
     }
     setIsSavingTimeline(true);
@@ -564,33 +564,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       return;
     }
 
-    const confirmAuto = confirm(
-      `Kirim notifikasi status kurasi (${p.statusKurasi}) ke WhatsApp ${p.namaPemilik} (${p.whatsapp})?\n\n` +
-      `Klik OK untuk kirim otomatis via Fonnte Gateway, atau Cancel untuk buka manual di WhatsApp Web.`
-    );
-
-    if (confirmAuto) {
-      showToast(`Mengirim pesan ke WhatsApp ${p.namaPemilik}...`);
-      const res = await whatsappService.sendCurationStatusNotification({
-        nama: p.namaPemilik,
-        namaUsaha: p.namaUsaha,
-        telepon: p.whatsapp,
-        status: p.statusKurasi,
-        catatan: p.catatanKurator
-      }, 'auto');
-      showToast(res.message);
-    } else {
-      const url = whatsappService.createManualWaUrl(
-        p.whatsapp,
-        whatsappService.buildCurationStatusMessage({
+    setPartnerUpConfirmDialog({
+      isOpen: true,
+      title: 'PartnerUp Says',
+      message: `Kirim notifikasi status kurasi (${p.statusKurasi}) ke WhatsApp ${p.namaPemilik}?`,
+      details: `Nomor: ${p.whatsapp}. Notifikasi akan dikirim otomatis via Fonnte Gateway.`,
+      confirmLabel: 'Ya, Kirim Otomatis',
+      onConfirm: async () => {
+        setPartnerUpConfirmDialog(null);
+        showToast(`Mengirim pesan ke WhatsApp ${p.namaPemilik}...`);
+        const res = await whatsappService.sendCurationStatusNotification({
           nama: p.namaPemilik,
           namaUsaha: p.namaUsaha,
+          telepon: p.whatsapp,
           status: p.statusKurasi,
           catatan: p.catatanKurator
-        })
-      );
-      window.open(url, '_blank');
-    }
+        }, 'auto');
+        showToast(res.message);
+      }
+    });
   };
 
   // Kehadiran Handlers

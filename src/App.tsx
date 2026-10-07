@@ -23,6 +23,11 @@ import { Check, Lock, Terminal } from 'lucide-react';
 export default function App() {
   // Cek apakah ada sesi login aktif (Engineer, Admin Whitelist, atau Peserta)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('logout') === 'true' || params.get('keluar') === 'true') {
+      authService.clearAllSessions();
+      return false;
+    }
     return authService.isAnyUserLoggedIn();
   });
   // Query param auto-routing (?page=admin, ?page=info, ?page=asesmen, ?page=kehadiran, ?sesi_id=...)
@@ -273,6 +278,7 @@ export default function App() {
         onOpenShare={() => setIsShareOpen(true)}
         onOpenHelp={() => setIsHelpOpen(true)}
         onLogout={handleAdminLogout}
+        onOpenUntungin={handleOpenGlobalUntungin}
       />
 
       {/* Main Content Workspace with Sleek Top Header */}
