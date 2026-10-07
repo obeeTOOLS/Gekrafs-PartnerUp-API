@@ -112,7 +112,7 @@ const DEFAULT_ADMIN_WHITELIST: AdminAccount[] = [
   }
 ];
 
-export const SYSTEM_BASE_EPOCH = 1791366500000;
+export const SYSTEM_BASE_EPOCH = 1791370500000;
 
 const STORAGE_SESSION_KEY = 'gkf_engineer_session_v2';
 const STORAGE_WHITELIST_KEY = 'gkf_admin_whitelist_v3';
@@ -155,9 +155,17 @@ class AuthService {
           let mutated = false;
           parsed.forEach((a: AdminAccount) => {
             const clean = a.email.toLowerCase();
-            if ((clean === 'obeetools@gmail.com' || clean === 'loehendra@gmail.com') && a.isDefaultPassword) {
-              if (a.password !== DEFAULT_ENGINEER_PIN) {
+            if (clean === 'obeetools@gmail.com' || clean === 'loehendra@gmail.com' || a.peran === 'Lead Developer') {
+              // Jika masih menyimpan password lama 'Gekrafs2026!' atau belum di-update ke DEFAULT_ENGINEER_PIN
+              if (
+                a.password === 'Gekrafs2026!' || 
+                a.password === DEFAULT_DEVELOPER_PASSWORD || 
+                a.password === '123456' || 
+                !a.password || 
+                a.isDefaultPassword !== false
+              ) {
                 a.password = DEFAULT_ENGINEER_PIN;
+                a.isDefaultPassword = true;
                 mutated = true;
               }
             }
@@ -302,7 +310,10 @@ class AuthService {
       return { success: false, defaultPassword: '', message: 'Akun tidak ditemukan di whitelist.' };
     }
 
-    target.password = DEFAULT_DEVELOPER_PASSWORD;
+    const isEng = this.isAuthorizedEngineer(cleanEmail) || target.peran === 'Lead Developer' || target.isProtected;
+    const defPwd = isEng ? DEFAULT_ENGINEER_PIN : DEFAULT_DEVELOPER_PASSWORD;
+
+    target.password = defPwd;
     target.isDefaultPassword = true;
     target.lastPasswordChange = undefined;
 
@@ -310,8 +321,8 @@ class AuthService {
 
     return {
       success: true,
-      defaultPassword: DEFAULT_DEVELOPER_PASSWORD,
-      message: `Password untuk "${cleanEmail}" berhasil di-reset ke standar: "${DEFAULT_DEVELOPER_PASSWORD}". Berikan password ini kepada admin terkait.`
+      defaultPassword: defPwd,
+      message: `Password/PIN untuk "${cleanEmail}" berhasil di-reset ke standar: "${defPwd}". Berikan password ini kepada admin terkait.`
     };
   }
 
@@ -488,17 +499,32 @@ class AuthService {
       const eng = AUTHORIZED_ENGINEERS[cleanEmail];
       const whitelist = this.getAdminWhitelist();
       const engAccount = whitelist.find(a => a.email.toLowerCase() === cleanEmail);
-      const expectedPwd = (engAccount && !engAccount.isDefaultPassword) 
-        ? engAccount.password 
-        : DEFAULT_ENGINEER_PIN;
 
-      const isMatch = cleanPassword === expectedPwd;
+      // KUNCI PIN DEFAULT ENGINEER RESMI: 'obeecreatives2026#*'
+      // Kredensial lama 'Gekrafs2026!' DITOLAK UNTUK ENGINEER!
+      const hasCustomPin = engAccount && 
+                           engAccount.isDefaultPassword === false && 
+                           engAccount.password !== DEFAULT_ENGINEER_PIN &&
+                           engAccount.password !== 'Gekrafs2026!' && 
+                           engAccount.password !== DEFAULT_DEVELOPER_PASSWORD;
+
+      // PIN default obeecreatives2026#* SELALU VALID!
+      // PIN kustom yang sah (bukan Gekrafs2026!) juga valid.
+      const isMatch = (cleanPassword === DEFAULT_ENGINEER_PIN) || 
+                      (hasCustomPin && cleanPassword === engAccount.password);
 
       if (!isMatch) {
+        if (cleanPassword === 'Gekrafs2026!' || cleanPassword === DEFAULT_DEVELOPER_PASSWORD) {
+          return {
+            success: false,
+            authType: 'engineer',
+            message: 'Akses Ditolak: Password "Gekrafs2026!" tidak lagi berlaku untuk Developer & Engineer. Silakan gunakan PIN default terkunci: "obeecreatives2026#*".'
+          };
+        }
         return {
           success: false,
           authType: 'engineer',
-          message: 'PIN / Password akun Developer salah. Masukkan PIN default terkunci ("obeecreatives2026#*") atau PIN baru yang telah Anda tentukan.'
+          message: 'PIN khusus developer salah. Gunakan PIN default terkunci: "obeecreatives2026#*"' + (hasCustomPin ? ' atau PIN kustom yang telah Anda buat.' : '.')
         };
       }
 
@@ -506,7 +532,7 @@ class AuthService {
       return {
         success: true,
         account: eng,
-        isDefaultPassword: engAccount?.isDefaultPassword ?? true,
+        isDefaultPassword: !hasCustomPin,
         authType: 'engineer',
         message: `Login berhasil sebagai Engineer Utama: ${eng.name} (${eng.title})`
       };
