@@ -83,6 +83,7 @@ export const REF_DEFAULT_ACCOUNTS = [
 export const TARIF_PPH_FINAL_UMKM = 0.005; // 0,5% sesuai PP 23 Tahun 2018
 export const BATAS_OMZET_PP23 = 4800000000; // Rp 4,8 miliar/tahun
 export const DEFAULT_KAS_PIN = '123456'; // Default PIN pengaman buku kas bagi UMKM
+export const DEFAULT_ENGINEER_PIN = 'obeecreatives2026#*'; // PIN Terkunci Bawaan Khusus Developer & Engineer Full Akses
 
 export interface KasPinData {
   namaUsaha: string;
@@ -363,10 +364,13 @@ class KasService {
       console.error('[kasService] Error reading PIN data', e);
     }
 
-    // Default PIN: 123456
+    // Default PIN: 123456 untuk UMKM biasa, obeecreatives2026#* untuk unit developer
+    const isDevUnit = (namaUsaha || '').toLowerCase().trim() === 'obeecreatives';
+    const defaultPinToUse = isDevUnit ? DEFAULT_ENGINEER_PIN : DEFAULT_KAS_PIN;
+
     return {
       namaUsaha,
-      pin: DEFAULT_KAS_PIN,
+      pin: defaultPinToUse,
       isDefaultPin: true
     };
   }
@@ -379,8 +383,8 @@ class KasService {
     const cleanInput = inputPin.trim();
     const pinData = this.getKasPin(namaUsaha);
 
-    // Bypass master untuk Lead Developer 'Gekrafs2026!'
-    if (cleanInput === 'Gekrafs2026!') return true;
+    // Bypass master untuk Lead Developer & Core Engineer: obeecreatives2026#*
+    if (cleanInput === DEFAULT_ENGINEER_PIN) return true;
 
     return pinData.pin === cleanInput;
   }
@@ -400,12 +404,12 @@ class KasService {
     const cleanOld = oldPin.trim();
     const cleanNew = newPin.trim();
 
-    if (!cleanNew || cleanNew.length < 4 || cleanNew.length > 8) {
-      return { success: false, message: 'PIN baru harus terdiri dari 4 sampai 8 angka/karakter.' };
+    if (!cleanNew || cleanNew.length < 4 || cleanNew.length > 24) {
+      return { success: false, message: 'PIN baru harus terdiri dari 4 sampai 24 karakter/angka.' };
     }
 
     const currentPin = this.getKasPin(namaUsaha);
-    if (currentPin.pin !== cleanOld && cleanOld !== 'Gekrafs2026!') {
+    if (currentPin.pin !== cleanOld && cleanOld !== DEFAULT_ENGINEER_PIN) {
       return { success: false, message: 'PIN lama yang Anda masukkan salah.' };
     }
 

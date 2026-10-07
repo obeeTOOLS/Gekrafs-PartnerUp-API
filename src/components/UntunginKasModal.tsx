@@ -144,7 +144,11 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
       setEnteredPin('');
       showToast('Buku Kas Terbuka!', 'success');
     } else {
-      setPinError('PIN salah. PIN bawaan awal adalah 123456. Hubungi Developer / Kurator jika Anda lupa PIN.');
+      setPinError(
+        namaUsaha.toLowerCase() === 'obeecreatives'
+          ? 'PIN salah. PIN default developer adalah obeecreatives2026#*.'
+          : 'PIN salah. PIN bawaan awal adalah 123456. Hubungi Developer / Kurator jika Anda lupa PIN.'
+      );
     }
   };
 
@@ -156,8 +160,8 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
       setChangePinError('PIN Lama wajib dimasukkan.');
       return;
     }
-    if (!newPinInput.trim() || newPinInput.trim().length < 4 || newPinInput.trim().length > 8) {
-      setChangePinError('PIN Baru harus terdiri dari 4 sampai 8 karakter/angka.');
+    if (!newPinInput.trim() || newPinInput.trim().length < 4 || newPinInput.trim().length > 24) {
+      setChangePinError('PIN Baru harus terdiri dari 4 sampai 24 karakter/angka.');
       return;
     }
     if (newPinInput.trim() !== confirmNewPinInput.trim()) {
@@ -610,7 +614,9 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
               <ShieldCheck className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="font-bold">
-                  PIN Bawaan Awal: <code className="bg-purple-200/80 px-2 py-0.5 rounded font-mono font-black text-purple-950 tracking-wider">123456</code>
+                  PIN Bawaan Awal: <code className="bg-purple-200/80 px-2 py-0.5 rounded font-mono font-black text-purple-950 tracking-wider">
+                    {namaUsaha.toLowerCase() === 'obeecreatives' ? 'obeecreatives2026#*' : '123456'}
+                  </code>
                 </p>
                 <p className="text-[11px] text-purple-700 mt-1">
                   Setelah terbuka, Anda dapat mengganti PIN ini secara mandiri kapan saja.
@@ -629,10 +635,8 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
               <div className="relative">
                 <input
                   type={showEnteredPin ? 'text' : 'password'}
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength={8}
-                  placeholder="Masukkan PIN (default: 123456)"
+                  maxLength={32}
+                  placeholder={namaUsaha.toLowerCase() === 'obeecreatives' ? 'Masukkan PIN (default: obeecreatives2026#*)' : 'Masukkan PIN (default: 123456)'}
                   value={enteredPin}
                   onChange={(e) => {
                     setEnteredPin(e.target.value);
@@ -1385,8 +1389,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                 </label>
                 <input
                   type={showPinInputFields ? 'text' : 'password'}
-                  inputMode="numeric"
-                  maxLength={8}
+                  maxLength={24}
                   required
                   placeholder="Masukkan PIN baru Anda..."
                   value={newPinInput}
@@ -1401,8 +1404,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                 </label>
                 <input
                   type={showPinInputFields ? 'text' : 'password'}
-                  inputMode="numeric"
-                  maxLength={8}
+                  maxLength={24}
                   required
                   placeholder="Ulangi PIN baru Anda..."
                   value={confirmNewPinInput}

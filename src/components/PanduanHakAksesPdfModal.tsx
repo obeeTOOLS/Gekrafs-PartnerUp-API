@@ -1,6 +1,6 @@
 import React from 'react';
 import { X, Printer, Shield, Key, Users, Terminal, CheckCircle2, Lock, FileText, AlertTriangle } from 'lucide-react';
-import { AUTHORIZED_ENGINEERS, DEFAULT_DEVELOPER_PASSWORD } from '../services/authService';
+import { AUTHORIZED_ENGINEERS, DEFAULT_DEVELOPER_PASSWORD, DEFAULT_ENGINEER_PIN } from '../services/authService';
 
 interface PanduanHakAksesPdfModalProps {
   isOpen: boolean;
@@ -180,7 +180,7 @@ export const PanduanHakAksesPdfModal: React.FC<PanduanHakAksesPdfModalProps> = (
                 ))}
               </ul>
               <div className="pt-1 text-[11px] text-purple-900">
-                <strong>Password Default:</strong> <code className="bg-white px-2 py-0.5 rounded border border-purple-200 font-mono font-bold">{DEFAULT_DEVELOPER_PASSWORD}</code> &middot; <strong>Passcode Master Cadangan (PIN Darurat):</strong> <code className="bg-white px-2 py-0.5 rounded border border-purple-200 font-mono font-bold">123456</code>
+                <strong>PIN Default Terkunci:</strong> <code className="bg-white px-2 py-0.5 rounded border border-purple-200 font-mono font-bold">{DEFAULT_ENGINEER_PIN}</code> &middot; <strong>Opsi:</strong> Dapat diganti mandiri melalui tab Akun Developer & PIN
               </div>
             </div>
 

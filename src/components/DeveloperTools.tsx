@@ -7,6 +7,7 @@ import {
   authService, 
   AUTHORIZED_ENGINEERS, 
   DEFAULT_DEVELOPER_PASSWORD, 
+  DEFAULT_ENGINEER_PIN,
   AdminAccount 
 } from '../services/authService';
 import { WhatsAppSettingsModal } from './WhatsAppSettingsModal';
@@ -15,6 +16,7 @@ import { ExecutiveDossier } from './ExecutiveDossier';
 import { PanduanHakAksesPdfModal } from './PanduanHakAksesPdfModal';
 import { PanduanAksesKasPinPdfModal } from './PanduanAksesKasPinPdfModal';
 import { TaskQuestionEditor } from './TaskQuestionEditor';
+import { generateKasPinPdf } from '../utils/generateKasPinPdf';
 import { 
   Terminal, 
   Copy, 
@@ -37,6 +39,8 @@ import {
   ExternalLink,
   Key,
   KeyRound,
+  Lock,
+  Users,
   Shield,
   ShieldCheck,
   Mail,
@@ -56,7 +60,7 @@ import { UntunginKasModal } from './UntunginKasModal';
 import { kasService, DEFAULT_KAS_PIN } from '../services/kasService';
 
 export const DeveloperTools: React.FC = () => {
-  const [devView, setDevView] = useState<'accounts' | 'questions' | 'dossier' | 'kas_pin' | 'tools'>('accounts');
+  const [devView, setDevView] = useState<'accounts' | 'questions' | 'dossier' | 'kas_pin' | 'panduan_kas' | 'tools'>('accounts');
   const [copiedCode, setCopiedCode] = useState(false);
   const [isUntunginDevModalOpen, setIsUntunginDevModalOpen] = useState(false);
   const [testUrl, setTestUrl] = useState(gasService.getSettings().gasEndpointUrl);
@@ -211,8 +215,8 @@ export const DeveloperTools: React.FC = () => {
     setPartnerUpConfirm({
       isOpen: true,
       title: 'PartnerUp Says',
-      message: `Kembalikan PIN/password akun "${email}"?`,
-      details: `Password akun ini akan direset kembali ke default (${DEFAULT_DEVELOPER_PASSWORD}).`,
+      message: `Kembalikan PIN akun "${email}" ke bawaan default?`,
+      details: `PIN akun developer ini akan dikembalikan ke PIN default terkunci (${DEFAULT_ENGINEER_PIN}).`,
       confirmLabel: 'Ya, Reset PIN',
       onConfirm: () => {
         const res = authService.resetDeveloperPin(email);
@@ -349,6 +353,16 @@ export const DeveloperTools: React.FC = () => {
             <span>Panduan Kas & PIN (PDF)</span>
           </button>
 
+          <button
+            type="button"
+            onClick={generateKasPinPdf}
+            className="flex-shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-700 to-purple-800 hover:from-indigo-600 hover:to-purple-700 text-white font-black text-xs shadow-md transition-all group cursor-pointer"
+            title="Langsung Unduh Berkas PDF Panduan Akses Kas & Reset PIN"
+          >
+            <Download className="w-4 h-4 text-amber-300 group-hover:scale-110 transition-transform" />
+            <span>Unduh File PDF Panduan</span>
+          </button>
+
           <a
             href="/laporan-verifikasi.html"
             target="_blank"
@@ -379,6 +393,32 @@ export const DeveloperTools: React.FC = () => {
 
         <button
           type="button"
+          onClick={() => setDevView('kas_pin')}
+          className={`flex-1 py-3 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            devView === 'kas_pin'
+              ? 'bg-[#001c3c] text-white shadow-md'
+              : 'text-slate-700 hover:bg-white/60'
+          }`}
+        >
+          <KeyRound className="w-4 h-4 text-amber-400" />
+          <span>Reset PIN Kas Peserta</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setDevView('panduan_kas')}
+          className={`flex-1 py-3 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            devView === 'panduan_kas'
+              ? 'bg-[#001c3c] text-white shadow-md'
+              : 'text-slate-700 hover:bg-white/60'
+          }`}
+        >
+          <BookOpen className="w-4 h-4 text-teal-400" />
+          <span>Buku Panduan PIN (PDF)</span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => setDevView('questions')}
           className={`flex-1 py-3 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
             devView === 'questions'
@@ -399,21 +439,8 @@ export const DeveloperTools: React.FC = () => {
               : 'text-slate-700 hover:bg-white/60'
           }`}
         >
-          <BookOpen className="w-4 h-4 text-amber-400" />
+          <Compass className="w-4 h-4 text-amber-400" />
           <span>Panduan Eksekutif</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setDevView('kas_pin')}
-          className={`flex-1 py-3 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
-            devView === 'kas_pin'
-              ? 'bg-[#001c3c] text-white shadow-md'
-              : 'text-slate-700 hover:bg-white/60'
-          }`}
-        >
-          <KeyRound className="w-4 h-4 text-amber-400" />
-          <span>Reset PIN Kas Peserta</span>
         </button>
 
         <button
@@ -506,8 +533,8 @@ export const DeveloperTools: React.FC = () => {
 
                         <td className="p-3.5">
                           {acc.isDefaultPassword !== false ? (
-                            <span className="text-[11px] bg-amber-50 text-amber-900 border border-amber-200 px-2 py-1 rounded-lg font-mono font-semibold inline-block">
-                              Bawaan Dev ({DEFAULT_DEVELOPER_PASSWORD})
+                            <span className="text-[11px] bg-purple-50 text-purple-900 border border-purple-200 px-2 py-1 rounded-lg font-mono font-bold inline-block">
+                              PIN Terkunci ({DEFAULT_ENGINEER_PIN})
                             </span>
                           ) : (
                             <span className="text-[11px] bg-emerald-50 text-emerald-900 border border-emerald-200 px-2 py-1 rounded-lg font-bold inline-flex items-center gap-1">
@@ -537,7 +564,7 @@ export const DeveloperTools: React.FC = () => {
                               title={`Ganti PIN khusus untuk akun ${acc.nama}`}
                             >
                               <Key className="w-3.5 h-3.5 text-amber-300" />
-                              <span>Ganti PIN / Sandi</span>
+                              <span>Ganti PIN</span>
                             </button>
 
                             {acc.isDefaultPassword === false && (
@@ -545,7 +572,7 @@ export const DeveloperTools: React.FC = () => {
                                 type="button"
                                 onClick={() => handleResetPin(acc.email)}
                                 className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer"
-                                title="Reset kembali ke default Gekrafs2026!"
+                                title={`Reset kembali ke PIN default terkunci (${DEFAULT_ENGINEER_PIN})`}
                               >
                                 <RotateCcw className="w-3 h-3 text-slate-500" />
                                 <span>Reset Default</span>
@@ -771,6 +798,238 @@ export const DeveloperTools: React.FC = () => {
               <p className="leading-relaxed text-slate-700">
                 Setiap peserta memiliki PIN kas bawaan <strong>123456</strong>. Jika ada peserta yang menghubungi panitia karena lupa PIN yang telah digantinya, klik tombol <strong>"Reset 123456"</strong> untuk mengembalikannya ke bawaan atau gunakan <strong>"Set Kustom"</strong> untuk menentukan PIN sesuai keinginan peserta.
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {devView === 'panduan_kas' && (
+        <div className="space-y-6 animate-in fade-in">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-md space-y-6">
+            {/* Top Toolbar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+              <div>
+                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-teal-700">
+                  <BookOpen className="w-4 h-4 text-teal-600" />
+                  <span>Dokumen Resmi & Standar Operasional Prosedur (SOP)</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-[#001c3c] mt-1">
+                  Buku Panduan Akses Kas, Kelola PIN & SOP Reset Developer
+                </h2>
+                <p className="text-xs text-slate-500 mt-1 max-w-2xl">
+                  Dokumen petunjuk teknis resmi bagi Peserta UMKM untuk mengamankan data keuangan usaha, serta tata kelola PIN terkunci Developer & Engineer.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={generateKasPinPdf}
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 text-white font-extrabold text-xs shadow-md flex items-center gap-2 cursor-pointer transition-all"
+                  title="Unduh langsung dokumen ini dalam format PDF resmi"
+                >
+                  <Download className="w-4 h-4 text-amber-300" />
+                  <span>Unduh File .PDF</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsPanduanKasPdfOpen(true)}
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-700 to-emerald-700 hover:from-teal-600 hover:to-emerald-600 text-white font-extrabold text-xs shadow-md flex items-center gap-2 cursor-pointer transition-all"
+                  title="Buka tampilan cetak penuh & simpan PDF"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Cetak / Cetak PDF</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Box Ringkasan PIN Default */}
+            <div className="p-5 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50/50 border-2 border-amber-300/80 shadow-xs space-y-3">
+              <div className="flex items-center gap-2 text-amber-900 font-black text-sm">
+                <ShieldCheck className="w-5 h-5 text-amber-700 flex-shrink-0" />
+                <span>RINGKASAN PIN & KREDENSIAL BAWAAN STANDAR (DEFAULT KEY)</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1 text-xs">
+                <div className="p-3 bg-white/80 rounded-xl border border-amber-200">
+                  <div className="text-[11px] font-bold text-slate-500">1. Peserta UMKM (Buku Kas):</div>
+                  <div className="font-black text-slate-900 text-sm mt-0.5 font-mono">PIN Default: {DEFAULT_KAS_PIN}</div>
+                  <div className="text-[10px] text-slate-500 mt-1">Dapat diubah mandiri via tombol "Ganti PIN"</div>
+                </div>
+
+                <div className="p-3 bg-white/80 rounded-xl border-2 border-purple-300">
+                  <div className="text-[11px] font-bold text-purple-900 flex items-center justify-between">
+                    <span>2. Developer & Engineer:</span>
+                    <span className="px-1.5 py-0.2 rounded bg-purple-100 text-purple-800 text-[9px] font-black">TERKUNCI</span>
+                  </div>
+                  <div className="font-black text-purple-950 text-sm mt-0.5 font-mono break-all">{DEFAULT_ENGINEER_PIN}</div>
+                  <div className="text-[10px] text-purple-700 mt-1">Full akses default (opsi ganti PIN tetap ada)</div>
+                </div>
+
+                <div className="p-3 bg-white/80 rounded-xl border border-amber-200">
+                  <div className="text-[11px] font-bold text-slate-500">3. Tim Kurator / Panitia:</div>
+                  <div className="font-black text-slate-900 text-sm mt-0.5 font-mono">Password: {DEFAULT_DEVELOPER_PASSWORD}</div>
+                  <div className="text-[10px] text-slate-500 mt-1">Dapat diubah via Profil Admin</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Konten Panduan Lengkap */}
+            <div className="space-y-6 text-slate-800 leading-relaxed text-xs sm:text-sm">
+              {/* BAB I */}
+              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                <div className="flex items-center gap-2 font-black text-sm text-[#001c3c]">
+                  <Wallet className="w-4 h-4 text-purple-600" />
+                  <span>BAB I: PANDUAN CARA PESERTA MENGAKSES BUKU KAS (UNTUNGIN)</span>
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Modul <strong>Untungin</strong> adalah sistem pencatatan keuangan dan laporan laba/rugi mandiri per unit usaha. Peserta dapat mengakses Buku Kas melalui 4 jalur cepat:
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1 text-xs">
+                  <div className="p-3 rounded-xl bg-white border border-purple-200 space-y-1">
+                    <strong className="text-purple-950 block">📱 Layar Ponsel (Bottom Bar)</strong>
+                    <p className="text-slate-600 text-[11px]">Tekan ikon dompet ungu bertuliskan <strong>"Kas"</strong> di bilah navigasi bawah layar HP.</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white border border-blue-200 space-y-1">
+                    <strong className="text-blue-950 block">💻 Header Atas Layar</strong>
+                    <p className="text-slate-600 text-[11px]">Klik tombol <strong>"Buku Kas"</strong> berlatar ungu di samping Direktori Ekraf.</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white border border-amber-200 space-y-1">
+                    <strong className="text-amber-950 block">🏪 Direktori Ekraf</strong>
+                    <p className="text-slate-600 text-[11px]">Buka kartu profil usaha di Direktori Ekraf ➔ klik <strong>"Buka Buku Kas Untungin"</strong>.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* BAB II */}
+              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                <div className="flex items-center gap-2 font-black text-sm text-[#001c3c]">
+                  <Lock className="w-4 h-4 text-amber-600" />
+                  <span>BAB II: SISTEM KEAMANAN & PIN PENGAMAN BUKU KAS</span>
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Seluruh data keuangan UMKM dilindungi oleh <strong>PIN Lock Gate</strong>. PIN default awal bagi seluruh peserta UMKM adalah <code className="bg-amber-100 text-amber-950 px-1.5 py-0.5 rounded font-mono font-bold">{DEFAULT_KAS_PIN}</code>.
+                </p>
+                <ul className="text-xs text-slate-600 space-y-1 list-disc list-inside pl-2">
+                  <li>Peserta yang pertama kali membuka buku kas cukup mengetikkan <strong>123456</strong>.</li>
+                  <li>Setelah terbuka, peserta dapat mencatat pemasukan, pengeluaran, memindahkan saldo akun, dan melihat estimasi pajak PPh 0,5%.</li>
+                  <li>Saat modal kas ditutup, pengamanan PIN akan otomatis kembali aktif.</li>
+                </ul>
+              </div>
+
+              {/* BAB III */}
+              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                <div className="flex items-center gap-2 font-black text-sm text-[#001c3c]">
+                  <KeyRound className="w-4 h-4 text-emerald-600" />
+                  <span>BAB III: PANDUAN CARA PESERTA MENGGANTI PIN KAS SECARA MANDIRI</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                  <div className="p-3 rounded-xl bg-white border border-slate-200 space-y-1">
+                    <span className="w-5 h-5 rounded-full bg-[#001c3c] text-white flex items-center justify-center font-bold text-[10px]">1</span>
+                    <strong className="text-slate-900 block">Buka Buku Kas</strong>
+                    <p className="text-slate-500 text-[11px]">Masukkan PIN aktif saat ini (bawaan: 123456).</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white border border-slate-200 space-y-1">
+                    <span className="w-5 h-5 rounded-full bg-[#001c3c] text-white flex items-center justify-center font-bold text-[10px]">2</span>
+                    <strong className="text-slate-900 block">Klik "Ganti PIN"</strong>
+                    <p className="text-slate-500 text-[11px]">Terletak di pojok kanan atas header modal Kas.</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white border border-slate-200 space-y-1">
+                    <span className="w-5 h-5 rounded-full bg-[#001c3c] text-white flex items-center justify-center font-bold text-[10px]">3</span>
+                    <strong className="text-slate-900 block">Isi Form PIN</strong>
+                    <p className="text-slate-500 text-[11px]">Ketik PIN Lama, PIN Baru (4-8 digit), dan konfirmasi.</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white border border-slate-200 space-y-1">
+                    <span className="w-5 h-5 rounded-full bg-[#001c3c] text-white flex items-center justify-center font-bold text-[10px]">4</span>
+                    <strong className="text-slate-900 block">Simpan & Selesai</strong>
+                    <p className="text-slate-500 text-[11px]">PIN baru langsung aktif untuk pembukaan berikutnya.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* BAB IV */}
+              <div className="p-5 rounded-2xl bg-purple-50/60 border border-purple-200 space-y-3">
+                <div className="flex items-center gap-2 font-black text-sm text-purple-950">
+                  <Key className="w-4 h-4 text-purple-700" />
+                  <span>BAB IV: PENGUNCIAN PIN DEFAULT DEVELOPER & ENGINEER ({DEFAULT_ENGINEER_PIN})</span>
+                </div>
+                <p className="text-xs text-slate-700 leading-relaxed">
+                  Bagi akun <strong>Lead Developer</strong> (<code>obeetools@gmail.com</code>) dan <strong>Core Engineer</strong> (<code>loehendra@gmail.com</code>), sistem mengunci PIN default bawaan dengan kombinasi: <code className="bg-purple-200 text-purple-950 px-2 py-0.5 rounded font-mono font-black">{DEFAULT_ENGINEER_PIN}</code>.
+                </p>
+                <div className="p-3 rounded-xl bg-white border border-purple-200 text-xs text-slate-700 space-y-1">
+                  <strong>Hak & Karakteristik PIN Developer:</strong>
+                  <ul className="list-disc list-inside text-[11px] text-slate-600 space-y-1 pl-1">
+                    <li>Kredensial bawaan locked default pada <code>{DEFAULT_ENGINEER_PIN}</code>.</li>
+                    <li>Developer tetap punya opsi penuh mengubah PIN sewaktu-waktu di tab <strong>"Akun Developer & PIN"</strong>.</li>
+                    <li>PIN ini juga berfungsi sebagai Master Passcode pembuka kas unit usaha uji coba pengembang (<code>obeecreatives</code>).</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* BAB V */}
+              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                <div className="flex items-center gap-2 font-black text-sm text-[#001c3c]">
+                  <Terminal className="w-4 h-4 text-amber-600" />
+                  <span>BAB V: SOP DEVELOPER/ENGINEER MERESET PIN PESERTA (LUPA PIN)</span>
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Jika ada peserta yang lupa PIN kas mereka, Developer / Engineer dapat memulihkan akses seketika:
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                  <div className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-1">
+                    <strong className="text-slate-900 block">⚡ Metode 1: Menu DevTools ➔ Tab "Reset PIN Kas Peserta"</strong>
+                    <p className="text-slate-500 text-[11px]">
+                      Cari peserta, lalu klik <strong>"Reset 123456"</strong> untuk pengembalian 1-klik instan, atau klik <strong>"Set Kustom"</strong> untuk memasukkan PIN khusus permintaan peserta.
+                    </p>
+                  </div>
+                  <div className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-1">
+                    <strong className="text-slate-900 block">🔑 Metode 2: Tombol Cepat di Header Modal Kas</strong>
+                    <p className="text-slate-500 text-[11px]">
+                      Saat membuka kas peserta mana pun, Developer memiliki tombol emas <strong>"Reset PIN"</strong> di kanan atas header modal untuk reset seketika.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* BAB VI */}
+              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                <div className="flex items-center gap-2 font-black text-sm text-[#001c3c]">
+                  <Users className="w-4 h-4 text-blue-600" />
+                  <span>BAB VI: MATRIKS HAK AKSES & OTORISASI SISTEM</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden">
+                    <thead className="bg-[#001c3c] text-white text-[11px] uppercase tracking-wider font-extrabold">
+                      <tr>
+                        <th className="py-2.5 px-3">Peran Pengguna</th>
+                        <th className="py-2.5 px-3">PIN Default</th>
+                        <th className="py-2.5 px-3">Ganti PIN Sendiri</th>
+                        <th className="py-2.5 px-3">Reset PIN Orang Lain</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 text-[11px] bg-white">
+                      <tr>
+                        <td className="py-2.5 px-3 font-bold text-[#001c3c]">Peserta UMKM</td>
+                        <td className="py-2.5 px-3 font-mono font-bold text-amber-800">123456</td>
+                        <td className="py-2.5 px-3 text-emerald-700 font-bold">Ya (Mandiri)</td>
+                        <td className="py-2.5 px-3 text-rose-600">Tidak Diizinkan</td>
+                      </tr>
+                      <tr className="bg-slate-50/50">
+                        <td className="py-2.5 px-3 font-bold text-[#001c3c]">Kurator / Panitia</td>
+                        <td className="py-2.5 px-3 font-mono text-slate-700">{DEFAULT_DEVELOPER_PASSWORD}</td>
+                        <td className="py-2.5 px-3 text-emerald-700 font-bold">Ya (Password)</td>
+                        <td className="py-2.5 px-3 text-slate-500">Minta ke Developer</td>
+                      </tr>
+                      <tr className="bg-purple-50/60 font-semibold text-purple-950">
+                        <td className="py-2.5 px-3 font-black text-purple-900">Lead Developer & Engineer</td>
+                        <td className="py-2.5 px-3 font-mono font-black text-purple-950">{DEFAULT_ENGINEER_PIN}</td>
+                        <td className="py-2.5 px-3 text-emerald-700 font-black">Ya (Mandiri)</td>
+                        <td className="py-2.5 px-3 text-emerald-700 font-black">Ya (Full Akses)</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
         </div>

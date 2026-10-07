@@ -237,38 +237,40 @@ export const Sidebar: React.FC<SidebarProps> = ({
           );
         })}
 
-        {/* Tombol Cepat: Buku Kas Untungin */}
+        {/* Quick Access: Buku Kas Untungin */}
         {onOpenUntungin && (
           <button
             type="button"
             onClick={onOpenUntungin}
-            title={isCollapsed ? 'Buku Kas & Laporan Keuangan Untungin' : undefined}
+            title={isCollapsed ? 'Buku Kas Untungin (Laporan Keuangan UMKM)' : undefined}
             className={`w-full flex items-center rounded-xl transition-all group relative cursor-pointer mt-1 ${
               isCollapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2.5'
-            } bg-purple-900/40 hover:bg-purple-800/60 text-purple-200 hover:text-white border border-purple-500/30`}
+            } bg-purple-600/20 hover:bg-purple-600/30 text-purple-200 border border-purple-500/30`}
           >
-            <div className="relative flex-shrink-0">
-              <Wallet className="w-5 h-5 text-amber-300 transition-transform group-hover:scale-110" />
+            <div className="relative">
+              <Wallet className="w-5 h-5 flex-shrink-0 text-purple-300 group-hover:scale-110 transition-transform" />
             </div>
+
             {!isCollapsed && (
               <div className="text-left min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-1">
-                  <span className="text-xs font-bold leading-tight truncate text-white">
-                    Buku Kas Untungin
+                  <span className="text-xs font-black truncate text-white">
+                    Buku Kas
                   </span>
-                  <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-purple-500/80 text-white uppercase tracking-wider">
-                    KAS
+                  <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-purple-400 text-purple-950 uppercase tracking-wider">
+                    PIN
                   </span>
                 </div>
-                <div className="text-[10px] truncate text-purple-300/80">
-                  Laporan Arus Kas UMKM
+                <div className="text-[10px] text-purple-300/80 truncate">
+                  Untungin & Laba/Rugi
                 </div>
               </div>
             )}
+
             {isCollapsed && (
               <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-[#001428] text-white text-xs font-bold rounded-lg shadow-xl border border-purple-500/40 whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50">
-                <div className="text-amber-300 font-extrabold">Buku Kas Untungin</div>
-                <div className="text-[10px] text-purple-200">Laporan Arus Kas & Keuangan</div>
+                <div className="text-purple-300 font-extrabold">Buku Kas Untungin</div>
+                <div className="text-[10px] text-slate-300">Catatan kas & laba/rugi UMKM</div>
               </div>
             )}
           </button>

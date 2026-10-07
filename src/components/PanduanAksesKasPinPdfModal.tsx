@@ -17,9 +17,11 @@ import {
   Building2,
   Users,
   Terminal,
-  Shield
+  Shield,
+  Download
 } from 'lucide-react';
-import { DEFAULT_KAS_PIN } from '../services/kasService';
+import { DEFAULT_KAS_PIN, DEFAULT_ENGINEER_PIN } from '../services/kasService';
+import { generateKasPinPdf } from '../utils/generateKasPinPdf';
 
 interface PanduanAksesKasPinPdfModalProps {
   isOpen: boolean;
@@ -69,11 +71,21 @@ export const PanduanAksesKasPinPdfModal: React.FC<PanduanAksesKasPinPdfModalProp
           <div className="flex items-center gap-2">
             <button
               type="button"
+              onClick={generateKasPinPdf}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 text-xs font-black text-white shadow transition-all cursor-pointer"
+              title="Unduh File PDF Dokumen Ini"
+            >
+              <Download className="w-4 h-4 text-amber-300" />
+              <span>Unduh File .PDF</span>
+            </button>
+            <button
+              type="button"
               onClick={handlePrint}
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-xs font-black text-white shadow transition-all cursor-pointer"
+              title="Cetak atau Simpan sebagai PDF via Browser Print"
             >
               <Printer className="w-4 h-4" />
-              <span>Cetak / Simpan PDF</span>
+              <span>Cetak / Cetak PDF</span>
             </button>
             <button
               type="button"
@@ -258,11 +270,38 @@ export const PanduanAksesKasPinPdfModal: React.FC<PanduanAksesKasPinPdfModalProp
             </div>
           </div>
 
-          {/* 6. BAB IV: SOP RESET PIN BAGI DEVELOPER / ENGINEER */}
+          {/* 6. BAB IV: PIN DEFAULT TERKUNCI DEVELOPER & ENGINEER */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm font-extrabold text-[#001c3c] border-b border-slate-200 pb-1.5">
-              <Terminal className="w-4 h-4 text-purple-700" />
-              <span>BAB IV: SOP RESET PIN BAGI DEVELOPER / ENGINEER (SOLUSI LUPA PIN)</span>
+              <Key className="w-4 h-4 text-purple-700" />
+              <span>BAB IV: PIN TERKUNCI DEFAULT DEVELOPER & ENGINEER (FULL AKSES)</span>
+            </div>
+
+            <p className="text-xs text-slate-700 leading-relaxed">
+              Khusus akun <strong>Lead Developer</strong> (<code>obeetools@gmail.com</code>) dan <strong>Core Engineer</strong> (<code>loehendra@gmail.com</code>), sistem mengunci PIN default dengan kombinasi pengamanan tingkat tinggi:
+            </p>
+
+            <div className="p-4 rounded-xl border border-purple-200 bg-purple-50/70 space-y-2">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-purple-700 flex-shrink-0" />
+                <h4 className="text-xs font-black text-purple-950">
+                  PIN Bawaan Terkunci Developer & Engineer: <code className="bg-purple-200/80 px-2 py-0.5 rounded text-purple-950 font-mono text-sm tracking-wider font-black">{DEFAULT_ENGINEER_PIN}</code>
+                </h4>
+              </div>
+              <ul className="text-xs text-slate-700 space-y-1 list-disc list-inside leading-relaxed pl-1">
+                <li><strong>Terkunci Sebagai Default:</strong> Setiap kali akun Developer / Engineer dibuat atau di-reset, kredensial terkunci pada nilai <code>{DEFAULT_ENGINEER_PIN}</code>.</li>
+                <li><strong>Opsi Ganti PIN Mandiri:</strong> Developer dan Engineer tetap memiliki keleluasaan penuh untuk mengganti PIN ini kapan saja melalui menu <strong>Developer Tools ➔ Akun Developer & PIN ➔ Ganti PIN / Sandi</strong>.</li>
+                <li><strong>Master Key / Super Privilege:</strong> Nilai PIN ini juga berfungsi sebagai kunci induk darurat untuk membuka dan meninjau Buku Kas unit usaha pengembang (<code>obeecreatives</code>).</li>
+                <li><strong>Peran Lainnya:</strong> Kredensial untuk peserta UMKM tetap menggunakan default <code>123456</code>, dan tim kurator tetap menggunakan <code>Gekrafs2026!</code>.</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* 7. BAB V: SOP RESET PIN BAGI DEVELOPER / ENGINEER */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm font-extrabold text-[#001c3c] border-b border-slate-200 pb-1.5">
+              <Terminal className="w-4 h-4 text-amber-600" />
+              <span>BAB V: SOP RESET PIN BAGI DEVELOPER / ENGINEER (SOLUSI LUPA PIN)</span>
             </div>
 
             <p className="text-xs text-slate-700 leading-relaxed">
@@ -325,11 +364,11 @@ export const PanduanAksesKasPinPdfModal: React.FC<PanduanAksesKasPinPdfModalProp
             </div>
           </div>
 
-          {/* 7. BAB V: MATRIKS HAK AKSES PERAN (CHEAT SHEET) */}
+          {/* 8. BAB VI: MATRIKS HAK AKSES PERAN (CHEAT SHEET) */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm font-extrabold text-[#001c3c] border-b border-slate-200 pb-1.5">
               <Users className="w-4 h-4 text-blue-600" />
-              <span>BAB V: MATRIKS HAK AKSES & OTORISASI BUKU KAS</span>
+              <span>BAB VI: MATRIKS HAK AKSES & OTORISASI BUKU KAS</span>
             </div>
 
             <div className="overflow-x-auto">

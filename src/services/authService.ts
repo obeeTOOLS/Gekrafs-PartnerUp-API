@@ -11,7 +11,9 @@
 
 import { UserRole } from '../types';
 
-export const DEFAULT_DEVELOPER_PASSWORD = 'Gekrafs2026!';
+export const DEFAULT_ADMIN_PASSWORD = 'Gekrafs2026!';
+export const DEFAULT_ENGINEER_PIN = 'obeecreatives2026#*'; // PIN Terkunci Bawaan Khusus Developer & Engineer Full Akses
+export const DEFAULT_DEVELOPER_PASSWORD = DEFAULT_ADMIN_PASSWORD; // Alias umum untuk admin biasa
 
 export interface EngineerProfile {
   email: string;
@@ -80,7 +82,7 @@ const DEFAULT_ADMIN_WHITELIST: AdminAccount[] = [
     nama: 'Obee Tools (Developer Lead)',
     peran: 'Lead Developer',
     status: 'Aktif',
-    password: DEFAULT_DEVELOPER_PASSWORD,
+    password: DEFAULT_ENGINEER_PIN,
     isDefaultPassword: true,
     tanggalDitambahkan: '2026-09-01',
     ditambahkanOleh: 'System Architect',
@@ -91,7 +93,7 @@ const DEFAULT_ADMIN_WHITELIST: AdminAccount[] = [
     nama: 'Lalu Mahendra',
     peran: 'Lead Developer',
     status: 'Aktif',
-    password: DEFAULT_DEVELOPER_PASSWORD,
+    password: DEFAULT_ENGINEER_PIN,
     isDefaultPassword: true,
     tanggalDitambahkan: '2026-09-01',
     ditambahkanOleh: 'System Architect',
@@ -102,7 +104,7 @@ const DEFAULT_ADMIN_WHITELIST: AdminAccount[] = [
     nama: 'Tim Kurasi Gekrafs Batu',
     peran: 'Kurator',
     status: 'Aktif',
-    password: DEFAULT_DEVELOPER_PASSWORD,
+    password: DEFAULT_ADMIN_PASSWORD,
     isDefaultPassword: true,
     tanggalDitambahkan: '2026-09-20',
     ditambahkanOleh: 'obeetools@gmail.com',
@@ -110,7 +112,7 @@ const DEFAULT_ADMIN_WHITELIST: AdminAccount[] = [
   }
 ];
 
-export const SYSTEM_BASE_EPOCH = 1759828800000;
+export const SYSTEM_BASE_EPOCH = 1791366500000;
 
 const STORAGE_SESSION_KEY = 'gkf_engineer_session_v2';
 const STORAGE_WHITELIST_KEY = 'gkf_admin_whitelist_v3';
@@ -149,6 +151,21 @@ class AuthService {
             this.saveAdminWhitelist(merged);
             return merged;
           }
+
+          let mutated = false;
+          parsed.forEach((a: AdminAccount) => {
+            const clean = a.email.toLowerCase();
+            if ((clean === 'obeetools@gmail.com' || clean === 'loehendra@gmail.com') && a.isDefaultPassword) {
+              if (a.password !== DEFAULT_ENGINEER_PIN) {
+                a.password = DEFAULT_ENGINEER_PIN;
+                mutated = true;
+              }
+            }
+          });
+          if (mutated) {
+            this.saveAdminWhitelist(parsed);
+          }
+
           return parsed;
         }
       }
@@ -354,7 +371,7 @@ class AuthService {
       return { success: false, message: 'Akun developer tidak ditemukan.' };
     }
 
-    target.password = DEFAULT_DEVELOPER_PASSWORD;
+    target.password = DEFAULT_ENGINEER_PIN;
     target.isDefaultPassword = true;
     target.lastPasswordChange = undefined;
 
@@ -362,7 +379,7 @@ class AuthService {
 
     return {
       success: true,
-      message: `PIN / Password untuk ${target.nama} telah dikembalikan ke bawaan standar (${DEFAULT_DEVELOPER_PASSWORD}).`
+      message: `PIN akun Developer & Engineer untuk ${target.nama} telah dikembalikan ke PIN default terkunci (${DEFAULT_ENGINEER_PIN}).`
     };
   }
 
@@ -471,16 +488,17 @@ class AuthService {
       const eng = AUTHORIZED_ENGINEERS[cleanEmail];
       const whitelist = this.getAdminWhitelist();
       const engAccount = whitelist.find(a => a.email.toLowerCase() === cleanEmail);
-      const expectedPwd = engAccount?.password || DEFAULT_DEVELOPER_PASSWORD;
+      const expectedPwd = (engAccount && !engAccount.isDefaultPassword) 
+        ? engAccount.password 
+        : DEFAULT_ENGINEER_PIN;
 
-      const isMatch = cleanPassword === expectedPwd || 
-                      (engAccount?.isDefaultPassword && (cleanPassword === DEFAULT_DEVELOPER_PASSWORD || cleanPassword === '123456'));
+      const isMatch = cleanPassword === expectedPwd;
 
       if (!isMatch) {
         return {
           success: false,
           authType: 'engineer',
-          message: 'Password / PIN akun engineer salah. Pastikan menggunakan PIN atau password yang telah diatur.'
+          message: 'PIN / Password akun Developer salah. Masukkan PIN default terkunci ("obeecreatives2026#*") atau PIN baru yang telah Anda tentukan.'
         };
       }
 

@@ -16,7 +16,7 @@ import {
   FileText,
   UserCheck
 } from 'lucide-react';
-import { authService, DEFAULT_DEVELOPER_PASSWORD } from '../services/authService';
+import { authService, DEFAULT_DEVELOPER_PASSWORD, DEFAULT_ENGINEER_PIN } from '../services/authService';
 import { gasService } from '../services/gasService';
 
 interface LoginPageProps {
@@ -38,8 +38,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [pesertaNamaUsaha, setPesertaNamaUsaha] = useState('');
   const [pesertaWhatsapp, setPesertaWhatsapp] = useState('');
   const [pesertaNamaPemilik, setPesertaNamaPemilik] = useState('');
-  const [pesertaPin, setPesertaPin] = useState('');
-  const [showPesertaPin, setShowPesertaPin] = useState(false);
   const [pesertaLoading, setPesertaLoading] = useState(false);
   const [pesertaError, setPesertaError] = useState<string | null>(null);
   const [pesertaSuccess, setPesertaSuccess] = useState<string | null>(null);
@@ -82,24 +80,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           return;
         }
 
-        if (!pesertaPin.trim()) {
-          setPesertaError('PIN Akun wajib diisi. Masukkan PIN Anda atau gunakan PIN standar 123456.');
-          return;
-        }
-
         const verification = gasService.verifyPesertaIdentity(pesertaNamaUsaha, pesertaWhatsapp);
         if (!verification.found) {
           setPesertaError(
             'Data peserta tidak ditemukan dengan kombinasi Nama Usaha & WhatsApp tersebut. Jika Anda belum mendaftar, pilih tab "Daftar Baru".'
-          );
-          return;
-        }
-
-        // Verifikasi PIN Peserta (default: 123456)
-        const expectedPin = authService.getPesertaPin(pesertaNamaUsaha);
-        if (pesertaPin.trim() !== expectedPin) {
-          setPesertaError(
-            'PIN yang Anda masukkan salah. PIN bawaan awal adalah 123456. Jika Anda lupa PIN, silakan hubungi tim kurator/developer untuk mereset PIN Anda.'
           );
           return;
         }
@@ -115,8 +99,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           whatsapp: matched?.whatsapp || pesertaWhatsapp.trim(),
           namaPemilik: matched?.namaPemilik,
           isRegistered: true,
-          loggedInAt: Date.now(),
-          expiresAt: Date.now() + 24 * 60 * 60 * 1000
+          loggedInAt: Date.now()
         });
 
         setPesertaSuccess(`Selamat datang kembali, ${matched?.namaUsaha || pesertaNamaUsaha}! Mengalihkan...`);
@@ -134,17 +117,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           return;
         }
 
-        if (pesertaPin.trim()) {
-          authService.updatePesertaPin(pesertaNamaUsaha.trim(), '123456', pesertaPin.trim());
-        }
-
         authService.setPesertaSession({
           namaUsaha: pesertaNamaUsaha.trim(),
           whatsapp: pesertaWhatsapp.trim(),
           namaPemilik: pesertaNamaPemilik.trim(),
           isRegistered: false,
-          loggedInAt: Date.now(),
-          expiresAt: Date.now() + 24 * 60 * 60 * 1000
+          loggedInAt: Date.now()
         });
 
         setPesertaSuccess('Identitas tercatat. Membuka formulir pendaftaran resmi...');
@@ -269,12 +247,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 </div>
 
                 <div>
-                  <div className="flex items-center justify-between mb-1">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1 gap-1">
                     <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">
-                      Password Akun
+                      Password / PIN Akun
                     </label>
-                    <span className="text-[10px] text-slate-400">
-                      Standar Awal: <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-600 font-mono">{DEFAULT_DEVELOPER_PASSWORD}</code>
+                    <span className="text-[10px] text-slate-500">
+                      Default: <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-600 font-mono">Gekrafs2026!</code> (Kurator) &middot; <code className="bg-purple-100 px-1 py-0.5 rounded text-purple-900 font-mono font-bold">{DEFAULT_ENGINEER_PIN}</code> (Dev)
                     </span>
                   </div>
                   <div className="relative">
@@ -393,60 +371,25 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 </div>
 
                 {pesertaMode === 'registered' ? (
-                  <>
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide mb-1">
-                        Nomor WhatsApp Terdaftar
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="tel"
-                          required
-                          placeholder="contoh: 08123456789"
-                          value={pesertaWhatsapp}
-                          onChange={(e) => setPesertaWhatsapp(e.target.value)}
-                          className="w-full pl-9 pr-3 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-600 outline-none text-slate-900 bg-white font-medium"
-                        />
-                        <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
-                      </div>
-                      <span className="text-[10px] text-slate-400 mt-1 block">
-                        Masukkan nomor WhatsApp yang Anda gunakan saat mengisi pendaftaran awal
-                      </span>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide mb-1">
+                      Nomor WhatsApp Terdaftar
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="tel"
+                        required
+                        placeholder="contoh: 08123456789"
+                        value={pesertaWhatsapp}
+                        onChange={(e) => setPesertaWhatsapp(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-600 outline-none text-slate-900 bg-white font-medium"
+                      />
+                      <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
                     </div>
-
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">
-                          PIN Keamanan Akun
-                        </label>
-                        <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                          PIN Bawaan Awal: 123456
-                        </span>
-                      </div>
-                      <div className="relative">
-                        <input
-                          type={showPesertaPin ? 'text' : 'password'}
-                          required
-                          placeholder="Masukkan PIN Anda (bawaan: 123456)..."
-                          value={pesertaPin}
-                          onChange={(e) => setPesertaPin(e.target.value)}
-                          maxLength={8}
-                          className="w-full pl-9 pr-10 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-600 outline-none text-slate-900 bg-white font-mono tracking-wider font-bold"
-                        />
-                        <Key className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
-                        <button
-                          type="button"
-                          onClick={() => setShowPesertaPin(!showPesertaPin)}
-                          className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
-                        >
-                          {showPesertaPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
-                      </div>
-                      <span className="text-[10px] text-slate-400 mt-1 block">
-                        Gunakan PIN <strong>123456</strong> untuk pertama kali login. Anda dapat mengubah PIN setelah masuk.
-                      </span>
-                    </div>
-                  </>
+                    <span className="text-[10px] text-slate-400 mt-1 block">
+                      Masukkan nomor WhatsApp yang Anda gunakan saat mengisi pendaftaran awal
+                    </span>
+                  </div>
                 ) : (
                   <>
                     <div>
@@ -480,32 +423,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                         />
                         <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
                       </div>
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wide mb-1">
-                        Buat PIN Akun (Opsional)
-                      </label>
-                      <div className="relative">
-                        <input
-                          type={showPesertaPin ? 'text' : 'password'}
-                          placeholder="Buat PIN 4-6 digit (bawaan: 123456)..."
-                          value={pesertaPin}
-                          onChange={(e) => setPesertaPin(e.target.value)}
-                          maxLength={8}
-                          className="w-full pl-9 pr-10 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-600 outline-none text-slate-900 bg-white font-mono tracking-wider"
-                        />
-                        <Key className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
-                        <button
-                          type="button"
-                          onClick={() => setShowPesertaPin(!showPesertaPin)}
-                          className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
-                        >
-                          {showPesertaPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
-                      </div>
-                      <span className="text-[10px] text-slate-400 mt-1 block">
-                        Jika dikosongkan, PIN awal Anda adalah <strong>123456</strong>.
-                      </span>
                     </div>
                   </>
                 )}
