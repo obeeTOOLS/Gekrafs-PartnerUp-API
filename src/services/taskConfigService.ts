@@ -1,6 +1,7 @@
 import { TaskModuleDef, TaskQuestionDef } from '../types';
 
-const STORAGE_KEY = 'gkf_task_modules_config_v1';
+const STORAGE_KEY = 'gkf_task_modules_config_v2';
+const LEGACY_STORAGE_KEY = 'gkf_task_modules_config_v1';
 
 export const DEFAULT_TASK_MODULES: TaskModuleDef[] = [
   {
@@ -69,6 +70,100 @@ export const DEFAULT_TASK_MODULES: TaskModuleDef[] = [
         wajib: false
       }
     ]
+  },
+  {
+    id: 'modul-2',
+    nomorPelatihan: 2,
+    judulModul: 'Pelatihan 2: The 1-Page Marketing Plan (1PMP)',
+    subJudul: '9-Square Direct Response Marketing Canvas (Allan Dib)',
+    keterangan: 'Rancang peta strategi pemasaran komprehensif 1 halaman berbasis metodologi Allan Dib: Menemukan target pasar, menyusun penawaran tak tertolak, menangkap prospek, hingga membangun sistem referal otomatis.',
+    aktif: false,
+    includeMatrix3x3: false,
+    tanggalDibuat: '2026-10-06',
+    diperbaruiOleh: 'Lead Developer & Kurator',
+    pertanyaan: [
+      {
+        id: '1pmp_target_market',
+        kategori: 'Fase 1: BEFORE (Calon Prospek / Prospect)',
+        label: '1. Pasar Sasaran Spesifik (My Target Market)',
+        petunjuk: 'Siapa niche pasar ideal Anda? Hindari "semua orang". Tentukan demografi, psikografi, dan problem utamanya.',
+        placeholder: 'Contoh: Wisatawan keluarga & instansi dinas yang berkunjung ke Kota Batu dan membutuhkan cenderamata oleh-oleh sehat premium.',
+        tipe: 'textarea',
+        wajib: true
+      },
+      {
+        id: '1pmp_message',
+        kategori: 'Fase 1: BEFORE (Calon Prospek / Prospect)',
+        label: '2. Pesan untuk Pasar Sasaran (My Message to Target Market)',
+        petunjuk: 'Apa Unique Selling Proposition (USP) Anda? Mengapa mereka harus memilih produk Anda dibanding kompetitor?',
+        placeholder: 'Contoh: Olahan apel murni tanpa pengawet dengan garansi rasa renyah asli perkebunan Bumiaji.',
+        tipe: 'textarea',
+        wajib: true
+      },
+      {
+        id: '1pmp_media',
+        kategori: 'Fase 1: BEFORE (Calon Prospek / Prospect)',
+        label: '3. Media Penjangkauan (The Media I Will Use to Reach Them)',
+        petunjuk: 'Kanal apa yang dipakai untuk menyampaikan pesan? (Media sosial, Google Maps SEO, brosur hotel, kolaborasi komunitas).',
+        placeholder: 'Contoh: Konten video TikTok edukasi petik apel, titik Google Maps optimalisasi ulasan bintang 5, dan katalog WhatsApp Business.',
+        tipe: 'textarea',
+        wajib: true
+      },
+      {
+        id: '1pmp_lead_capture',
+        kategori: 'Fase 2: DURING (Calon Pembeli / Lead)',
+        label: '4. Sistem Penangkapan Prospek (My Lead Capture System)',
+        petunjuk: 'Bagaimana cara Anda mencatat kontak (WhatsApp/Email) mereka sebelum mereka memutuskan membeli?',
+        placeholder: 'Contoh: Memberikan tester gratis dan voucher potongan Rp10.000 dengan menukar nomor WhatsApp di kasir atau link bio medsos.',
+        tipe: 'textarea',
+        wajib: true
+      },
+      {
+        id: '1pmp_lead_nurturing',
+        kategori: 'Fase 2: DURING (Calon Pembeli / Lead)',
+        label: '5. Sistem Pemeliharaan Prospek (My Lead Nurturing System)',
+        petunjuk: 'Bagaimana mengedukasi dan menjaga hubungan agar mereka percaya dan segera membeli? (Follow-up rutin, tips bermanfaat).',
+        placeholder: 'Contoh: Broadcast WhatsApp mingguan berisi tips oleh-oleh tahan lama dan info promo seasonal akhir pekan.',
+        tipe: 'textarea',
+        wajib: true
+      },
+      {
+        id: '1pmp_sales_conversion',
+        kategori: 'Fase 2: DURING (Calon Pembeli / Lead)',
+        label: '6. Strategi Konversi Penjualan (My Sales Conversion Strategy)',
+        petunjuk: 'Bagaimana mengubah prospek menjadi pembeli pertama kali? (Penawaran tak tertolak / Irresistible offer, jaminan tanpa risiko).',
+        placeholder: 'Contoh: Paket bundle 3 kotak gratis 1 botol sari apel dengan garansi 100% uang kembali jika kemasan bocor.',
+        tipe: 'textarea',
+        wajib: true
+      },
+      {
+        id: '1pmp_delivering_experience',
+        kategori: 'Fase 3: AFTER (Pelanggan & Fan Fanatik / Customer)',
+        label: '7. Menghadirkan Pengalaman Kelas Dunia (Delivering a World-Class Experience)',
+        petunjuk: 'Bagaimana memberikan efek "WOW" saat pelanggan menerima produk/layanan Anda?',
+        placeholder: 'Contoh: Kemasan eksklusif dengan kartu ucapan terima kasih personal tulisan tangan dan bonus sampel varian baru.',
+        tipe: 'textarea',
+        wajib: true
+      },
+      {
+        id: '1pmp_customer_lifetime_value',
+        kategori: 'Fase 3: AFTER (Pelanggan & Fan Fanatik / Customer)',
+        label: '8. Meningkatkan Nilai Seumur Hidup Pelanggan (Increasing Customer Lifetime Value)',
+        petunjuk: 'Bagaimana membuat pelanggan membeli lagi dan lagi? (Upsell, cross-sell, program langganan berkala).',
+        placeholder: 'Contoh: Pengingat kirim parcel lebaran otomatis untuk pelanggan korporat dan diskon VIP belanja ulang dalam 30 hari.',
+        tipe: 'textarea',
+        wajib: true
+      },
+      {
+        id: '1pmp_orchestrating_referrals',
+        kategori: 'Fase 3: AFTER (Pelanggan & Fan Fanatik / Customer)',
+        label: '9. Mengorkestrasi & Memicu Referal (Orchestrating Referrals)',
+        petunjuk: 'Bagaimana menciptakan sistem agar pelanggan aktif merekomendasikan usaha Anda ke teman/keluarga?',
+        placeholder: 'Contoh: Program "Bawa Teman": pembeli mendapat voucher belanja gratis jika temannya berbelanja minimal Rp100.000 menggunakan kupon rekomendasinya.',
+        tipe: 'textarea',
+        wajib: true
+      }
+    ]
   }
 ];
 
@@ -81,19 +176,44 @@ class TaskConfigService {
 
   private loadFromStorage() {
     try {
-      const data = localStorage.getItem(STORAGE_KEY);
+      let data = localStorage.getItem(STORAGE_KEY);
+      if (!data) {
+        data = localStorage.getItem(LEGACY_STORAGE_KEY);
+      }
       if (data) {
         const parsed = JSON.parse(data);
         if (Array.isArray(parsed) && parsed.length > 0) {
+          // Selalu pastikan seluruh modul preset (modul-1 dan modul-2) ada di daftar
+          DEFAULT_TASK_MODULES.forEach(defMod => {
+            if (!parsed.some((p: TaskModuleDef) => p.id === defMod.id)) {
+              parsed.push(defMod);
+            }
+          });
           this.modules = parsed;
+          this.saveToStorage();
           return;
         }
       }
     } catch (e) {
       console.error('Failed to load task modules config:', e);
     }
-    this.modules = DEFAULT_TASK_MODULES;
+    this.modules = [...DEFAULT_TASK_MODULES];
     this.saveToStorage();
+  }
+
+  public ensureDefaultModules(): TaskModuleDef[] {
+    let hasChange = false;
+    DEFAULT_TASK_MODULES.forEach(defMod => {
+      const exists = this.modules.some(m => m.id === defMod.id);
+      if (!exists) {
+        this.modules.push(defMod);
+        hasChange = true;
+      }
+    });
+    if (hasChange) {
+      this.saveToStorage();
+    }
+    return [...this.modules];
   }
 
   private saveToStorage() {

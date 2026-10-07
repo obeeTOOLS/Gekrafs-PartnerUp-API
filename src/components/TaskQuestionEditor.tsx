@@ -28,11 +28,19 @@ interface TaskQuestionEditorProps {
 }
 
 export const TaskQuestionEditor: React.FC<TaskQuestionEditorProps> = ({ userRole = 'kurator', onPreviewTask }) => {
-  const [modules, setModules] = useState<TaskModuleDef[]>(() => taskConfigService.getModules());
+  const [modules, setModules] = useState<TaskModuleDef[]>(() => {
+    return taskConfigService.ensureDefaultModules();
+  });
   const [selectedModuleId, setSelectedModuleId] = useState<string>(() => {
     const active = taskConfigService.getActiveModule();
     return active ? active.id : modules[0]?.id || 'modul-1';
   });
+
+  // Pastikan kedua modul (Modul 1 & Modul 2 1PMP) selalu tersinkron saat komponen dimuat
+  useEffect(() => {
+    const all = taskConfigService.ensureDefaultModules();
+    setModules(all);
+  }, []);
 
   const currentModule = modules.find(m => m.id === selectedModuleId) || modules[0];
 
@@ -250,11 +258,25 @@ export const TaskQuestionEditor: React.FC<TaskQuestionEditorProps> = ({ userRole
           <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
-              onClick={() => setIsNewModuleModalOpen(true)}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 active:scale-95 text-[#001c3c] font-black text-xs shadow-md transition-all cursor-pointer"
+              onClick={() => {
+                const all = taskConfigService.ensureDefaultModules();
+                setModules(all);
+                setSelectedModuleId('modul-2');
+                showToast('📖 Modul 2 (The 1-Page Marketing Plan - Allan Dib) siap ditinjau!');
+              }}
+              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 active:scale-95 text-[#001c3c] font-black text-xs shadow-md transition-all cursor-pointer"
             >
-              <FolderPlus className="w-4 h-4" />
-              <span>+ Buat Modul Pelatihan Baru</span>
+              <BookOpen className="w-4 h-4 text-[#001c3c]" />
+              <span>📘 Modul 1PMP (Allan Dib)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsNewModuleModalOpen(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white font-bold text-xs shadow-md transition-all border border-white/20 cursor-pointer"
+            >
+              <FolderPlus className="w-4 h-4 text-amber-300" />
+              <span>+ Buat Modul Baru</span>
             </button>
 
             <button
@@ -282,6 +304,28 @@ export const TaskQuestionEditor: React.FC<TaskQuestionEditorProps> = ({ userRole
           </span>
         </div>
 
+        {/* Banner Pintasan Modul Allan Dib 1PMP */}
+        <div className="p-3 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+          <div className="flex items-center gap-2 text-amber-950">
+            <Sparkles className="w-4 h-4 text-amber-600 flex-shrink-0" />
+            <span>
+              <strong>Modul 2 Tersedia:</strong> The 1-Page Marketing Plan (Allan Dib) &middot; 9 Kotak Direct Response Marketing (Before, During, After).
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              const all = taskConfigService.ensureDefaultModules();
+              setModules(all);
+              setSelectedModuleId('modul-2');
+              showToast('📖 Modul 2 (The 1-Page Marketing Plan) siap diedit!');
+            }}
+            className="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-[#001c3c] font-black rounded-lg text-xs transition-all whitespace-nowrap cursor-pointer shadow-xs self-start sm:self-auto"
+          >
+            {selectedModuleId === 'modul-2' ? '✓ Sedang Dipilih' : '👉 Buka Modul 1PMP'}
+          </button>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           {modules.map((m) => {
             const isSelected = m.id === selectedModuleId;
@@ -296,13 +340,20 @@ export const TaskQuestionEditor: React.FC<TaskQuestionEditorProps> = ({ userRole
                 }`}
               >
                 <div className="flex items-center justify-between gap-1 mb-1">
-                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${
-                    m.aktif 
-                      ? 'bg-emerald-600 text-white' 
-                      : 'bg-slate-200 text-slate-700'
-                  }`}>
-                    {m.aktif ? 'AKTIF DIKERJAKAN' : 'ARSIP / DRAF'}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${
+                      m.aktif 
+                        ? 'bg-emerald-600 text-white' 
+                        : 'bg-slate-200 text-slate-700'
+                    }`}>
+                      {m.aktif ? 'AKTIF DIKERJAKAN' : 'ARSIP / DRAF'}
+                    </span>
+                    {m.id === 'modul-2' && (
+                      <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 font-extrabold text-[9px] border border-amber-300">
+                        ⭐ Buku Allan Dib
+                      </span>
+                    )}
+                  </div>
                   <span className="text-[10px] text-slate-400 font-mono">
                     {m.pertanyaan.length} Soal
                   </span>
