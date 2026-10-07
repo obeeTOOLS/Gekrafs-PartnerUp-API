@@ -1,14 +1,15 @@
 import React from 'react';
 import { PesertaItem } from '../types';
-import { X, MessageCircle, Mail, Instagram, MapPin, Building, FileCheck } from 'lucide-react';
+import { X, MessageCircle, Mail, Instagram, MapPin, Building, FileCheck, Wallet } from 'lucide-react';
 import { toWaLink } from '../utils/qrUtils';
 
 interface ProfileModalProps {
   peserta: PesertaItem | null;
   onClose: () => void;
+  onOpenUntungin?: (peserta: PesertaItem) => void;
 }
 
-export const ProfileModal: React.FC<ProfileModalProps> = ({ peserta, onClose }) => {
+export const ProfileModal: React.FC<ProfileModalProps> = ({ peserta, onClose, onOpenUntungin }) => {
   if (!peserta) return null;
 
   return (
@@ -110,6 +111,20 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ peserta, onClose }) 
 
           {/* Action Links */}
           <div className="pt-3 border-t border-slate-100 space-y-2">
+            {onOpenUntungin && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenUntungin(peserta);
+                }}
+                className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#001c3c] to-[#003366] text-white font-bold hover:from-[#002b55] transition-all shadow-sm cursor-pointer"
+              >
+                <Wallet className="w-4 h-4 text-amber-300" />
+                <span>Buka Buku Kas Untungin ({peserta.namaUsaha})</span>
+              </button>
+            )}
+
             <a
               href={toWaLink(peserta.whatsapp)}
               target="_blank"

@@ -46,12 +46,15 @@ import {
   BookOpen,
   Wrench,
   Trash2,
-  Compass
+  Compass,
+  Wallet
 } from 'lucide-react';
+import { UntunginKasModal } from './UntunginKasModal';
 
 export const DeveloperTools: React.FC = () => {
   const [devView, setDevView] = useState<'accounts' | 'questions' | 'dossier' | 'tools'>('accounts');
   const [copiedCode, setCopiedCode] = useState(false);
+  const [isUntunginDevModalOpen, setIsUntunginDevModalOpen] = useState(false);
   const [testUrl, setTestUrl] = useState(gasService.getSettings().gasEndpointUrl);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; latency?: number } | null>(null);
   const [isTesting, setIsTesting] = useState(false);
@@ -267,6 +270,16 @@ export const DeveloperTools: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setIsUntunginDevModalOpen(true)}
+            className="flex-shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-[#001c3c] font-black text-xs shadow-md transition-all group cursor-pointer"
+            title="Buka & Uji Modul Laporan Keuangan Untungin (Buku Kas & Pajak PP 23)"
+          >
+            <Wallet className="w-4 h-4 text-[#001c3c] group-hover:scale-110 transition-transform" />
+            <span>💼 Buku Kas Untungin</span>
+          </button>
+
           <button
             type="button"
             onClick={handleCopyCode}
@@ -1071,6 +1084,19 @@ export const DeveloperTools: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Modal Untungin Kas Khusus Developer (Bisa edit & uji coba langsung) */}
+      {isUntunginDevModalOpen && (
+        <UntunginKasModal
+          isOpen={isUntunginDevModalOpen}
+          onClose={() => setIsUntunginDevModalOpen(false)}
+          namaUsaha="obeecreatives"
+          namaPemilik="Lalu Mahendra (Lead Developer)"
+          whatsapp="081335125277"
+          readOnly={false}
+          viewerRole="developer"
+        />
       )}
     </div>
   );

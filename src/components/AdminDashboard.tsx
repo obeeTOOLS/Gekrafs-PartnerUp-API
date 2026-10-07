@@ -72,11 +72,13 @@ import {
   FileEdit,
   AlertCircle,
   Target,
-  TrendingUp
+  TrendingUp,
+  Wallet
 } from 'lucide-react';
 
 import { StrategicRoadmapReview } from './StrategicRoadmapReview';
 import { TaskQuestionEditor } from './TaskQuestionEditor';
+import { UntunginKasModal } from './UntunginKasModal';
 import { taskService } from '../services/taskService';
 import { HEADLESS_GAS_CODE } from '../services/headlessGasCode';
 import { diagnoseAssessment } from '../services/assessmentDiagnosisService';
@@ -115,6 +117,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const [sertifikatModalPeserta, setSertifikatModalPeserta] = useState<PesertaItem | null>(null);
   const [editingUmkmPeserta, setEditingUmkmPeserta] = useState<PesertaItem | null>(null);
+  const [untunginModalPeserta, setUntunginModalPeserta] = useState<PesertaItem | null>(null);
   const [taskCount, setTaskCount] = useState<number>(() => taskService.getAllTasks().length);
 
   useEffect(() => {
@@ -1050,6 +1053,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             className="px-2.5 py-1 rounded bg-[#eaf2fb] text-[#004c80] hover:bg-[#dbe7f7] font-bold text-[11px] cursor-pointer"
                           >
                             Profil
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setUntunginModalPeserta(p)}
+                            title={`Buka Buku Kas Untungin untuk ${p.namaUsaha}`}
+                            className="px-2.5 py-1 rounded bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 font-bold text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
+                          >
+                            <Wallet className="w-3 h-3 text-purple-600" />
+                            <span className="hidden xl:inline">Kas</span>
                           </button>
                           <button
                             type="button"
@@ -2687,6 +2699,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <ProfileModal
           peserta={selectedPesertaForModal}
           onClose={() => setSelectedPesertaForModal(null)}
+          onOpenUntungin={(p) => setUntunginModalPeserta(p)}
+        />
+      )}
+
+      {/* Untungin — Buku Kas & Laporan Keuangan Modal */}
+      {untunginModalPeserta && (
+        <UntunginKasModal
+          isOpen={!!untunginModalPeserta}
+          onClose={() => setUntunginModalPeserta(null)}
+          namaUsaha={untunginModalPeserta.namaUsaha}
+          namaPemilik={untunginModalPeserta.namaPemilik}
+          whatsapp={untunginModalPeserta.whatsapp}
+          readOnly={userRole !== 'developer'}
+          viewerRole={userRole}
         />
       )}
 
