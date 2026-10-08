@@ -27,7 +27,8 @@ import {
   Unlock,
   Key,
   KeyRound,
-  ShieldCheck
+  ShieldCheck,
+  Type
 } from 'lucide-react';
 import {
   kasService,
@@ -84,6 +85,27 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
   const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
   const [selectedYear, setSelectedYear] = useState<string>(currentYear);
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
+
+  // Pengaturan Ukuran Huruf (Aksesibilitas Lansia & Keterbacaan Laporan Keuangan)
+  type FontSizeLevel = 'normal' | 'large' | 'xlarge';
+  const [fontSize, setFontSize] = useState<FontSizeLevel>(() => {
+    try {
+      const saved = localStorage.getItem('untungin_font_size');
+      if (saved === 'normal' || saved === 'large' || saved === 'xlarge') return saved;
+    } catch {
+      // ignore
+    }
+    return 'large'; // Default: Ukuran Besar (Ramah untuk Bapak-bapak & Ibu-ibu)
+  });
+
+  const handleSetFontSize = (size: FontSizeLevel) => {
+    setFontSize(size);
+    try {
+      localStorage.setItem('untungin_font_size', size);
+    } catch {
+      // ignore
+    }
+  };
 
   // Form Transaksi State
   const [txDate, setTxDate] = useState<string>(new Date().toISOString().slice(0, 10));
@@ -680,53 +702,108 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
         ) : (
           <>
             {/* 2. SUB-NAVBAR TAB */}
-            <div className="bg-white border-b border-slate-200 px-4 flex items-center justify-between gap-2 overflow-x-auto scrollbar-none flex-shrink-0">
-          <div className="flex items-center gap-1 py-2">
-            {[
-              { id: 'beranda', label: '🏠 Beranda' },
-              { id: 'transaksi', label: '📝 Transaksi' },
-              { id: 'akun', label: '💳 Akun Kas' },
-              { id: 'labarugi', label: '📊 Laba Rugi & Rekap' },
-              { id: 'pajak', label: '🏛️ Pajak 0,5% (PP 23)' }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                  activeTab === tab.id
-                    ? 'bg-[#001c3c] text-white shadow-xs'
-                    : 'text-slate-600 hover:text-[#001c3c] hover:bg-slate-100'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+            <div className="bg-white border-b border-slate-200 px-4 py-2 flex flex-wrap items-center justify-between gap-3 flex-shrink-0 shadow-2xs">
+              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
+                {[
+                  { id: 'beranda', label: '🏠 Beranda' },
+                  { id: 'transaksi', label: '📝 Transaksi' },
+                  { id: 'akun', label: '💳 Akun Kas' },
+                  { id: 'labarugi', label: '📊 Laba Rugi & Rekap' },
+                  { id: 'pajak', label: '🏛️ Pajak 0,5% (PP 23)' }
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`px-3.5 py-1.5 rounded-xl font-bold transition-all whitespace-nowrap cursor-pointer ${
+                      fontSize === 'xlarge' ? 'text-sm' : fontSize === 'large' ? 'text-xs sm:text-sm' : 'text-xs'
+                    } ${
+                      activeTab === tab.id
+                        ? 'bg-[#001c3c] text-white shadow-xs'
+                        : 'text-slate-700 hover:text-[#001c3c] hover:bg-slate-100'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
 
-          {/* Filter Bulan & Tahun */}
-          <div className="flex items-center gap-1.5 py-1.5 text-xs">
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-700 text-xs focus:outline-none"
-            >
-              <option value="all">Semua Bulan</option>
-              {MONTH_NAMES.map((m, i) => (
-                <option key={i} value={String(i + 1).padStart(2, '0')}>{m}</option>
-              ))}
-            </select>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-700 text-xs focus:outline-none"
-            >
-              {[2025, 2026, 2027].map(y => (
-                <option key={y} value={String(y)}>{y}</option>
-              ))}
-            </select>
-          </div>
-        </div>
+              {/* Kontrol Kanan: Pengatur Ukuran Font (Aksesibilitas Lansia) & Filter Periode */}
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Switcher Ukuran Font Khusus Senior / Lansia */}
+                <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 shadow-2xs">
+                  <div className="px-2 text-slate-700 flex items-center gap-1 font-bold text-xs" title="Sesuaikan ukuran huruf laporan keuangan">
+                    <Type className="w-3.5 h-3.5 text-indigo-700" />
+                    <span className="hidden sm:inline">Huruf:</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleSetFontSize('normal')}
+                    title="Ukuran Standar"
+                    className={`px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      fontSize === 'normal'
+                        ? 'bg-white text-[#001c3c] shadow-xs border border-slate-200 font-extrabold'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    A
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSetFontSize('large')}
+                    title="Ukuran Besar — Ramah Lansia & Mata Lelah (Rekomendasi Default)"
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                      fontSize === 'large'
+                        ? 'bg-[#001c3c] text-white shadow-xs font-extrabold'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <span>A+</span>
+                    <span className="text-[10px] hidden md:inline opacity-90 font-semibold">(Besar)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSetFontSize('xlarge')}
+                    title="Ukuran Ekstra Besar — Huruf & Angka Jumbo Maksimal"
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                      fontSize === 'xlarge'
+                        ? 'bg-purple-700 text-white shadow-xs font-extrabold'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <span>A++</span>
+                    <span className="text-[10px] hidden md:inline opacity-90 font-semibold">(Jumbo)</span>
+                  </button>
+                </div>
+
+                {/* Filter Bulan & Tahun */}
+                <div className="flex items-center gap-1.5 text-xs">
+                  <select
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(e.target.value)}
+                    className={`bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-amber-400 ${
+                      fontSize === 'xlarge' ? 'text-sm' : 'text-xs'
+                    }`}
+                  >
+                    <option value="all">Semua Bulan</option>
+                    {MONTH_NAMES.map((m, i) => (
+                      <option key={i} value={String(i + 1).padStart(2, '0')}>{m}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(e.target.value)}
+                    className={`bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-amber-400 ${
+                      fontSize === 'xlarge' ? 'text-sm' : 'text-xs'
+                    }`}
+                  >
+                    {[2025, 2026, 2027].map(y => (
+                      <option key={y} value={String(y)}>{y}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
 
         {/* 3. KONTEN MODAL BODY (Scrollable) */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
@@ -736,7 +813,9 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
             <div className="space-y-4">
               {/* Alert Saldo Minus */}
               {summary.minusAccounts.length > 0 && (
-                <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3 text-rose-800 text-xs">
+                <div className={`p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3 text-rose-800 ${
+                  fontSize === 'xlarge' ? 'text-sm' : fontSize === 'large' ? 'text-xs sm:text-sm' : 'text-xs'
+                }`}>
                   <AlertTriangle className="w-5 h-5 text-rose-600 flex-shrink-0" />
                   <div>
                     <strong>Peringatan Saldo Minus:</strong> Saldo pada akun{' '}
@@ -745,73 +824,125 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                 </div>
               )}
 
-              {/* 4 Kartu Statistik Finansial */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Saldo Kas</span>
-                  <div className="text-base sm:text-lg font-black text-[#001c3c] font-mono">
+              {/* 4 Kartu Statistik Finansial (Skalabilitas Font Ramah Senior) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className={`bg-white rounded-2xl border border-slate-200 shadow-xs space-y-1 transition-all ${
+                  fontSize === 'xlarge' ? 'p-5' : fontSize === 'large' ? 'p-4 sm:p-5' : 'p-3.5'
+                }`}>
+                  <span className={`uppercase font-bold tracking-wider text-slate-600 block ${
+                    fontSize === 'xlarge' ? 'text-xs sm:text-sm' : fontSize === 'large' ? 'text-[11px] sm:text-xs' : 'text-[10px]'
+                  }`}>
+                    Total Saldo Kas
+                  </span>
+                  <div className={`font-black text-[#001c3c] font-mono tracking-tight leading-tight ${
+                    fontSize === 'xlarge' ? 'text-2xl sm:text-3xl' : fontSize === 'large' ? 'text-xl sm:text-2xl' : 'text-base sm:text-lg'
+                  }`}>
                     {rupiah(summary.totalSaldoSemua)}
                   </div>
-                  <span className="text-[10px] text-slate-500 block">Dari {accounts.length} akun terdaftar</span>
+                  <span className={`text-slate-600 block font-medium ${
+                    fontSize === 'xlarge' ? 'text-xs sm:text-sm' : fontSize === 'large' ? 'text-[11px] sm:text-xs' : 'text-[10px]'
+                  }`}>
+                    Dari {accounts.length} akun kas aktif
+                  </span>
                 </div>
 
-                <div className="bg-emerald-50/70 p-3.5 rounded-2xl border border-emerald-200/80 shadow-xs space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-emerald-800 block">Total Pendapatan</span>
-                  <div className="text-base sm:text-lg font-black text-emerald-900 font-mono">
+                <div className={`bg-emerald-50/80 rounded-2xl border border-emerald-300 shadow-xs space-y-1 transition-all ${
+                  fontSize === 'xlarge' ? 'p-5' : fontSize === 'large' ? 'p-4 sm:p-5' : 'p-3.5'
+                }`}>
+                  <span className={`uppercase font-bold tracking-wider text-emerald-800 block ${
+                    fontSize === 'xlarge' ? 'text-xs sm:text-sm' : fontSize === 'large' ? 'text-[11px] sm:text-xs' : 'text-[10px]'
+                  }`}>
+                    Total Pendapatan
+                  </span>
+                  <div className={`font-black text-emerald-950 font-mono tracking-tight leading-tight ${
+                    fontSize === 'xlarge' ? 'text-2xl sm:text-3xl' : fontSize === 'large' ? 'text-xl sm:text-2xl' : 'text-base sm:text-lg'
+                  }`}>
                     {rupiah(summary.income)}
                   </div>
-                  <span className="text-[10px] text-emerald-700 block">Omzet penjualan</span>
+                  <span className={`text-emerald-800 block font-medium ${
+                    fontSize === 'xlarge' ? 'text-xs sm:text-sm' : fontSize === 'large' ? 'text-[11px] sm:text-xs' : 'text-[10px]'
+                  }`}>
+                    Omzet & penjualan usaha
+                  </span>
                 </div>
 
-                <div className="bg-rose-50/70 p-3.5 rounded-2xl border border-rose-200/80 shadow-xs space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-rose-800 block">Total Pengeluaran</span>
-                  <div className="text-base sm:text-lg font-black text-rose-900 font-mono">
+                <div className={`bg-rose-50/80 rounded-2xl border border-rose-300 shadow-xs space-y-1 transition-all ${
+                  fontSize === 'xlarge' ? 'p-5' : fontSize === 'large' ? 'p-4 sm:p-5' : 'p-3.5'
+                }`}>
+                  <span className={`uppercase font-bold tracking-wider text-rose-800 block ${
+                    fontSize === 'xlarge' ? 'text-xs sm:text-sm' : fontSize === 'large' ? 'text-[11px] sm:text-xs' : 'text-[10px]'
+                  }`}>
+                    Total Pengeluaran
+                  </span>
+                  <div className={`font-black text-rose-950 font-mono tracking-tight leading-tight ${
+                    fontSize === 'xlarge' ? 'text-2xl sm:text-3xl' : fontSize === 'large' ? 'text-xl sm:text-2xl' : 'text-base sm:text-lg'
+                  }`}>
                     {rupiah(summary.expense)}
                   </div>
-                  <span className="text-[10px] text-rose-700 block">Bahan & operasional</span>
+                  <span className={`text-rose-800 block font-medium ${
+                    fontSize === 'xlarge' ? 'text-xs sm:text-sm' : fontSize === 'large' ? 'text-[11px] sm:text-xs' : 'text-[10px]'
+                  }`}>
+                    Beban bahan & operasional
+                  </span>
                 </div>
 
-                <div className={`p-3.5 rounded-2xl border shadow-xs space-y-1 ${
-                  summary.net >= 0 ? 'bg-blue-50/70 border-blue-200 text-blue-900' : 'bg-amber-50/70 border-amber-200 text-amber-900'
+                <div className={`rounded-2xl border shadow-xs space-y-1 transition-all ${
+                  fontSize === 'xlarge' ? 'p-5' : fontSize === 'large' ? 'p-4 sm:p-5' : 'p-3.5'
+                } ${
+                  summary.net >= 0 ? 'bg-blue-50/80 border-blue-300 text-blue-950' : 'bg-amber-50/80 border-amber-300 text-amber-950'
                 }`}>
-                  <span className="text-[10px] uppercase font-bold block">
+                  <span className={`uppercase font-bold tracking-wider block ${
+                    fontSize === 'xlarge' ? 'text-xs sm:text-sm' : fontSize === 'large' ? 'text-[11px] sm:text-xs' : 'text-[10px]'
+                  }`}>
                     {summary.net >= 0 ? 'Laba Bersih' : 'Rugi Bersih'}
                   </span>
-                  <div className="text-base sm:text-lg font-black font-mono">
+                  <div className={`font-black font-mono tracking-tight leading-tight ${
+                    fontSize === 'xlarge' ? 'text-2xl sm:text-3xl' : fontSize === 'large' ? 'text-xl sm:text-2xl' : 'text-base sm:text-lg'
+                  }`}>
                     {rupiah(Math.abs(summary.net))}
                   </div>
-                  <span className="text-[10px] block opacity-80">
+                  <span className={`block font-semibold opacity-90 ${
+                    fontSize === 'xlarge' ? 'text-xs sm:text-sm' : fontSize === 'large' ? 'text-[11px] sm:text-xs' : 'text-[10px]'
+                  }`}>
                     Margin: {summary.income > 0 ? ((summary.net / summary.income) * 100).toFixed(1) : '0'}%
                   </span>
                 </div>
               </div>
 
               {/* Rincian Akun Kas Terdaftar */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-[#001c3c] flex items-center gap-1.5">
-                    <Wallet className="w-3.5 h-3.5 text-blue-600" />
+                  <h4 className={`font-black text-[#001c3c] flex items-center gap-2 ${
+                    fontSize === 'xlarge' ? 'text-base' : fontSize === 'large' ? 'text-sm sm:text-base' : 'text-xs'
+                  }`}>
+                    <Wallet className="w-4 h-4 text-blue-600" />
                     <span>Posisi Saldo Akun Usaha</span>
                   </h4>
                   <button
                     type="button"
                     onClick={() => setActiveTab('akun')}
-                    className="text-[11px] text-blue-700 font-bold hover:underline cursor-pointer"
+                    className={`text-blue-700 font-bold hover:underline cursor-pointer ${
+                      fontSize === 'xlarge' ? 'text-xs sm:text-sm' : 'text-[11px]'
+                    }`}
                   >
                     Kelola Akun &rarr;
                   </button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {accounts.map((acc) => {
                     const bal = kasService.calculateAccountBalance(acc, transactions);
                     const isMinus = bal < 0;
                     return (
-                      <div key={acc.id} className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+                      <div key={acc.id} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
                         <div>
-                          <div className="font-bold text-xs text-slate-800">{acc.name}</div>
-                          <span className="text-[10px] text-slate-500 uppercase">{acc.type}</span>
+                          <div className={`font-extrabold text-slate-800 ${
+                            fontSize === 'xlarge' ? 'text-base' : fontSize === 'large' ? 'text-sm' : 'text-xs'
+                          }`}>{acc.name}</div>
+                          <span className="text-[11px] font-bold text-slate-500 uppercase">{acc.type}</span>
                         </div>
-                        <div className={`font-mono text-xs font-bold ${isMinus ? 'text-rose-600' : 'text-slate-900'}`}>
+                        <div className={`font-mono font-black ${
+                          fontSize === 'xlarge' ? 'text-base sm:text-lg' : fontSize === 'large' ? 'text-sm sm:text-base' : 'text-xs'
+                        } ${isMinus ? 'text-rose-600' : 'text-slate-900'}`}>
                           {rupiah(bal)}
                         </div>
                       </div>
@@ -821,43 +952,55 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
               </div>
 
               {/* 5 Transaksi Terakhir */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-[#001c3c] flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                  <h4 className={`font-black text-[#001c3c] flex items-center gap-2 ${
+                    fontSize === 'xlarge' ? 'text-base' : fontSize === 'large' ? 'text-sm sm:text-base' : 'text-xs'
+                  }`}>
+                    <Calendar className="w-4 h-4 text-slate-500" />
                     <span>Transaksi Terkini</span>
                   </h4>
                   <button
                     type="button"
                     onClick={() => setActiveTab('transaksi')}
-                    className="text-[11px] text-blue-700 font-bold hover:underline cursor-pointer"
+                    className={`text-blue-700 font-bold hover:underline cursor-pointer ${
+                      fontSize === 'xlarge' ? 'text-xs sm:text-sm' : 'text-[11px]'
+                    }`}
                   >
                     Buka Riwayat Lengkap &rarr;
                   </button>
                 </div>
                 {transactions.slice(0, 5).length === 0 ? (
-                  <div className="text-center py-6 text-slate-400 text-xs italic">
+                  <div className={`text-center py-6 text-slate-400 italic ${
+                    fontSize === 'xlarge' ? 'text-sm' : 'text-xs'
+                  }`}>
                     Belum ada transaksi tercatat. Mulai catat pemasukan dan pengeluaran Anda.
                   </div>
                 ) : (
                   <div className="divide-y divide-slate-100">
                     {transactions.slice(0, 5).map((t) => (
-                      <div key={t.id} className="py-2.5 flex items-center justify-between text-xs">
+                      <div key={t.id} className={`py-3 flex items-center justify-between ${
+                        fontSize === 'xlarge' ? 'text-sm sm:text-base' : fontSize === 'large' ? 'text-xs sm:text-sm' : 'text-xs'
+                      }`}>
                         <div className="space-y-0.5">
-                          <div className="font-bold text-slate-800 flex items-center gap-2">
+                          <div className="font-extrabold text-slate-800 flex items-center gap-2">
                             <span>{t.desc || t.category || 'Transfer Saldo'}</span>
-                            <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                               t.type === 'income' ? 'bg-emerald-100 text-emerald-800' : t.type === 'expense' ? 'bg-rose-100 text-rose-800' : 'bg-slate-200 text-slate-700'
                             }`}>
                               {t.type === 'income' ? 'Masuk' : t.type === 'expense' ? 'Keluar' : 'Transfer'}
                             </span>
                           </div>
-                          <div className="text-[10px] text-slate-400 font-mono">
+                          <div className={`text-slate-500 font-mono ${
+                            fontSize === 'xlarge' ? 'text-xs' : 'text-[11px]'
+                          }`}>
                             {t.date} &middot; {t.category || 'Transfer'}
                           </div>
                         </div>
                         <div className={`font-mono font-black ${
-                          t.type === 'income' ? 'text-emerald-700' : t.type === 'expense' ? 'text-rose-700' : 'text-slate-700'
+                          fontSize === 'xlarge' ? 'text-base sm:text-lg' : fontSize === 'large' ? 'text-sm sm:text-base' : 'text-xs'
+                        } ${
+                          t.type === 'income' ? 'text-emerald-700' : t.type === 'expense' ? 'text-rose-700' : 'text-slate-800'
                         }`}>
                           {t.type === 'income' ? '+' : t.type === 'expense' ? '-' : ''} {rupiah(t.amount)}
                         </div>
@@ -874,15 +1017,17 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
             <div className="space-y-5">
               {/* Form Input Transaksi Cepat (Hanya jika bukan read-only) */}
               {effectiveReadOnly && (
-                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-xs text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className={`bg-amber-50 border border-amber-200 rounded-2xl p-4 text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                  fontSize === 'xlarge' ? 'text-sm' : fontSize === 'large' ? 'text-xs sm:text-sm' : 'text-xs'
+                }`}>
                   <div className="flex items-center gap-2.5">
-                    <Info className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                    <Info className="w-5 h-5 text-amber-600 flex-shrink-0" />
                     <span>Mode Pantau Kurator (Read-Only) aktif. Anda dapat meninjau buku kas dan mengekspor CSV.</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setIsSimulasiMode(true)}
-                    className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-[#001c3c] font-black text-xs transition-colors cursor-pointer self-start sm:self-auto shadow-xs"
+                    className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-[#001c3c] font-black text-xs transition-colors cursor-pointer self-start sm:self-auto shadow-xs"
                   >
                     ✏️ Buka Formulir Input
                   </button>
@@ -890,10 +1035,14 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
               )}
 
               {!effectiveReadOnly && (
-                <form onSubmit={handleSaveTransaction} className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3.5">
+                <form onSubmit={handleSaveTransaction} className={`bg-white rounded-2xl border border-slate-200 shadow-xs space-y-4 ${
+                  fontSize === 'xlarge' ? 'p-5 sm:p-6' : 'p-4 sm:p-5'
+                }`}>
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                    <h4 className="font-extrabold text-xs sm:text-sm text-[#001c3c]">
-                      {editingTxId ? '✏️ Edit Transaksi' : '➕ Tambah Transaksi Kas'}
+                    <h4 className={`font-black text-[#001c3c] ${
+                      fontSize === 'xlarge' ? 'text-base sm:text-lg' : fontSize === 'large' ? 'text-sm sm:text-base' : 'text-xs sm:text-sm'
+                    }`}>
+                      {editingTxId ? '✏️ Edit Transaksi Kas' : '➕ Tambah Transaksi Kas'}
                     </h4>
                     {editingTxId && (
                       <button
@@ -903,27 +1052,35 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                           setTxAmount('');
                           setTxDesc('');
                         }}
-                        className="text-xs text-rose-600 font-bold hover:underline cursor-pointer"
+                        className={`text-rose-600 font-bold hover:underline cursor-pointer ${
+                          fontSize === 'xlarge' ? 'text-sm' : 'text-xs'
+                        }`}
                       >
                         Batal Edit
                       </button>
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 block mb-1">Tanggal Transaksi</label>
+                      <label className={`font-bold text-slate-700 block mb-1 ${
+                        fontSize === 'xlarge' ? 'text-xs sm:text-sm' : 'text-xs'
+                      }`}>Tanggal Transaksi</label>
                       <input
                         type="date"
                         value={txDate}
                         onChange={(e) => setTxDate(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-amber-400"
+                        className={`w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 font-semibold focus:ring-2 focus:ring-amber-400 ${
+                          fontSize === 'xlarge' ? 'text-base' : fontSize === 'large' ? 'text-sm' : 'text-xs'
+                        }`}
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 block mb-1">Jenis Transaksi</label>
+                      <label className={`font-bold text-slate-700 block mb-1 ${
+                        fontSize === 'xlarge' ? 'text-xs sm:text-sm' : 'text-xs'
+                      }`}>Jenis Transaksi</label>
                       <select
                         value={txType}
                         onChange={(e) => {
@@ -932,7 +1089,9 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                           if (t === 'income' && categories.income.length) setTxCategory(categories.income[0]);
                           if (t === 'expense' && categories.expense.length) setTxCategory(categories.expense[0]);
                         }}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold focus:ring-2 focus:ring-amber-400"
+                        className={`w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 font-bold focus:ring-2 focus:ring-amber-400 ${
+                          fontSize === 'xlarge' ? 'text-base' : fontSize === 'large' ? 'text-sm' : 'text-xs'
+                        }`}
                       >
                         <option value="income">🟢 Pendapatan (Kas Masuk)</option>
                         <option value="expense">🔴 Pengeluaran (Kas Keluar)</option>
@@ -941,13 +1100,17 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                      <label className={`font-bold text-slate-700 block mb-1 ${
+                        fontSize === 'xlarge' ? 'text-xs sm:text-sm' : 'text-xs'
+                      }`}>
                         {txType === 'transfer' ? 'Dari Akun' : 'Akun Kas / Bank'}
                       </label>
                       <select
                         value={txAccountId}
                         onChange={(e) => setTxAccountId(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-amber-400"
+                        className={`w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 font-bold focus:ring-2 focus:ring-amber-400 ${
+                          fontSize === 'xlarge' ? 'text-base' : fontSize === 'large' ? 'text-sm' : 'text-xs'
+                        }`}
                         required
                       >
                         {accounts.map(a => (
@@ -958,11 +1121,15 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
 
                     {txType === 'transfer' ? (
                       <div>
-                        <label className="text-[11px] font-bold text-slate-600 block mb-1">Ke Akun Tujuan</label>
+                        <label className={`font-bold text-slate-700 block mb-1 ${
+                          fontSize === 'xlarge' ? 'text-xs sm:text-sm' : 'text-xs'
+                        }`}>Ke Akun Tujuan</label>
                         <select
                           value={txToAccountId}
                           onChange={(e) => setTxToAccountId(e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-amber-400"
+                          className={`w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 font-bold focus:ring-2 focus:ring-amber-400 ${
+                            fontSize === 'xlarge' ? 'text-base' : fontSize === 'large' ? 'text-sm' : 'text-xs'
+                          }`}
                           required
                         >
                           {accounts.map(a => (
@@ -972,11 +1139,15 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                       </div>
                     ) : (
                       <div>
-                        <label className="text-[11px] font-bold text-slate-600 block mb-1">Kategori</label>
+                        <label className={`font-bold text-slate-700 block mb-1 ${
+                          fontSize === 'xlarge' ? 'text-xs sm:text-sm' : 'text-xs'
+                        }`}>Kategori</label>
                         <select
                           value={txCategory}
                           onChange={(e) => setTxCategory(e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-amber-400"
+                          className={`w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 font-bold focus:ring-2 focus:ring-amber-400 ${
+                            fontSize === 'xlarge' ? 'text-base' : fontSize === 'large' ? 'text-sm' : 'text-xs'
+                          }`}
                           required
                         >
                           {(txType === 'income' ? categories.income : categories.expense).map(c => (
@@ -987,33 +1158,43 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                     )}
 
                     <div className="sm:col-span-2">
-                      <label className="text-[11px] font-bold text-slate-600 block mb-1">Keterangan / Catatan Singkat</label>
+                      <label className={`font-bold text-slate-700 block mb-1 ${
+                        fontSize === 'xlarge' ? 'text-xs sm:text-sm' : 'text-xs'
+                      }`}>Keterangan / Catatan Singkat</label>
                       <input
                         type="text"
                         value={txDesc}
                         onChange={(e) => setTxDesc(e.target.value)}
-                        placeholder="Contoh: Pembayaran pesanan kopi drip bag via QRIS"
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-amber-400"
+                        placeholder="Contoh: Pembayaran pesanan katering via transfer QRIS"
+                        className={`w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 font-medium focus:ring-2 focus:ring-amber-400 ${
+                          fontSize === 'xlarge' ? 'text-base' : fontSize === 'large' ? 'text-sm' : 'text-xs'
+                        }`}
                       />
                     </div>
 
-                    <div className="sm:col-span-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                    <div className="sm:col-span-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 pt-1">
                       <div className="flex-1 max-w-sm">
-                        <label className="text-[11px] font-bold text-slate-600 block mb-1">Nominal (Rp)</label>
+                        <label className={`font-extrabold text-slate-800 block mb-1 ${
+                          fontSize === 'xlarge' ? 'text-sm' : 'text-xs'
+                        }`}>Nominal (Rp)</label>
                         <input
                           type="number"
                           min="0"
                           value={txAmount}
                           onChange={(e) => setTxAmount(e.target.value)}
                           placeholder="0"
-                          className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold font-mono focus:ring-2 focus:ring-amber-400"
+                          className={`w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-black font-mono focus:ring-2 focus:ring-amber-400 text-slate-900 ${
+                            fontSize === 'xlarge' ? 'text-xl' : fontSize === 'large' ? 'text-lg' : 'text-base'
+                          }`}
                           required
                         />
                       </div>
 
                       <button
                         type="submit"
-                        className="self-end px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#001c3c] to-[#003366] hover:from-[#002855] text-white font-extrabold text-xs shadow-md transition-all cursor-pointer"
+                        className={`self-end px-6 py-3 rounded-xl bg-gradient-to-r from-[#001c3c] to-[#003366] hover:from-[#002855] text-white font-extrabold shadow-md transition-all cursor-pointer ${
+                          fontSize === 'xlarge' ? 'text-sm sm:text-base' : fontSize === 'large' ? 'text-xs sm:text-sm' : 'text-xs'
+                        }`}
                       >
                         {editingTxId ? 'Simpan Perubahan' : 'Simpan Transaksi'}
                       </button>
@@ -1024,36 +1205,42 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
 
               {/* Tabel Riwayat Transaksi */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-                <div className="p-3.5 sm:p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-3">
-                  <div className="font-bold text-xs text-[#001c3c]">
+                <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                  <div className={`font-black text-[#001c3c] ${
+                    fontSize === 'xlarge' ? 'text-base' : fontSize === 'large' ? 'text-sm' : 'text-xs'
+                  }`}>
                     Riwayat Transaksi ({filteredTransactions.length} Data)
                   </div>
                   <button
                     type="button"
                     onClick={handleExportCsv}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors cursor-pointer"
+                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-colors cursor-pointer shadow-xs ${
+                      fontSize === 'xlarge' ? 'text-sm' : 'text-xs'
+                    }`}
                   >
-                    <Download className="w-3.5 h-3.5" />
+                    <Download className="w-4 h-4" />
                     <span>Ekspor CSV / Excel</span>
                   </button>
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
+                  <table className="w-full text-left">
                     <thead>
-                      <tr className="bg-slate-100/80 text-slate-700 font-bold border-b border-slate-200">
-                        <th className="p-3">Tanggal</th>
-                        <th className="p-3">Jenis</th>
-                        <th className="p-3">Akun</th>
-                        <th className="p-3">Kategori & Keterangan</th>
-                        <th className="p-3 text-right">Nominal</th>
-                        {!effectiveReadOnly && <th className="p-3 text-center">Aksi</th>}
+                      <tr className="bg-slate-100/90 text-slate-800 font-extrabold border-b border-slate-200">
+                        <th className={`p-3.5 ${fontSize === 'xlarge' ? 'text-sm' : fontSize === 'large' ? 'text-xs sm:text-sm' : 'text-xs'}`}>Tanggal</th>
+                        <th className={`p-3.5 ${fontSize === 'xlarge' ? 'text-sm' : fontSize === 'large' ? 'text-xs sm:text-sm' : 'text-xs'}`}>Jenis</th>
+                        <th className={`p-3.5 ${fontSize === 'xlarge' ? 'text-sm' : fontSize === 'large' ? 'text-xs sm:text-sm' : 'text-xs'}`}>Akun</th>
+                        <th className={`p-3.5 ${fontSize === 'xlarge' ? 'text-sm' : fontSize === 'large' ? 'text-xs sm:text-sm' : 'text-xs'}`}>Kategori & Keterangan</th>
+                        <th className={`p-3.5 text-right ${fontSize === 'xlarge' ? 'text-sm' : fontSize === 'large' ? 'text-xs sm:text-sm' : 'text-xs'}`}>Nominal</th>
+                        {!effectiveReadOnly && <th className={`p-3.5 text-center ${fontSize === 'xlarge' ? 'text-sm' : fontSize === 'large' ? 'text-xs sm:text-sm' : 'text-xs'}`}>Aksi</th>}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {filteredTransactions.length === 0 ? (
                         <tr>
-                          <td colSpan={effectiveReadOnly ? 5 : 6} className="p-8 text-center text-slate-400 italic">
+                          <td colSpan={effectiveReadOnly ? 5 : 6} className={`p-8 text-center text-slate-400 italic ${
+                            fontSize === 'xlarge' ? 'text-base' : 'text-sm'
+                          }`}>
                             Tidak ada transaksi yang cocok pada filter periode ini.
                           </td>
                         </tr>
@@ -1063,50 +1250,64 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                           const toAcc = t.toAccountId ? accounts.find(a => a.id === t.toAccountId) : null;
                           return (
                             <tr key={t.id} className="hover:bg-slate-50 transition-colors">
-                              <td className="p-3 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                              <td className={`p-3.5 font-mono text-slate-700 whitespace-nowrap font-medium ${
+                                fontSize === 'xlarge' ? 'text-xs sm:text-sm' : 'text-xs'
+                              }`}>
                                 {t.date}
                               </td>
-                              <td className="p-3 whitespace-nowrap">
-                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                                  t.type === 'income' ? 'bg-emerald-100 text-emerald-800' : t.type === 'expense' ? 'bg-rose-100 text-rose-800' : 'bg-slate-200 text-slate-700'
+                              <td className="p-3.5 whitespace-nowrap">
+                                <span className={`px-2.5 py-1 rounded-lg font-bold ${
+                                  fontSize === 'xlarge' ? 'text-xs sm:text-sm' : 'text-xs'
+                                } ${
+                                  t.type === 'income' ? 'bg-emerald-100 text-emerald-900' : t.type === 'expense' ? 'bg-rose-100 text-rose-900' : 'bg-slate-200 text-slate-800'
                                 }`}>
                                   {t.type === 'income' ? 'Pendapatan' : t.type === 'expense' ? 'Pengeluaran' : 'Transfer'}
                                 </span>
                               </td>
-                              <td className="p-3 text-slate-700 whitespace-nowrap">
+                              <td className={`p-3.5 text-slate-800 font-semibold whitespace-nowrap ${
+                                fontSize === 'xlarge' ? 'text-sm sm:text-base' : fontSize === 'large' ? 'text-xs sm:text-sm' : 'text-xs'
+                              }`}>
                                 {t.type === 'transfer' ? (
                                   <span>{acc?.name || '—'} &rarr; {toAcc?.name || '—'}</span>
                                 ) : (
                                   <span>{acc?.name || '—'}</span>
                                 )}
                               </td>
-                              <td className="p-3 max-w-xs">
-                                <div className="font-bold text-slate-800">{t.category || 'Transfer Saldo'}</div>
-                                {t.desc && <div className="text-[11px] text-slate-500 mt-0.5">{t.desc}</div>}
+                              <td className="p-3.5 max-w-xs">
+                                <div className={`font-black text-slate-900 ${
+                                  fontSize === 'xlarge' ? 'text-base' : fontSize === 'large' ? 'text-sm' : 'text-xs'
+                                }`}>{t.category || 'Transfer Saldo'}</div>
+                                {t.desc && (
+                                  <div className={`text-slate-600 mt-0.5 font-medium ${
+                                    fontSize === 'xlarge' ? 'text-xs sm:text-sm' : 'text-xs'
+                                  }`}>{t.desc}</div>
+                                )}
                               </td>
-                              <td className={`p-3 text-right font-mono font-bold whitespace-nowrap ${
-                                t.type === 'income' ? 'text-emerald-700' : t.type === 'expense' ? 'text-rose-700' : 'text-slate-700'
+                              <td className={`p-3.5 text-right font-mono font-black whitespace-nowrap ${
+                                fontSize === 'xlarge' ? 'text-base sm:text-lg' : fontSize === 'large' ? 'text-sm sm:text-base' : 'text-xs sm:text-sm'
+                              } ${
+                                t.type === 'income' ? 'text-emerald-700' : t.type === 'expense' ? 'text-rose-700' : 'text-slate-800'
                               }`}>
                                 {t.type === 'income' ? '+' : t.type === 'expense' ? '-' : ''} {rupiah(t.amount)}
                               </td>
                               {!effectiveReadOnly && (
-                                <td className="p-3 text-center whitespace-nowrap">
-                                  <div className="flex items-center justify-center gap-1">
+                                <td className="p-3.5 text-center whitespace-nowrap">
+                                  <div className="flex items-center justify-center gap-1.5">
                                     <button
                                       type="button"
                                       onClick={() => handleStartEdit(t)}
-                                      className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                      className="p-2 rounded-xl text-slate-600 hover:text-blue-700 hover:bg-blue-50 transition-colors"
                                       title="Edit Transaksi"
                                     >
-                                      <Edit2 className="w-3.5 h-3.5" />
+                                      <Edit2 className="w-4 h-4" />
                                     </button>
                                     <button
                                       type="button"
                                       onClick={() => handleDeleteTx(t)}
-                                      className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                                      className="p-2 rounded-xl text-slate-600 hover:text-rose-700 hover:bg-rose-50 transition-colors"
                                       title="Hapus Transaksi"
                                     >
-                                      <Trash2 className="w-3.5 h-3.5" />
+                                      <Trash2 className="w-4 h-4" />
                                     </button>
                                   </div>
                                 </td>
@@ -1126,21 +1327,29 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
           {activeTab === 'akun' && (
             <div className="space-y-4">
               {!effectiveReadOnly && (
-                <form onSubmit={handleAddAccount} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
-                  <h4 className="font-bold text-xs text-[#001c3c]">Tambah Akun Kas / Bank Baru</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
+                <form onSubmit={handleAddAccount} className={`bg-white rounded-2xl border border-slate-200 shadow-xs space-y-3 ${
+                  fontSize === 'xlarge' ? 'p-5 sm:p-6' : 'p-4 sm:p-5'
+                }`}>
+                  <h4 className={`font-black text-[#001c3c] ${
+                    fontSize === 'xlarge' ? 'text-base sm:text-lg' : fontSize === 'large' ? 'text-sm sm:text-base' : 'text-xs'
+                  }`}>Tambah Akun Kas / Bank Baru</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                     <input
                       type="text"
-                      placeholder="Nama akun (contoh: BCA Bisnis, Toko)"
+                      placeholder="Nama akun (contoh: BCA Bisnis, Kas Toko)"
                       value={newAccName}
                       onChange={(e) => setNewAccName(e.target.value)}
-                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-amber-400"
+                      className={`px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 font-semibold focus:ring-2 focus:ring-amber-400 ${
+                        fontSize === 'xlarge' ? 'text-base' : fontSize === 'large' ? 'text-sm' : 'text-xs'
+                      }`}
                       required
                     />
                     <select
                       value={newAccType}
                       onChange={(e) => setNewAccType(e.target.value as any)}
-                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-amber-400"
+                      className={`px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 font-bold focus:ring-2 focus:ring-amber-400 ${
+                        fontSize === 'xlarge' ? 'text-base' : fontSize === 'large' ? 'text-sm' : 'text-xs'
+                      }`}
                     >
                       <option value="Kas">Kas Tunai</option>
                       <option value="Bank">Rekening Bank</option>
@@ -1152,11 +1361,15 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                       placeholder="Saldo Awal (Rp)"
                       value={newAccBalance}
                       onChange={(e) => setNewAccBalance(e.target.value)}
-                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono focus:ring-2 focus:ring-amber-400"
+                      className={`px-3.5 py-2.5 rounded-xl border border-slate-200 font-mono font-bold text-slate-900 focus:ring-2 focus:ring-amber-400 ${
+                        fontSize === 'xlarge' ? 'text-base' : fontSize === 'large' ? 'text-sm' : 'text-xs'
+                      }`}
                     />
                     <button
                       type="submit"
-                      className="px-4 py-2 rounded-xl bg-[#001c3c] hover:bg-[#002f5e] text-white font-bold text-xs transition-colors cursor-pointer"
+                      className={`px-5 py-2.5 rounded-xl bg-[#001c3c] hover:bg-[#002f5e] text-white font-extrabold transition-colors cursor-pointer shadow-xs ${
+                        fontSize === 'xlarge' ? 'text-sm sm:text-base' : 'text-xs'
+                      }`}
                     >
                       Tambah Akun
                     </button>
@@ -1164,25 +1377,37 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                 </form>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 {accounts.map((acc) => {
                   const bal = kasService.calculateAccountBalance(acc, transactions);
                   const isMinus = bal < 0;
                   const hasTx = transactions.some(t => t.accountId === acc.id || t.toAccountId === acc.id);
                   return (
-                    <div key={acc.id} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-2 relative">
+                    <div key={acc.id} className={`bg-white rounded-2xl border border-slate-200 shadow-xs space-y-2.5 relative transition-all ${
+                      fontSize === 'xlarge' ? 'p-5' : fontSize === 'large' ? 'p-4 sm:p-5' : 'p-4'
+                    }`}>
                       <div className="flex items-center justify-between">
-                        <span className="font-extrabold text-sm text-[#001c3c]">{acc.name}</span>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">
+                        <span className={`font-black text-[#001c3c] ${
+                          fontSize === 'xlarge' ? 'text-base sm:text-lg' : fontSize === 'large' ? 'text-sm sm:text-base' : 'text-sm'
+                        }`}>{acc.name}</span>
+                        <span className={`rounded-lg font-bold bg-slate-100 text-slate-800 ${
+                          fontSize === 'xlarge' ? 'px-2.5 py-1 text-xs' : 'px-2 py-0.5 text-[10px]'
+                        }`}>
                           {acc.type}
                         </span>
                       </div>
-                      <div className="text-[11px] text-slate-500">
+                      <div className={`text-slate-600 font-medium ${
+                        fontSize === 'xlarge' ? 'text-xs sm:text-sm' : 'text-[11px]'
+                      }`}>
                         Saldo Awal: {rupiah(acc.initialBalance)}
                       </div>
-                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                        <span className="text-[11px] font-bold text-slate-600">Saldo Saat Ini:</span>
-                        <span className={`font-mono font-black text-sm ${isMinus ? 'text-rose-600' : 'text-emerald-700'}`}>
+                      <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between">
+                        <span className={`font-bold text-slate-700 ${
+                          fontSize === 'xlarge' ? 'text-xs sm:text-sm' : 'text-[11px]'
+                        }`}>Saldo Saat Ini:</span>
+                        <span className={`font-mono font-black ${
+                          fontSize === 'xlarge' ? 'text-xl sm:text-2xl' : fontSize === 'large' ? 'text-lg sm:text-xl' : 'text-sm sm:text-base'
+                        } ${isMinus ? 'text-rose-600' : 'text-emerald-700'}`}>
                           {rupiah(bal)}
                         </span>
                       </div>
@@ -1190,7 +1415,9 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                         <button
                           type="button"
                           onClick={() => handleDeleteAccount(acc)}
-                          className="text-[10px] text-rose-600 hover:underline pt-1 block cursor-pointer"
+                          className={`text-rose-600 font-bold hover:underline pt-1 block cursor-pointer ${
+                            fontSize === 'xlarge' ? 'text-xs' : 'text-[10px]'
+                          }`}
                         >
                           Hapus Akun
                         </button>
@@ -1205,20 +1432,28 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
           {/* TAB 4: LABA RUGI & REKAP */}
           {activeTab === 'labarugi' && (
             <div className="space-y-4">
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4 max-w-2xl mx-auto">
-                <div className="border-b border-slate-200 pb-3 text-center">
-                  <h4 className="font-black text-base text-[#001c3c]">
+              <div className={`bg-white rounded-3xl border border-slate-200 shadow-sm space-y-5 max-w-2xl mx-auto ${
+                fontSize === 'xlarge' ? 'p-6 sm:p-8' : fontSize === 'large' ? 'p-5 sm:p-7' : 'p-5'
+              }`}>
+                <div className="border-b border-slate-200 pb-3.5 text-center">
+                  <h4 className={`font-black text-[#001c3c] tracking-tight ${
+                    fontSize === 'xlarge' ? 'text-xl sm:text-2xl' : fontSize === 'large' ? 'text-lg sm:text-xl' : 'text-base'
+                  }`}>
                     LAPORAN LABA RUGI SEDERHANA
                   </h4>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className={`text-slate-600 font-medium mt-1 ${
+                    fontSize === 'xlarge' ? 'text-sm sm:text-base' : fontSize === 'large' ? 'text-xs sm:text-sm' : 'text-xs'
+                  }`}>
                     {namaUsaha} &middot; Periode:{' '}
                     {selectedMonth !== 'all' ? MONTH_NAMES[Number(selectedMonth) - 1] : 'Seluruh Bulan'} {selectedYear}
                   </p>
                 </div>
 
                 {/* Seksi Pendapatan */}
-                <div className="space-y-2">
-                  <div className="text-xs font-black uppercase tracking-wider text-emerald-800 border-b border-emerald-100 pb-1">
+                <div className="space-y-2.5">
+                  <div className={`font-black uppercase tracking-wider text-emerald-900 border-b-2 border-emerald-200 pb-1.5 ${
+                    fontSize === 'xlarge' ? 'text-sm sm:text-base' : fontSize === 'large' ? 'text-xs sm:text-sm' : 'text-xs'
+                  }`}>
                     Pendapatan (Revenue)
                   </div>
                   {categories.income.map((cat) => {
@@ -1227,21 +1462,27 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                       .reduce((s, t) => s + (Number(t.amount) || 0), 0);
                     if (totalCat === 0) return null;
                     return (
-                      <div key={cat} className="flex items-center justify-between text-xs py-1">
-                        <span className="text-slate-700">{cat}</span>
-                        <span className="font-mono text-slate-900">{rupiah(totalCat)}</span>
+                      <div key={cat} className={`flex items-center justify-between py-1.5 ${
+                        fontSize === 'xlarge' ? 'text-base' : fontSize === 'large' ? 'text-sm sm:text-base' : 'text-xs'
+                      }`}>
+                        <span className="text-slate-800 font-semibold">{cat}</span>
+                        <span className="font-mono font-bold text-slate-950">{rupiah(totalCat)}</span>
                       </div>
                     );
                   })}
-                  <div className="flex items-center justify-between text-xs font-black pt-1 border-t border-slate-200 text-emerald-900">
+                  <div className={`flex items-center justify-between font-black pt-2 border-t-2 border-slate-200 text-emerald-950 ${
+                    fontSize === 'xlarge' ? 'text-lg sm:text-xl' : fontSize === 'large' ? 'text-base sm:text-lg' : 'text-xs sm:text-sm'
+                  }`}>
                     <span>Total Pendapatan</span>
                     <span className="font-mono">{rupiah(summary.income)}</span>
                   </div>
                 </div>
 
                 {/* Seksi Pengeluaran */}
-                <div className="space-y-2 pt-2">
-                  <div className="text-xs font-black uppercase tracking-wider text-rose-800 border-b border-rose-100 pb-1">
+                <div className="space-y-2.5 pt-2">
+                  <div className={`font-black uppercase tracking-wider text-rose-900 border-b-2 border-rose-200 pb-1.5 ${
+                    fontSize === 'xlarge' ? 'text-sm sm:text-base' : fontSize === 'large' ? 'text-xs sm:text-sm' : 'text-xs'
+                  }`}>
                     Pengeluaran & Beban Usaha
                   </div>
                   {categories.expense.map((cat) => {
@@ -1251,24 +1492,34 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                     if (totalCat === 0) return null;
                     const pct = summary.expense > 0 ? ((totalCat / summary.expense) * 100).toFixed(1) : '0';
                     return (
-                      <div key={cat} className="flex items-center justify-between text-xs py-1">
-                        <span className="text-slate-700">{cat} <span className="text-[10px] text-slate-400">({pct}%)</span></span>
-                        <span className="font-mono text-slate-900">{rupiah(totalCat)}</span>
+                      <div key={cat} className={`flex items-center justify-between py-1.5 ${
+                        fontSize === 'xlarge' ? 'text-base' : fontSize === 'large' ? 'text-sm sm:text-base' : 'text-xs'
+                      }`}>
+                        <span className="text-slate-800 font-semibold">{cat} <span className={`text-slate-500 font-normal ${
+                          fontSize === 'xlarge' ? 'text-xs' : 'text-[10px]'
+                        }`}>({pct}%)</span></span>
+                        <span className="font-mono font-bold text-slate-950">{rupiah(totalCat)}</span>
                       </div>
                     );
                   })}
-                  <div className="flex items-center justify-between text-xs font-black pt-1 border-t border-slate-200 text-rose-900">
+                  <div className={`flex items-center justify-between font-black pt-2 border-t-2 border-slate-200 text-rose-950 ${
+                    fontSize === 'xlarge' ? 'text-lg sm:text-xl' : fontSize === 'large' ? 'text-base sm:text-lg' : 'text-xs sm:text-sm'
+                  }`}>
                     <span>Total Pengeluaran</span>
                     <span className="font-mono">{rupiah(summary.expense)}</span>
                   </div>
                 </div>
 
                 {/* Hasil Bersih */}
-                <div className={`p-4 rounded-xl flex items-center justify-between font-black text-sm border ${
-                  summary.net >= 0 ? 'bg-emerald-50 border-emerald-200 text-emerald-950' : 'bg-rose-50 border-rose-200 text-rose-950'
+                <div className={`p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 font-black border-2 shadow-xs transition-all ${
+                  fontSize === 'xlarge' ? 'text-lg sm:text-xl' : fontSize === 'large' ? 'text-base sm:text-lg' : 'text-sm'
+                } ${
+                  summary.net >= 0 ? 'bg-emerald-50 border-emerald-300 text-emerald-950' : 'bg-rose-50 border-rose-300 text-rose-950'
                 }`}>
                   <span>{summary.net >= 0 ? '💎 LABA BERSIH (PROFIT)' : '⚠️ RUGI BERSIH (DEFISIT)'}</span>
-                  <span className="font-mono text-base">{rupiah(Math.abs(summary.net))}</span>
+                  <span className={`font-mono font-black ${
+                    fontSize === 'xlarge' ? 'text-2xl sm:text-3xl' : fontSize === 'large' ? 'text-xl sm:text-2xl' : 'text-base sm:text-lg'
+                  }`}>{rupiah(Math.abs(summary.net))}</span>
                 </div>
               </div>
             </div>
@@ -1277,39 +1528,57 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
           {/* TAB 5: PAJAK PP 23 (0,5%) */}
           {activeTab === 'pajak' && (
             <div className="space-y-4 max-w-2xl mx-auto">
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-                <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
-                  <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
-                    <Percent className="w-4 h-4" />
+              <div className={`bg-white rounded-3xl border border-slate-200 shadow-xs space-y-4 ${
+                fontSize === 'xlarge' ? 'p-6 sm:p-8' : fontSize === 'large' ? 'p-5 sm:p-7' : 'p-5'
+              }`}>
+                <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-900 flex items-center justify-center font-bold">
+                    <Percent className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="font-black text-sm text-[#001c3c]">
+                    <h4 className={`font-black text-[#001c3c] ${
+                      fontSize === 'xlarge' ? 'text-base sm:text-lg' : fontSize === 'large' ? 'text-sm sm:text-base' : 'text-sm'
+                    }`}>
                       Estimasi PPh Final UMKM 0,5% (PP 23/2018)
                     </h4>
-                    <p className="text-[11px] text-slate-500">
+                    <p className={`text-slate-600 font-medium ${
+                      fontSize === 'xlarge' ? 'text-xs sm:text-sm' : 'text-[11px]'
+                    }`}>
                       Dihitung otomatis dari total omzet pendapatan yang tercatat di aplikasi.
                     </p>
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
+                <div className={`p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 ${
+                  fontSize === 'xlarge' ? 'text-sm sm:text-base' : fontSize === 'large' ? 'text-xs sm:text-sm' : 'text-xs'
+                }`}>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-600">Omzet Usaha Periode Terpilih:</span>
-                    <span className="font-mono font-bold text-slate-900">{rupiah(summary.income)}</span>
+                    <span className="text-slate-700 font-bold">Omzet Usaha Periode Terpilih:</span>
+                    <span className={`font-mono font-black text-slate-950 ${
+                      fontSize === 'xlarge' ? 'text-lg sm:text-xl' : fontSize === 'large' ? 'text-base sm:text-lg' : 'text-sm'
+                    }`}>{rupiah(summary.income)}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-600">Tarif Pajak Final UMKM:</span>
-                    <span className="font-bold text-amber-800">0,50%</span>
+                    <span className="text-slate-700 font-bold">Tarif Pajak Final UMKM:</span>
+                    <span className={`font-black text-amber-800 ${
+                      fontSize === 'xlarge' ? 'text-base' : 'text-sm'
+                    }`}>0,50%</span>
                   </div>
-                  <div className="pt-2 border-t border-slate-200 flex items-center justify-between font-black text-sm text-[#001c3c]">
+                  <div className={`pt-3 border-t border-slate-200 flex items-center justify-between font-black text-[#001c3c] ${
+                    fontSize === 'xlarge' ? 'text-base sm:text-lg' : fontSize === 'large' ? 'text-sm sm:text-base' : 'text-sm'
+                  }`}>
                     <span>Estimasi Pajak Terutang:</span>
-                    <span className="font-mono text-base text-amber-700">{rupiah(summary.pph)}</span>
+                    <span className={`font-mono font-black text-amber-700 ${
+                      fontSize === 'xlarge' ? 'text-2xl sm:text-3xl' : fontSize === 'large' ? 'text-xl sm:text-2xl' : 'text-base sm:text-lg'
+                    }`}>{rupiah(summary.pph)}</span>
                   </div>
                 </div>
 
-                <div className="p-3 bg-blue-50/80 border border-blue-200/80 rounded-xl flex items-start gap-2.5 text-[11px] text-blue-900">
-                  <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <div className="leading-relaxed">
+                <div className={`p-4 bg-blue-50/90 border border-blue-200 rounded-2xl flex items-start gap-3 text-blue-950 ${
+                  fontSize === 'xlarge' ? 'text-xs sm:text-sm' : 'text-xs'
+                }`}>
+                  <Info className="w-5 h-5 text-blue-700 flex-shrink-0 mt-0.5" />
+                  <div className="leading-relaxed font-medium">
                     Estimasi ini berlaku untuk pelaku UMKM dengan omzet di bawah Rp 4,8 Miliar per tahun sesuai PP 23 Tahun 2018. Ini adalah sarana edukasi kesadaran pajak, bukan pengganti konsultasi resmi dengan Kantor Pelayanan Pajak (KPP).
                   </div>
                 </div>
