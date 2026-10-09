@@ -27,8 +27,7 @@ import {
   Unlock,
   Key,
   KeyRound,
-  ShieldCheck,
-  Type
+  ShieldCheck
 } from 'lucide-react';
 import {
   kasService,
@@ -493,20 +492,20 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
         )}
 
         {/* 1. HEADER MODAL */}
-        <div className="bg-gradient-to-r from-[#001c3c] via-[#002f5e] to-[#004c80] p-4 sm:p-5 text-white flex items-center justify-between gap-3 flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-500 flex items-center justify-center text-[#001c3c] shadow-md flex-shrink-0">
-              <Wallet className="w-5 h-5 font-black" />
+        <div className="bg-gradient-to-r from-[#001c3c] via-[#002f5e] to-[#004c80] p-3 sm:p-5 text-white flex items-center justify-between gap-2.5 sm:gap-4 flex-shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-500 flex items-center justify-center text-[#001c3c] shadow-md flex-shrink-0">
+              <Wallet className="w-4 h-4 sm:w-5 sm:h-5 font-black" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-black text-base sm:text-lg tracking-tight">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-black text-sm sm:text-lg tracking-tight truncate">
                   Untungin &middot; Buku Kas & Keuangan UMKM
                 </h3>
                 {effectiveReadOnly ? (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <span className="px-2 py-0.5 rounded-full bg-white/20 text-amber-300 text-[10px] font-bold">
-                      Mode Pantau Kurator (Read-Only)
+                      Mode Pantau (Read-Only)
                     </span>
                     <button
                       type="button"
@@ -514,41 +513,33 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                       className="px-2 py-0.5 rounded-full bg-amber-400 text-[#001c3c] hover:bg-amber-300 text-[10px] font-extrabold transition-all cursor-pointer shadow-xs"
                       title="Klik untuk membuka formulir input data transaksi"
                     >
-                      ✏️ Aktifkan Input / Simulasi
+                      ✏️ Simulasi
                     </button>
                   </div>
-                ) : isObeeCreatives ? (
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 border border-emerald-400/40 text-[10px] font-bold">
-                    🚀 Akun Resmi obeecreatives (Akses Penuh Input & Edit)
-                  </span>
                 ) : isSimulasiMode ? (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <span className="px-2 py-0.5 rounded-full bg-blue-400/20 text-blue-200 border border-blue-400/40 text-[10px] font-bold">
-                      Mode Simulasi Aktif
+                      Mode Simulasi
                     </span>
                     <button
                       type="button"
                       onClick={() => setIsSimulasiMode(false)}
                       className="text-[10px] text-slate-300 hover:text-white underline cursor-pointer"
                     >
-                      Kunci Read-Only
+                      Kunci
                     </button>
                   </div>
-                ) : (
-                  <span className="px-2 py-0.5 rounded-full bg-white/10 text-emerald-300 text-[10px] font-bold">
-                    Akses Input Penuh
-                  </span>
-                )}
+                ) : null}
               </div>
-              <p className="text-xs text-slate-300 flex items-center gap-1.5 mt-0.5">
-                <span>{namaUsaha}</span>
+              <p className="text-xs text-slate-300 flex items-center gap-1.5 mt-0.5 truncate">
+                <span className="font-semibold text-white">{namaUsaha}</span>
                 {namaPemilik && <span>&middot; {namaPemilik}</span>}
-                {whatsapp && <span>&middot; {whatsapp}</span>}
+                {whatsapp && <span className="hidden sm:inline">&middot; {whatsapp}</span>}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             {isKasUnlocked && (
               <>
                 {/* Tombol Ganti PIN Peserta */}
@@ -562,10 +553,10 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                     setChangePinError(null);
                   }}
                   title="Ganti PIN Pengaman Buku Kas Saya"
-                  className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white transition-all text-xs font-bold flex items-center gap-1.5 cursor-pointer border border-white/15"
+                  className="p-2 sm:px-2.5 sm:py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white transition-all text-xs font-bold flex items-center gap-1.5 cursor-pointer border border-white/15"
                 >
-                  <KeyRound className="w-3.5 h-3.5 text-amber-300" />
-                  <span className="hidden sm:inline">Ganti PIN</span>
+                  <KeyRound className="w-4 h-4 text-amber-300" />
+                  <span className="hidden md:inline">Ganti PIN</span>
                 </button>
 
                 {/* Tombol Reset PIN Khusus Developer / Engineer */}
@@ -587,10 +578,10 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                       });
                     }}
                     title="Reset PIN Peserta ke 123456 (Khusus Developer)"
-                    className="px-2.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#001c3c] transition-all text-xs font-extrabold flex items-center gap-1.5 cursor-pointer shadow-sm"
+                    className="p-2 sm:px-2.5 sm:py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#001c3c] transition-all text-xs font-extrabold flex items-center gap-1.5 cursor-pointer shadow-sm"
                   >
-                    <Key className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Reset PIN</span>
+                    <Key className="w-4 h-4" />
+                    <span className="hidden md:inline">Reset PIN</span>
                   </button>
                 )}
 
@@ -598,7 +589,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                   type="button"
                   onClick={() => setHideAmount(!hideAmount)}
                   title={hideAmount ? 'Tampilkan Nominal' : 'Sembunyikan Nominal (Mode Privasi)'}
-                  className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white transition-all cursor-pointer"
+                  className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white transition-all cursor-pointer flex-shrink-0"
                 >
                   {hideAmount ? <EyeOff className="w-4 h-4 text-amber-300" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -608,7 +599,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white transition-all cursor-pointer"
+              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white transition-all cursor-pointer flex-shrink-0"
             >
               <X className="w-5 h-5" />
             </button>
@@ -728,62 +719,13 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                 ))}
               </div>
 
-              {/* Kontrol Kanan: Pengatur Ukuran Font (Aksesibilitas Lansia) & Filter Periode */}
-              <div className="flex flex-wrap items-center gap-2">
-                {/* Switcher Ukuran Font Khusus Senior / Lansia */}
-                <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 shadow-2xs">
-                  <div className="px-2 text-slate-700 flex items-center gap-1 font-bold text-xs" title="Sesuaikan ukuran huruf laporan keuangan">
-                    <Type className="w-3.5 h-3.5 text-indigo-700" />
-                    <span className="hidden sm:inline">Huruf:</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleSetFontSize('normal')}
-                    title="Ukuran Standar"
-                    className={`px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      fontSize === 'normal'
-                        ? 'bg-white text-[#001c3c] shadow-xs border border-slate-200 font-extrabold'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    A
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSetFontSize('large')}
-                    title="Ukuran Besar — Ramah Lansia & Mata Lelah (Rekomendasi Default)"
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                      fontSize === 'large'
-                        ? 'bg-[#001c3c] text-white shadow-xs font-extrabold'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    <span>A+</span>
-                    <span className="text-[10px] hidden md:inline opacity-90 font-semibold">(Besar)</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSetFontSize('xlarge')}
-                    title="Ukuran Ekstra Besar — Huruf & Angka Jumbo Maksimal"
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                      fontSize === 'xlarge'
-                        ? 'bg-purple-700 text-white shadow-xs font-extrabold'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    <span>A++</span>
-                    <span className="text-[10px] hidden md:inline opacity-90 font-semibold">(Jumbo)</span>
-                  </button>
-                </div>
-
-                {/* Filter Bulan & Tahun */}
+              {/* Kontrol Kanan: Filter Periode Bulan & Tahun */}
+              <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1.5 text-xs">
                   <select
                     value={selectedMonth}
                     onChange={(e) => setSelectedMonth(e.target.value)}
-                    className={`bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-amber-400 ${
-                      fontSize === 'xlarge' ? 'text-sm' : 'text-xs'
-                    }`}
+                    className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-amber-400 text-xs"
                   >
                     <option value="all">Semua Bulan</option>
                     {MONTH_NAMES.map((m, i) => (
@@ -793,9 +735,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                   <select
                     value={selectedYear}
                     onChange={(e) => setSelectedYear(e.target.value)}
-                    className={`bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-amber-400 ${
-                      fontSize === 'xlarge' ? 'text-sm' : 'text-xs'
-                    }`}
+                    className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-amber-400 text-xs"
                   >
                     {[2025, 2026, 2027].map(y => (
                       <option key={y} value={String(y)}>{y}</option>
