@@ -47,11 +47,17 @@ export function parseCsv(text: string): string[][] {
 }
 
 export async function fetchSheetCsv(spreadsheetId: string, sheetName: string): Promise<string[][]> {
-  const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+  const timestamp = Date.now();
+  // Gunakan parameter timestamp & cache: 'no-store' agar browser (terutama Chrome Android)
+  // tidak menyajikan CSV basi dari cache HTTP internal
+  const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&_t=${timestamp}`;
   const response = await fetch(url, {
     method: 'GET',
+    cache: 'no-store',
     headers: {
-      Accept: 'text/csv'
+      Accept: 'text/csv',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      Pragma: 'no-cache'
     }
   });
 

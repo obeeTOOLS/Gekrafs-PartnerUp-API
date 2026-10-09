@@ -67,7 +67,17 @@ class GasService {
       this.timeline = storedTimeline ? JSON.parse(storedTimeline) : INITIAL_TIMELINE;
 
       const storedJadwal = localStorage.getItem(STORAGE_KEYS.JADWAL);
-      this.jadwal = storedJadwal ? JSON.parse(storedJadwal) : INITIAL_JADWAL;
+      if (storedJadwal) {
+        const parsed = JSON.parse(storedJadwal);
+        if (Array.isArray(parsed) && parsed.length < INITIAL_JADWAL.length) {
+          this.jadwal = INITIAL_JADWAL;
+          localStorage.setItem(STORAGE_KEYS.JADWAL, JSON.stringify(this.jadwal));
+        } else {
+          this.jadwal = parsed;
+        }
+      } else {
+        this.jadwal = INITIAL_JADWAL;
+      }
 
       const storedPeserta = localStorage.getItem(STORAGE_KEYS.PESERTA);
       this.peserta = storedPeserta ? JSON.parse(storedPeserta) : INITIAL_PESERTA;

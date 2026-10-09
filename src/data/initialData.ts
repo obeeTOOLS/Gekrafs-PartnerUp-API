@@ -528,6 +528,17 @@ export const INITIAL_JADWAL: JadwalItem[] = [
     "catatan": "",
     "linkMateri": "",
     "idSesi": "8f75e785"
+  },
+  {
+    "row": 3,
+    "tanggal": "2026-10-10",
+    "waktu": "15.15 - 17.00",
+    "topik": "Mindset Keuangan",
+    "pemateri": "Yanuar",
+    "lokasi": "Buah tangan lt 4",
+    "catatan": "",
+    "linkMateri": "",
+    "idSesi": "7a0f968c"
   }
 ];
 
