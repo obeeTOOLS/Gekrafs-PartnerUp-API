@@ -16,7 +16,7 @@ import {
   FileText,
   UserCheck
 } from 'lucide-react';
-import { authService, DEFAULT_DEVELOPER_PASSWORD, DEFAULT_ENGINEER_PIN } from '../services/authService';
+import { authService } from '../services/authService';
 import { gasService } from '../services/gasService';
 
 interface LoginPageProps {
@@ -252,7 +252,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                       Password / PIN Akun
                     </label>
                     <span className="text-[10px] text-slate-500">
-                      Default: <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-600 font-mono">Gekrafs2026!</code> (Kurator) &middot; <code className="bg-purple-100 px-1 py-0.5 rounded text-purple-900 font-mono font-bold">{DEFAULT_ENGINEER_PIN}</code> (Dev)
+                      Default: <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-600 font-mono">Gekrafs2026!</code> (Kurator)
                     </span>
                   </div>
                   <div className="relative">
