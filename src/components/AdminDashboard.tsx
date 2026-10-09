@@ -120,13 +120,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [editingUmkmPeserta, setEditingUmkmPeserta] = useState<PesertaItem | null>(null);
   const [untunginModalPeserta, setUntunginModalPeserta] = useState<PesertaItem | null>(null);
   const [taskCount, setTaskCount] = useState<number>(() => taskService.getAllTasks().length);
+  const [, setAdminDataVersion] = useState(0);
 
   useEffect(() => {
     const handleTasksUpdate = () => {
       setTaskCount(taskService.getAllTasks().length);
     };
+    const handleDataUpdate = () => {
+      setAdminDataVersion(v => v + 1);
+    };
     window.addEventListener('gkf-tasks-updated', handleTasksUpdate);
-    return () => window.removeEventListener('gkf-tasks-updated', handleTasksUpdate);
+    window.addEventListener('gkf-data-updated', handleDataUpdate);
+    return () => {
+      window.removeEventListener('gkf-tasks-updated', handleTasksUpdate);
+      window.removeEventListener('gkf-data-updated', handleDataUpdate);
+    };
   }, []);
 
   useEffect(() => {

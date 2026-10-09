@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TimelineItem, JadwalItem } from '../types';
 import { gasService } from '../services/gasService';
 import { formatTanggalIndonesia } from '../utils/qrUtils';
@@ -10,6 +10,22 @@ interface TimelineJadwalProps {
 
 export const TimelineJadwal: React.FC<TimelineJadwalProps> = ({ onNavigateToAsesmen }) => {
   const [activeSubTab, setActiveSubTab] = useState<'timeline' | 'jadwal'>('timeline');
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    // Segarkan data di latar belakang saat tab Timeline & Jadwal dibuka
+    gasService.triggerBackgroundRefresh(false, 15000);
+
+    const handleDataUpdate = () => {
+      setTick(t => t + 1);
+    };
+
+    window.addEventListener('gkf-data-updated', handleDataUpdate);
+    return () => {
+      window.removeEventListener('gkf-data-updated', handleDataUpdate);
+    };
+  }, []);
+
   const timeline = gasService.getTimeline();
   const jadwal = gasService.getJadwal();
 

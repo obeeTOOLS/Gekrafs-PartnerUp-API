@@ -36,6 +36,24 @@ export const AbsensiKehadiran: React.FC<AbsensiKehadiranProps> = ({ initialSesiI
     }
   }, [initialSesiId]);
 
+  // Listener Auto Background-Refresh agar sesi/jadwal baru langsung muncul
+  const [, setTick] = useState(0);
+  React.useEffect(() => {
+    const handleDataUpdate = () => {
+      setTick(t => t + 1);
+      if (!selectedSesiId) {
+        const freshJadwal = gasService.getJadwal();
+        if (freshJadwal.length > 0) {
+          setSelectedSesiId(freshJadwal[0].idSesi);
+        }
+      }
+    };
+    window.addEventListener('gkf-data-updated', handleDataUpdate);
+    return () => {
+      window.removeEventListener('gkf-data-updated', handleDataUpdate);
+    };
+  }, [selectedSesiId]);
+
   const selectedSesi = jadwal.find((j) => j.idSesi === selectedSesiId);
 
   const handleCheckin = (e: React.FormEvent) => {

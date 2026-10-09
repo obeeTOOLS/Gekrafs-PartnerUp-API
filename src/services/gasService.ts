@@ -54,6 +54,8 @@ class GasService {
   private syncStatus: 'online' | 'offline' | 'syncing' | 'error' = 'online';
   private syncMessage: string = 'Lokal Sinkron';
   private lastSyncTime: string = '';
+  private isSyncingSpreadsheet: boolean = false;
+  private lastLiveSyncTimestamp: number = 0;
 
   constructor() {
     this.initFromStorage();
@@ -137,15 +139,26 @@ class GasService {
   /**
    * Tarik data langsung secara lengkap dan real-time dari Google Spreadsheet asli
    * (Spreadsheet ID: 183uoyYw6opnr3w7T6oljvwuy5Rzs7GZE7fM3vi_pwm4).
+   * Mendukung silent mode untuk Auto Background-Refresh tanpa merusak indikator UI manual.
    */
-  public async syncFromLiveSpreadsheet(customSheetId?: string): Promise<{
+  public async syncFromLiveSpreadsheet(customSheetId?: string, silent: boolean = false): Promise<{
     success: boolean;
     message: string;
     counts?: { peserta: number; asesmen: number; timeline: number; jadwal: number };
   }> {
+    if (this.isSyncingSpreadsheet) {
+      return {
+        success: false,
+        message: 'Sinkronisasi sedang berjalan di latar belakang.'
+      };
+    }
+
     const spreadsheetId = customSheetId || DEFAULT_SPREADSHEET_ID;
-    this.syncStatus = 'syncing';
-    this.syncMessage = 'Menarik data dari Google Sheets...';
+    this.isSyncingSpreadsheet = true;
+    if (!silent) {
+      this.syncStatus = 'syncing';
+      this.syncMessage = 'Menarik data dari Google Sheets...';
+    }
 
     try {
       // 1. Ambil data Pendaftaran (profil lengkap)
@@ -337,9 +350,26 @@ class GasService {
 
       const now = new Date();
       this.lastSyncTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} WIB`;
+      this.lastLiveSyncTimestamp = Date.now();
       this.syncStatus = 'online';
       this.syncMessage = `Sinkron (${this.lastSyncTime})`;
       this.saveToStorage();
+
+      // Dispatch event agar seluruh tampilan (Timeline, Jadwal, Peserta, dll) langsung diperbarui otomatis
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('gkf-data-updated', {
+          detail: {
+            counts: {
+              peserta: this.peserta.length,
+              asesmen: this.asesmen.length,
+              timeline: this.timeline.length,
+              jadwal: this.jadwal.length
+            },
+            timestamp: this.lastLiveSyncTimestamp,
+            silent
+          }
+        }));
+      }
 
       return {
         success: true,
@@ -352,12 +382,40 @@ class GasService {
         }
       };
     } catch (err: any) {
-      this.syncStatus = 'error';
-      this.syncMessage = 'Gagal sinkron spreadsheet';
+      if (!silent) {
+        this.syncStatus = 'error';
+        this.syncMessage = 'Gagal sinkron spreadsheet';
+      }
       return {
         success: false,
         message: `Gagal menarik data dari Google Sheets: ${err.message || 'Periksa koneksi internet Anda.'}`
       };
+    } finally {
+      this.isSyncingSpreadsheet = false;
+    }
+  }
+
+  /**
+   * Auto Background-Refresh data dari Google Spreadsheet secara silent dan aman.
+   * Dilengkapi throttling jeda waktu (minIntervalMs) agar efisien dan tidak membebani kuota API.
+   */
+  public async triggerBackgroundRefresh(force: boolean = false, minIntervalMs: number = 30000): Promise<boolean> {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      return false;
+    }
+    const now = Date.now();
+    if (!force && this.lastLiveSyncTimestamp && (now - this.lastLiveSyncTimestamp < minIntervalMs)) {
+      return false;
+    }
+    if (this.isSyncingSpreadsheet) {
+      return false;
+    }
+
+    try {
+      const res = await this.syncFromLiveSpreadsheet(undefined, true);
+      return res.success;
+    } catch {
+      return false;
     }
   }
 

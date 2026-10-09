@@ -71,6 +71,7 @@ export default function App() {
   });
 
   const [syncState, setSyncState] = useState(gasService.getSyncState());
+  const [, setDataVersion] = useState(0);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isPulling, setIsPulling] = useState(false);
@@ -134,24 +135,47 @@ export default function App() {
       }
     };
 
+    const handleDataUpdated = () => {
+      setDataVersion(prev => prev + 1);
+      setSyncState(gasService.getSyncState());
+    };
+
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('gkf-force-logout', handleForceLogoutEvent);
+    window.addEventListener('gkf-data-updated', handleDataUpdated);
 
-    const checkSync = async () => {
-      const lastSync = localStorage.getItem('gkf_last_sync_v2');
-      if (!lastSync) {
-        setIsPulling(true);
-        const res = await gasService.syncFromLiveSpreadsheet();
+    // Auto Background-Refresh saat inisialisasi:
+    const lastSync = localStorage.getItem('gkf_last_sync_v2');
+    if (!lastSync) {
+      setIsPulling(true);
+      gasService.syncFromLiveSpreadsheet().then(res => {
         setIsPulling(false);
         if (res.success) {
           setGlobalToast(res.message);
           setTimeout(() => setGlobalToast(null), 5000);
         }
-      }
-      setSyncState(gasService.getSyncState());
-    };
+        setSyncState(gasService.getSyncState());
+      });
+    } else {
+      // Jika sudah pernah sync sebelumnya, langsung jalankan silent background refresh untuk menarik data terbaru
+      gasService.triggerBackgroundRefresh(true, 0);
+    }
 
-    checkSync();
+    // Auto Background-Refresh berkala setiap 60 detik (hanya jika tab aktif/visible)
+    const bgRefreshInterval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        gasService.triggerBackgroundRefresh(false, 45000);
+      }
+    }, 60000);
+
+    // Auto Background-Refresh saat user kembali membuka tab / jendela aplikasi
+    const handleVisibilityOrFocus = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        gasService.triggerBackgroundRefresh(false, 15000);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+    window.addEventListener('focus', handleVisibilityOrFocus);
 
     // Rahasia bagi Lead Developer untuk membuka konsol: Ctrl+Shift+D atau URL query ?dev=true (hanya jika sudah login sebagai engineer)
     if ((window.location.search.includes('dev=true') || window.location.search.includes('developer=1')) && authService.getCurrentSession()) {
@@ -171,11 +195,20 @@ export default function App() {
     }, 4000);
     return () => {
       clearInterval(interval);
+      clearInterval(bgRefreshInterval);
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('gkf-force-logout', handleForceLogoutEvent);
+      window.removeEventListener('gkf-data-updated', handleDataUpdated);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
     };
   }, []);
+
+  // Segarkan data di latar belakang saat berpindah tab
+  useEffect(() => {
+    gasService.triggerBackgroundRefresh(false, 15000);
+  }, [activeTab]);
 
   const handleRefreshData = async () => {
     setSyncState({
