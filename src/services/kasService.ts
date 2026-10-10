@@ -369,7 +369,8 @@ class KasService {
     try {
       const response = await gasService.dispatchRemoteAction('getKasData', { namaUsaha });
       if (!response || response.status !== 'success') {
-        return { success: false, message: 'Gagal menghubungi Google Apps Script atau offline' };
+        const errorDetail = response?.message || 'Gagal menghubungi Google Apps Script atau offline. Pastikan Apps Script telah di-deploy Versi Baru dan hak akses diatur ke "Anyone".';
+        return { success: false, message: errorDetail };
       }
 
       const cloudTxs: KasTransaction[] = Array.isArray(response.data) ? response.data : [];

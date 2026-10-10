@@ -42,6 +42,7 @@ import {
   BATAS_OMZET_PP23,
   DEFAULT_KAS_PIN
 } from '../services/kasService';
+import { gasService } from '../services/gasService';
 
 interface UntunginKasModalProps {
   isOpen: boolean;
@@ -217,6 +218,14 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
     if (!namaUsaha || isSyncingCloud) return;
     setIsSyncingCloud(true);
     try {
+      // 1. Panggil inisialisasi tab Kas di spreadsheet (memastikan tab Kas_Transaksi & Kas_Profil sudah ada)
+      try {
+        await gasService.dispatchRemoteAction('initSheetKas');
+      } catch (initErr) {
+        console.warn('[Untungin] initSheetKas call notice:', initErr);
+      }
+
+      // 2. Lakukan sinkronisasi data transaksi & akun dua arah
       const res = await kasService.syncKasFromCloud(namaUsaha);
       if (res.success) {
         setLastSyncedTime(new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }));
@@ -624,15 +633,15 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                       ? `Tersinkron dengan Google Spreadsheet (pukul ${lastSyncedTime}). Klik untuk sinkron ulang.`
                       : 'Sinkronkan data kas langsung dengan Google Spreadsheet'
                   }
-                  className={`px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  className={`px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs ${
                     isSyncingCloud
-                      ? 'bg-blue-500/20 text-blue-200 border-blue-400/40 animate-pulse'
-                      : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border-emerald-400/40'
+                      ? 'bg-blue-500/25 text-blue-200 border-blue-400/50 animate-pulse'
+                      : 'bg-emerald-500/25 hover:bg-emerald-500/35 text-emerald-200 border-emerald-400/40'
                   }`}
                 >
                   <Cloud className={`w-3.5 h-3.5 ${isSyncingCloud ? 'animate-bounce text-blue-300' : 'text-emerald-300'}`} />
-                  <span className="hidden sm:inline">
-                    {isSyncingCloud ? 'Sinkron...' : 'Cloud'}
+                  <span className="font-bold">
+                    {isSyncingCloud ? 'Sinkron...' : 'Sinkron Cloud'}
                   </span>
                   <RefreshCw className={`w-3 h-3 ${isSyncingCloud ? 'animate-spin text-blue-300' : 'text-emerald-300/80'}`} />
                 </button>
@@ -1198,21 +1207,45 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
               {/* Tabel Riwayat Transaksi */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
                 <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
-                  <div className={`font-black text-[#001c3c] ${
+                  <div className={`font-black text-[#001c3c] flex items-center gap-2 ${
                     fontSize === 'xlarge' ? 'text-base' : fontSize === 'large' ? 'text-sm' : 'text-xs'
                   }`}>
-                    Riwayat Transaksi ({filteredTransactions.length} Data)
+                    <span>Riwayat Transaksi ({filteredTransactions.length} Data)</span>
+                    {lastSyncedTime && (
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200 hidden sm:inline-flex items-center gap-1">
+                        <Cloud className="w-2.5 h-2.5" />
+                        <span>Cloud: {lastSyncedTime}</span>
+                      </span>
+                    )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleExportCsv}
-                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-colors cursor-pointer shadow-xs ${
-                      fontSize === 'xlarge' ? 'text-sm' : 'text-xs'
-                    }`}
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Ekspor CSV / Excel</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleSyncCloud(true)}
+                      disabled={isSyncingCloud}
+                      title="Sinkronkan seluruh data buku kas ke Google Spreadsheet"
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs border ${
+                        isSyncingCloud
+                          ? 'bg-blue-100 text-blue-800 border-blue-300 animate-pulse'
+                          : 'bg-blue-50 hover:bg-blue-100 text-blue-800 border-blue-200'
+                      }`}
+                    >
+                      <Cloud className="w-4 h-4 text-blue-600" />
+                      <span>{isSyncingCloud ? 'Menyinkronkan...' : 'Sinkron Cloud'}</span>
+                      <RefreshCw className={`w-3.5 h-3.5 ${isSyncingCloud ? 'animate-spin text-blue-600' : 'text-blue-500'}`} />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleExportCsv}
+                      className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-colors cursor-pointer shadow-xs ${
+                        fontSize === 'xlarge' ? 'text-sm' : 'text-xs'
+                      }`}
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Ekspor CSV / Excel</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="overflow-x-auto">

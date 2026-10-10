@@ -54,6 +54,7 @@ import {
   Compass,
   Wallet,
   Printer,
+  Cloud,
   X
 } from 'lucide-react';
 import { UntunginKasModal } from './UntunginKasModal';
@@ -117,6 +118,36 @@ export const DeveloperTools: React.FC = () => {
   // Sync all tasks to Google Sheet state
   const [isSyncingTasks, setIsSyncingTasks] = useState(false);
   const [syncTasksResult, setSyncTasksResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  // Inisialisasi Tab Kas ke Google Spreadsheet state
+  const [isInitializingKas, setIsInitializingKas] = useState(false);
+  const [initKasResult, setInitKasResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const handleInitSheetKas = async () => {
+    setIsInitializingKas(true);
+    setInitKasResult(null);
+    try {
+      const res = await gasService.dispatchRemoteAction('initSheetKas');
+      if (res && res.status === 'success') {
+        setInitKasResult({
+          success: true,
+          message: res.message || '✅ Tab Kas_Transaksi & Kas_Profil berhasil dibuat dan disiapkan di Google Spreadsheet!'
+        });
+      } else {
+        setInitKasResult({
+          success: false,
+          message: 'Apps Script belum merespon pembuatan tab kas: ' + (res?.message || 'Pastikan file Code.gs sudah disimpan & dideploy versi baru (New Version) di script.google.com.')
+        });
+      }
+    } catch (err: any) {
+      setInitKasResult({
+        success: false,
+        message: 'Gagal menghubungi Apps Script: ' + (err?.message || 'Koneksi error')
+      });
+    } finally {
+      setIsInitializingKas(false);
+    }
+  };
 
   const handlePushAllTasksToLiveSheet = async () => {
     setIsSyncingTasks(true);
@@ -1234,6 +1265,66 @@ export const DeveloperTools: React.FC = () => {
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
             )}
             <div>{syncTasksResult.message}</div>
+          </div>
+        )}
+      </div>
+
+      {/* Section 2.6: Inisialisasi & Sinkronisasi Buku Kas ke Google Spreadsheet */}
+      <div className="bg-white rounded-2xl p-6 border-2 border-emerald-500/40 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-2">
+          <div>
+            <h2 className="text-sm font-extrabold text-[#001c3c] uppercase flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-emerald-600" />
+              <span>Inisialisasi & Sinkronisasi Buku Kas UMKM (Tab "Kas_Transaksi" & "Kas_Profil")</span>
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Siapkan tab <strong>Kas_Transaksi</strong> dan <strong>Kas_Profil</strong> di Google Spreadsheet secara instan tanpa perlu menjalankan kode manual di Apps Script.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200 flex items-center gap-1.5">
+              <Cloud className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Buku Kas Online Cloud</span>
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-emerald-50/50 p-4 rounded-xl border border-emerald-100">
+          <div className="text-xs text-emerald-950 space-y-1">
+            <div className="font-bold flex items-center gap-1.5 text-emerald-900">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <span>Pembuatan Otomatis Tab Baru & Format Header</span>
+            </div>
+            <p className="text-slate-600 leading-relaxed text-[11px]">
+              Klik tombol di samping untuk menginstruksikan backend Apps Script membuat tab <code>Kas_Transaksi</code> dan <code>Kas_Profil</code> lengkap dengan styling warna header navy dan pembekuan baris pertama.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleInitSheetKas}
+            disabled={isInitializingKas}
+            className="w-full sm:w-auto px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 whitespace-nowrap shadow-sm disabled:opacity-50 cursor-pointer"
+          >
+            <RefreshCw className={`w-4 h-4 ${isInitializingKas ? 'animate-spin' : ''}`} />
+            <span>{isInitializingKas ? 'Membuat Tab di Sheet...' : '⚡ Inisialisasi Tab Kas Sekarang'}</span>
+          </button>
+        </div>
+
+        {initKasResult && (
+          <div
+            className={`p-3.5 rounded-xl text-xs font-semibold flex items-start gap-2.5 ${
+              initKasResult.success
+                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                : 'bg-rose-50 text-rose-800 border border-rose-200'
+            }`}
+          >
+            {initKasResult.success ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+            ) : (
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            )}
+            <div>{initKasResult.message}</div>
           </div>
         )}
       </div>
