@@ -79,10 +79,10 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
   // obeecreatives adalah unit bisnis pengembang yang selalu memiliki hak akses penuh input data
   const isObeeCreatives = (namaUsaha || '').toLowerCase().trim() === 'obeecreatives';
   const isDeveloperUser = viewerRole === 'developer' || isObeeCreatives;
-  const isCuratorUser = viewerRole === 'kurator' || viewerRole === 'admin';
+  const isCuratorUser = viewerRole === 'kurator' || viewerRole === 'curator' || viewerRole === 'admin';
   const isPrivileged = isDeveloperUser;
   const [isSimulasiMode, setIsSimulasiMode] = useState(false);
-  const effectiveReadOnly = isDeveloperUser ? false : (readOnly && !isSimulasiMode);
+  const [isTrialReadOnlyView, setIsTrialReadOnlyView] = useState(false);
 
   // Data Kas
   const [categories, setCategories] = useState<KasCategories>({ income: [], expense: [] });
@@ -211,9 +211,13 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
     }
   };
 
-  // Manajemen Akses Premium / Untungin Pro
+  // Manajemen Akses Premium / Untungin Pro & Model Hybrid Trial
   const [premiumStatus, setPremiumStatus] = useState<KasPremiumAccess>(() => kasService.getPremiumStatus(namaUsaha));
-  const hasPremiumAccess = premiumStatus.isPremium || isPrivileged;
+  const hasProAccess = premiumStatus.isPremium || isPrivileged || isDeveloperUser;
+  const isTrialActive = !hasProAccess && (premiumStatus.isTrialActive ?? false);
+  const isTrialExpired = !hasProAccess && (premiumStatus.isTrialExpired ?? false);
+  const hasPremiumAccess = hasProAccess; // alias kompatibilitas
+  const effectiveReadOnly = isDeveloperUser ? false : ((readOnly && !isSimulasiMode) || (isTrialExpired && isTrialReadOnlyView));
   const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
   const [licenseCodeInput, setLicenseCodeInput] = useState('');
   const [licenseFeedback, setLicenseFeedback] = useState<{ success: boolean; message: string } | null>(null);
@@ -405,6 +409,17 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
     e.preventDefault();
     if (effectiveReadOnly) return;
 
+    // Batas Kuota Trial untuk Peserta Non-Pro
+    if (!editingTxId && !hasProAccess && !isCuratorUser && !isDeveloperUser) {
+      const currentTxCount = transactions.length;
+      const limit = premiumStatus.transactionLimit || 10;
+      if (currentTxCount >= limit || (premiumStatus.isTrialExpired && !isTrialActive)) {
+        showToast(`Batas Trial (${limit} Transaksi) telah tercapai. Upgrade ke Untungin Pro untuk mencatat transaksi tanpa batas!`, 'warning');
+        setIsPremiumModalOpen(true);
+        return;
+      }
+    }
+
     const amt = Number(txAmount);
     const finalAccountId = txAccountId || (accounts.length > 0 ? accounts[0].id : '');
     const finalCategory = txCategory || (txType === 'income' ? (categories.income[0] || 'Penjualan Produk') : (categories.expense[0] || 'Pengeluaran Lain-lain'));
@@ -489,6 +504,16 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
     setTxDesc('');
     setTxDate(new Date().toISOString().slice(0, 10));
     loadData();
+
+    const updatedStatus = kasService.getPremiumStatus(namaUsaha);
+    setPremiumStatus(updatedStatus);
+    if (!hasProAccess && !isCuratorUser && !isDeveloperUser && updatedStatus.remainingTransactions !== undefined) {
+      if (updatedStatus.remainingTransactions === 0) {
+        showToast('Transaksi ke-10 berhasil dicatat! Kuota trial telah tercapai. Aktifkan Pro untuk terus mencatat.', 'warning');
+      } else {
+        showToast(`Transaksi berhasil dicatat! (Sisa kuota trial: ${updatedStatus.remainingTransactions} transaksi)`, 'success');
+      }
+    }
   };
 
   const handleStartEdit = (t: KasTransaction) => {
@@ -725,19 +750,41 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
               </>
             )}
 
-            {/* Badge Status Lisensi Untungin Pro */}
+            {/* Badge Status Lisensi Untungin Pro / Hybrid Trial */}
             <button
               type="button"
               onClick={() => setIsPremiumModalOpen(true)}
-              title="Lihat Informasi Lisensi Untungin Pro"
+              title={
+                hasProAccess
+                  ? 'Lisensi Untungin Pro Aktif (Akses Penuh)'
+                  : isTrialActive
+                  ? `Masa Trial Aktif: Sisa ${premiumStatus.remainingTransactions ?? 0} transaksi (${premiumStatus.remainingDays ?? 0} hari)`
+                  : 'Batas Trial Selesai. Upgrade ke Untungin Pro'
+              }
               className={`px-2.5 py-1.5 rounded-xl border text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-xs ${
-                hasPremiumAccess
+                hasProAccess
                   ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-[#001c3c] border-amber-300 hover:from-amber-300 hover:to-amber-400'
-                  : 'bg-white/10 hover:bg-white/20 text-slate-200 border-white/20'
+                  : isTrialActive
+                  ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-indigo-300/40 hover:from-indigo-400 hover:to-purple-500'
+                  : 'bg-amber-500/20 text-amber-300 border-amber-400/40 hover:bg-amber-500/30'
               }`}
             >
-              <Crown className={`w-3.5 h-3.5 ${hasPremiumAccess ? 'fill-[#001c3c] text-[#001c3c]' : 'text-amber-300'}`} />
-              <span className="hidden sm:inline">{hasPremiumAccess ? 'PRO' : 'Standar'}</span>
+              {hasProAccess ? (
+                <>
+                  <Crown className="w-3.5 h-3.5 fill-[#001c3c] text-[#001c3c]" />
+                  <span className="hidden sm:inline">PRO</span>
+                </>
+              ) : isTrialActive ? (
+                <>
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                  <span className="hidden sm:inline">TRIAL ({premiumStatus.remainingTransactions ?? 0} tx)</span>
+                </>
+              ) : (
+                <>
+                  <Lock className="w-3.5 h-3.5 text-amber-300" />
+                  <span className="hidden sm:inline">UPGRADE</span>
+                </>
+              )}
             </button>
 
             <button
@@ -761,10 +808,15 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                   <CheckCircle2 className="w-3 h-3 text-emerald-400" />
                   <span>💎 Premium Aktif ({premiumStatus.grantedBy || 'Kurator'})</span>
                 </span>
+              ) : isTrialActive ? (
+                <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-200 font-bold border border-indigo-400/40 text-[11px] flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-indigo-300" />
+                  <span>✨ Trial Aktif (Sisa {premiumStatus.remainingTransactions ?? 0} tx / {premiumStatus.remainingDays ?? 0} hari)</span>
+                </span>
               ) : (
                 <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-400/30 text-[11px] flex items-center gap-1">
                   <Lock className="w-3 h-3 text-amber-400" />
-                  <span>🔒 Akun Standar (Belum Premium)</span>
+                  <span>🔒 Trial Selesai ({premiumStatus.usedTransactions ?? 0}/10 tx)</span>
                 </span>
               )}
             </div>
@@ -803,8 +855,8 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
           </div>
         )}
 
-        {!hasPremiumAccess && !isSimulasiMode && !isCuratorUser ? (
-          /* TAMPILAN GERBANG AKSES UNTUNGIN PRO (FITUR PREMIUM) */
+        {!hasProAccess && !isTrialActive && !isTrialReadOnlyView && !isSimulasiMode && !isCuratorUser ? (
+          /* TAMPILAN GERBANG AKSES UNTUNGIN PRO & STATUS TRIAL */
           <div className="flex-1 overflow-y-auto p-4 sm:p-8 flex flex-col items-center justify-center animate-in fade-in">
             <div className="max-w-2xl w-full mx-auto my-auto space-y-6 text-center">
               
@@ -812,7 +864,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
               <div className="space-y-2">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-xs font-extrabold tracking-wide uppercase shadow-2xs">
                   <Crown className="w-3.5 h-3.5 fill-amber-500 text-amber-600" />
-                  <span>Fitur Premium Eksklusif &middot; Untungin Pro</span>
+                  <span>{isTrialExpired ? 'Masa Percobaan Trial Selesai · Untungin Pro' : 'Fitur Premium Eksklusif · Untungin Pro'}</span>
                 </span>
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-gradient-to-tr from-amber-400 via-amber-500 to-amber-600 text-[#001c3c] flex items-center justify-center shadow-xl shadow-amber-500/25 mx-auto">
                   <Wallet className="w-8 h-8 sm:w-10 sm:h-10" />
@@ -821,7 +873,15 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                   Buku Kas & Manajemen Keuangan UMKM
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-600 max-w-lg mx-auto leading-relaxed">
-                  Fitur ini dirancang khusus untuk membantu <strong className="text-[#004c80]">{namaUsaha}</strong> memisahkan uang pribadi & bisnis, mencatat transaksi harian, mengukur laba bersih, serta simulasi pajak PPh 0,5%.
+                  {isTrialExpired ? (
+                    <>
+                      Masa trial untuk <strong className="text-[#004c80]">{namaUsaha}</strong> telah berakhir ({premiumStatus.usedTransactions || 0}/10 transaksi atau 7 hari aktif tercapai). <strong className="text-emerald-700">Seluruh data transaksi yang telah Anda catat aman tersimpan di sistem.</strong> Aktifkan lisensi Untungin Pro untuk membuka akses pencatatan penuh tanpa batas.
+                    </>
+                  ) : (
+                    <>
+                      Fitur ini dirancang khusus untuk membantu <strong className="text-[#004c80]">{namaUsaha}</strong> memisahkan uang pribadi & bisnis, mencatat transaksi harian, mengukur laba bersih, serta simulasi pajak PPh 0,5%.
+                    </>
+                  )}
                 </p>
               </div>
 
@@ -960,8 +1020,21 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                 </div>
               </div>
 
-              {/* Tombol Preview Simulasi & Tutup */}
+              {/* Tombol Preview Simulasi & Mode Baca & Tutup */}
               <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+                {(premiumStatus.usedTransactions || 0) > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsTrialReadOnlyView(true);
+                      showToast('Mode Baca Aktif: Menampilkan ringkasan dan riwayat transaksi kas Anda.', 'success');
+                    }}
+                    className="px-4 py-2 rounded-xl bg-purple-100 hover:bg-purple-200 text-purple-900 font-bold text-xs transition-all cursor-pointer flex items-center gap-1.5 border border-purple-300 shadow-2xs"
+                  >
+                    <Wallet className="w-3.5 h-3.5 text-purple-700" />
+                    <span>👁️ Buka Catatan Kas Saya (Mode Baca)</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => {
@@ -971,7 +1044,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                   className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-all cursor-pointer flex items-center gap-1.5 border border-slate-300"
                 >
                   <Eye className="w-3.5 h-3.5 text-slate-500" />
-                  <span>👁️ Coba Mode Simulasi (Demo)</span>
+                  <span>🧪 Coba Mode Simulasi (Demo)</span>
                 </button>
                 <button
                   type="button"
@@ -1095,6 +1168,51 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                     className="text-[11px] text-amber-800 hover:text-amber-950 underline font-semibold cursor-pointer"
                   >
                     Keluar Demo
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Banner Akses Hybrid Trial Aktif */}
+            {isTrialActive && !isSimulasiMode && (
+              <div className="bg-gradient-to-r from-indigo-900 via-purple-900 to-[#001c3c] text-white px-4 py-2 flex flex-wrap items-center justify-between gap-2.5 text-xs border-b border-indigo-400/30 flex-shrink-0">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-300 flex-shrink-0" />
+                  <span>
+                    <strong className="text-amber-300">Akses Trial Hybrid Aktif:</strong> Sisa{' '}
+                    <span className="font-extrabold text-amber-300">{premiumStatus.remainingTransactions ?? 0}</span> dari 10 transaksi trial riil ({premiumStatus.remainingDays ?? 0} hari tersisa).
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsPremiumModalOpen(true)}
+                    className="px-2.5 py-1 rounded bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-[#001c3c] font-black text-[11px] transition-all cursor-pointer shadow-xs flex items-center gap-1"
+                  >
+                    <Crown className="w-3 h-3 fill-[#001c3c]" />
+                    <span>Upgrade ke Untungin Pro</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Banner Mode Baca (Trial Telah Selesai) */}
+            {isTrialExpired && isTrialReadOnlyView && !isSimulasiMode && (
+              <div className="bg-gradient-to-r from-amber-950 via-slate-900 to-[#001c3c] text-white px-4 py-2 flex flex-wrap items-center justify-between gap-2.5 text-xs border-b border-amber-500/30 flex-shrink-0">
+                <div className="flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-amber-300 flex-shrink-0" />
+                  <span>
+                    <strong className="text-amber-300">Mode Baca (Trial Selesai):</strong> Seluruh data 10 transaksi riil Anda aman. Aktifkan Pro untuk menambah transaksi baru tanpa batas.
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsPremiumModalOpen(true)}
+                    className="px-2.5 py-1 rounded bg-amber-400 hover:bg-amber-300 text-[#001c3c] font-black text-[11px] transition-all cursor-pointer shadow-xs flex items-center gap-1"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    <span>Aktifkan Pro Sekarang</span>
                   </button>
                 </div>
               </div>
@@ -2157,18 +2275,44 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
             </div>
 
             <div className="space-y-2.5 text-xs">
-              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 via-orange-50/50 to-amber-50 border border-amber-200 flex items-center justify-between">
+              <div className={`p-3.5 rounded-2xl border flex items-center justify-between ${
+                hasProAccess
+                  ? 'bg-gradient-to-r from-amber-50 via-orange-50/50 to-amber-50 border-amber-200'
+                  : isTrialActive
+                  ? 'bg-gradient-to-r from-indigo-50 via-purple-50/50 to-indigo-50 border-indigo-200'
+                  : 'bg-gradient-to-r from-slate-50 to-amber-50/50 border-slate-200'
+              }`}>
                 <div>
-                  <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block">
-                    Status Akses
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                    Status Akses Kas
                   </span>
-                  <span className="font-black text-amber-950 text-sm flex items-center gap-1.5 mt-0.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    <span>{hasPremiumAccess ? '💎 PRO (Akses Penuh Aktif)' : 'Akun Standar'}</span>
+                  <span className="font-black text-[#001c3c] text-sm flex items-center gap-1.5 mt-0.5">
+                    {hasProAccess ? (
+                      <>
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        <span>💎 Untungin Pro (Akses Penuh Aktif)</span>
+                      </>
+                    ) : isTrialActive ? (
+                      <>
+                        <Sparkles className="w-4 h-4 text-indigo-600" />
+                        <span>✨ Akses Trial Hybrid (Sedang Aktif)</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-4 h-4 text-amber-600" />
+                        <span>🔒 Batas Trial Telah Berakhir</span>
+                      </>
+                    )}
                   </span>
                 </div>
-                <span className="px-2.5 py-1 rounded-full bg-amber-400 text-[#001c3c] font-black text-[10px] shadow-2xs">
-                  VIP TIER
+                <span className={`px-2.5 py-1 rounded-full font-black text-[10px] shadow-2xs ${
+                  hasProAccess
+                    ? 'bg-amber-400 text-[#001c3c]'
+                    : isTrialActive
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-slate-300 text-slate-800'
+                }`}>
+                  {hasProAccess ? 'VIP PRO' : isTrialActive ? 'TRIAL 10 TX' : 'EXPIRED'}
                 </span>
               </div>
 
@@ -2177,32 +2321,104 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                   <span className="text-slate-500">Unit Usaha:</span>
                   <span className="font-bold text-slate-800">{namaUsaha}</span>
                 </div>
-                <div className="flex items-center justify-between py-1 border-b border-slate-200/60">
-                  <span className="text-slate-500">Diberikan Oleh:</span>
-                  <span className="font-bold text-slate-800">
-                    {premiumStatus.grantedBy || (isDeveloperUser ? 'Lead Developer (Lifetime)' : 'Kurator PartnerUp')}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between py-1 border-b border-slate-200/60">
-                  <span className="text-slate-500">Jalur Akses:</span>
-                  <span className="font-bold text-[#004c80]">
-                    {premiumStatus.method === 'kurator'
-                      ? 'Rekomendasi Kurator (Lolos Seleksi)'
-                      : premiumStatus.method === 'payment'
-                      ? 'Aktivasi Lisensi / Pembayaran'
-                      : 'Sistem VIP'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between py-1">
-                  <span className="text-slate-500">Waktu Aktivasi:</span>
-                  <span className="font-mono text-slate-700">
-                    {premiumStatus.unlockedAt ? new Date(premiumStatus.unlockedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Permanen'}
-                  </span>
-                </div>
+
+                {hasProAccess ? (
+                  <>
+                    <div className="flex items-center justify-between py-1 border-b border-slate-200/60">
+                      <span className="text-slate-500">Diberikan Oleh:</span>
+                      <span className="font-bold text-slate-800">
+                        {premiumStatus.grantedBy || (isDeveloperUser ? 'Lead Developer (Lifetime)' : 'Kurator PartnerUp')}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between py-1 border-b border-slate-200/60">
+                      <span className="text-slate-500">Jalur Akses:</span>
+                      <span className="font-bold text-[#004c80]">
+                        {premiumStatus.method === 'kurator'
+                          ? 'Rekomendasi Kurator (Lolos Seleksi)'
+                          : premiumStatus.method === 'payment'
+                          ? 'Aktivasi Lisensi / Pembayaran'
+                          : 'Sistem VIP'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between py-1">
+                      <span className="text-slate-500">Waktu Aktivasi:</span>
+                      <span className="font-mono text-slate-700">
+                        {premiumStatus.unlockedAt ? new Date(premiumStatus.unlockedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Permanen'}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between py-1 border-b border-slate-200/60">
+                      <span className="text-slate-500">Kuota Transaksi:</span>
+                      <span className="font-bold text-[#001c3c]">
+                        {premiumStatus.usedTransactions || 0} / 10 transaksi terpakai{' '}
+                        <span className="text-indigo-600 font-extrabold">
+                          ({premiumStatus.remainingTransactions || 0} sisa)
+                        </span>
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between py-1 border-b border-slate-200/60">
+                      <span className="text-slate-500">Masa Berlaku Trial:</span>
+                      <span className="font-bold text-[#001c3c]">
+                        {premiumStatus.remainingDays || 0} hari tersisa (dari 7 hari total)
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between py-1">
+                      <span className="text-slate-500">Integritas Data:</span>
+                      <span className="font-bold text-emerald-700">
+                        ✅ {premiumStatus.usedTransactions || 0} transaksi tersimpan aman
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
 
+              {!hasProAccess && (
+                <div className="p-3.5 bg-gradient-to-br from-amber-50 to-orange-50/50 rounded-2xl border border-amber-200 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-black text-xs text-[#001c3c] flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Upgrade ke Untungin Pro (Unlimited)</span>
+                    </span>
+                    <a
+                      href={`https://wa.me/6285156557675?text=${encodeURIComponent(
+                        `Halo Admin PartnerUp,\n\nSaya ingin membeli / aktivasi akses Premium Buku Kas Untungin untuk unit usaha kami:\n- Nama Usaha: ${namaUsaha}\n- Pemilik: ${namaPemilik || '-'}\n- WhatsApp: ${whatsapp || '-'}\n\nMohon informasi nilai pembayaran & nomor rekening resmi. Terima kasih!`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] transition-all flex items-center gap-1 cursor-pointer"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      <span>Beli via WA</span>
+                    </a>
+                  </div>
+                  <form onSubmit={handleActivateLicense} className="flex gap-1.5">
+                    <input
+                      type="text"
+                      placeholder="Masukkan kode lisensi resmi"
+                      value={licenseCodeInput}
+                      onChange={(e) => setLicenseCodeInput(e.target.value.toUpperCase())}
+                      className="flex-1 py-1.5 px-3 text-xs font-mono font-bold bg-white border border-amber-300 focus:border-amber-500 rounded-xl outline-none"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isActivatingLicense}
+                      className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 font-black text-xs text-[#001c3c] rounded-xl cursor-pointer shadow-xs"
+                    >
+                      {isActivatingLicense ? '...' : 'Aktivasi'}
+                    </button>
+                  </form>
+                  {licenseFeedback && (
+                    <p className={`text-[10px] font-bold ${licenseFeedback.success ? 'text-emerald-700' : 'text-rose-600'}`}>
+                      {licenseFeedback.message}
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div className="p-3 bg-purple-50 rounded-xl border border-purple-100 text-[11px] text-purple-900 leading-relaxed">
-                <strong>Hak Istimewa Untungin Pro:</strong> Pencatatan transaksi tanpa limit, multi-akun kas (Tunai, Bank, QRIS), laba rugi otomatis, simulasi pajak UMKM 0,5%, serta sinkronisasi dua arah ke Google Spreadsheet.
+                <strong>Hak Istimewa Untungin Pro:</strong> Pencatatan transaksi tanpa batas, multi-akun kas (Tunai, Bank, QRIS), laba rugi otomatis, simulasi pajak UMKM 0,5%, serta sinkronisasi cloud Google Spreadsheet.
               </div>
             </div>
 

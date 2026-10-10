@@ -465,19 +465,38 @@ Salam hangat,
               <Key className="w-3 h-3 text-amber-600" />
               <span>Ubah PIN</span>
             </button>
-            <button
-              type="button"
-              onClick={() => setIsUntunginKasOpen(true)}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gradient-to-r from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 text-purple-900 border border-purple-200 text-[11px] font-bold transition-all shadow-2xs cursor-pointer"
-              title="Buka Buku Kas & Laporan Keuangan Untungin (Fitur Premium)"
-            >
-              <Wallet className="w-3 h-3 text-purple-600" />
-              <span>Buku Kas Untungin</span>
-              <span className="text-[9px] bg-gradient-to-r from-amber-400 to-amber-500 text-[#001c3c] font-black px-1.5 py-0.2 rounded-full shadow-2xs flex items-center gap-0.5">
-                <Crown className="w-2.5 h-2.5 fill-current" />
-                <span>PRO</span>
-              </span>
-            </button>
+            {(() => {
+              const currentUsaha = selectedNamaUsaha || pesertaSession?.namaUsaha || '';
+              const kasStatus = kasService.getPremiumStatus(currentUsaha);
+              const isPro = kasStatus.isPremium || currentUsaha.toLowerCase().trim() === 'obeecreatives';
+              const isTrial = !isPro && (kasStatus.isTrialActive ?? false);
+
+              return (
+                <button
+                  type="button"
+                  onClick={() => setIsUntunginKasOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gradient-to-r from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 text-purple-900 border border-purple-200 text-[11px] font-bold transition-all shadow-2xs cursor-pointer"
+                  title={`Buka Buku Kas & Laporan Keuangan Untungin (${isPro ? 'Untungin Pro Aktif' : isTrial ? `Trial Aktif: sisa ${kasStatus.remainingTransactions ?? 0} transaksi` : 'Fitur Premium'})`}
+                >
+                  <Wallet className="w-3 h-3 text-purple-600" />
+                  <span>Buku Kas Untungin</span>
+                  {isPro ? (
+                    <span className="text-[9px] bg-gradient-to-r from-amber-400 to-amber-500 text-[#001c3c] font-black px-1.5 py-0.2 rounded-full shadow-2xs flex items-center gap-0.5">
+                      <Crown className="w-2.5 h-2.5 fill-current" />
+                      <span>PRO</span>
+                    </span>
+                  ) : isTrial ? (
+                    <span className="text-[9px] bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-black px-1.5 py-0.2 rounded-full shadow-2xs flex items-center gap-0.5">
+                      <span>TRIAL</span>
+                    </span>
+                  ) : (
+                    <span className="text-[9px] bg-amber-400 text-[#001c3c] font-black px-1.5 py-0.2 rounded-full shadow-2xs flex items-center gap-0.5">
+                      <span>PRO</span>
+                    </span>
+                  )}
+                </button>
+              );
+            })()}
           </div>
         </div>
       </div>

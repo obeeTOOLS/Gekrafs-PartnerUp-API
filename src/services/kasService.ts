@@ -98,11 +98,19 @@ export interface KasPinData {
 export interface KasPremiumAccess {
   namaUsaha: string;
   isPremium: boolean;
-  tier: 'free' | 'premium';
+  tier: 'free' | 'trial' | 'premium';
   unlockedAt?: string;
   grantedBy?: string;
-  method?: 'kurator' | 'payment' | 'system' | 'none';
+  method?: 'kurator' | 'payment' | 'system' | 'trial' | 'none';
   transactionLimit?: number;
+  usedTransactions?: number;
+  remainingTransactions?: number;
+  trialStartedAt?: string;
+  trialExpiresAt?: string;
+  trialDaysTotal?: number;
+  remainingDays?: number;
+  isTrialActive?: boolean;
+  isTrialExpired?: boolean;
   notes?: string;
 }
 
@@ -587,11 +595,20 @@ class KasService {
   }
 
   /**
-   * Mengambil status akses lisensi Untungin Pro untuk unit usaha
+   * Mengambil status akses lisensi Untungin Pro untuk unit usaha (Model Hybrid: Trial 10 tx / 7 Hari & Pro)
    */
   public getPremiumStatus(namaUsaha: string): KasPremiumAccess {
     if (!namaUsaha) {
-      return { namaUsaha: '', isPremium: false, tier: 'free', transactionLimit: 10 };
+      return { 
+        namaUsaha: '', 
+        isPremium: false, 
+        tier: 'free', 
+        transactionLimit: 10,
+        usedTransactions: 0,
+        remainingTransactions: 10,
+        isTrialActive: false,
+        isTrialExpired: false
+      };
     }
 
     const clean = namaUsaha.toLowerCase().trim();
@@ -603,37 +620,120 @@ class KasService {
         tier: 'premium',
         grantedBy: 'Lead Developer (Lifetime VIP)',
         method: 'system',
-        unlockedAt: '2026-01-01T00:00:00.000Z'
+        unlockedAt: '2026-01-01T00:00:00.000Z',
+        transactionLimit: undefined,
+        usedTransactions: 0,
+        remainingTransactions: Infinity,
+        isTrialActive: false,
+        isTrialExpired: false
       };
     }
+
+    // Ambil data transaksi kas live yang tersimpan
+    let txCount = 0;
+    try {
+      const kasData = this.getKasData(namaUsaha);
+      txCount = Array.isArray(kasData.transactions) ? kasData.transactions.length : 0;
+    } catch (e) {
+      console.warn('[kasService] Error reading txCount for premium status:', e);
+    }
+
+    const TRIAL_LIMIT = 10;
+    const TRIAL_DAYS = 7;
 
     try {
       const key = this.getPremiumStorageKey(namaUsaha);
       const raw = localStorage.getItem(key);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed && typeof parsed.isPremium === 'boolean') {
-          return {
+      let parsed = raw ? JSON.parse(raw) : null;
+
+      // 1. Jika sudah berstatus Pro Aktif (via kurator atau kode lisensi)
+      if (parsed && parsed.isPremium === true) {
+        return {
+          namaUsaha,
+          isPremium: true,
+          tier: 'premium',
+          unlockedAt: parsed.unlockedAt,
+          grantedBy: parsed.grantedBy || 'Kurator PartnerUp',
+          method: parsed.method || 'kurator',
+          transactionLimit: undefined,
+          usedTransactions: txCount,
+          remainingTransactions: Infinity,
+          isTrialActive: false,
+          isTrialExpired: false
+        };
+      }
+
+      // 2. Inisialisasi atau muat data Hybrid Trial
+      let trialStartedAt = parsed?.trialStartedAt;
+      let trialExpiresAt = parsed?.trialExpiresAt;
+
+      if (!trialStartedAt) {
+        const now = new Date();
+        trialStartedAt = now.toISOString();
+        const expireDate = new Date(now.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
+        trialExpiresAt = expireDate.toISOString();
+
+        // Simpan penanda waktu awal trial agar tidak ter-reset
+        try {
+          const trialRecord = {
             namaUsaha,
-            isPremium: parsed.isPremium,
-            tier: parsed.isPremium ? 'premium' : 'free',
-            unlockedAt: parsed.unlockedAt,
-            grantedBy: parsed.grantedBy || (parsed.isPremium ? 'Kurator / Panitia' : undefined),
-            method: parsed.method || (parsed.isPremium ? 'kurator' : 'none'),
-            transactionLimit: parsed.isPremium ? undefined : 10
+            isPremium: false,
+            trialStartedAt,
+            trialExpiresAt,
+            transactionLimit: TRIAL_LIMIT
           };
+          localStorage.setItem(key, JSON.stringify(trialRecord));
+        } catch {
+          // ignore
         }
       }
+
+      const nowMs = Date.now();
+      const expireMs = new Date(trialExpiresAt).getTime();
+      const diffMs = expireMs - nowMs;
+      const remainingDays = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+      const isTimeExpired = diffMs <= 0;
+
+      const remainingTransactions = Math.max(0, TRIAL_LIMIT - txCount);
+      const isLimitReached = txCount >= TRIAL_LIMIT;
+      const isTrialExpired = isLimitReached || isTimeExpired;
+      const isTrialActive = !isTrialExpired;
+
+      return {
+        namaUsaha,
+        isPremium: false,
+        tier: isTrialActive ? 'trial' : 'free',
+        grantedBy: parsed?.grantedBy,
+        method: isTrialActive ? 'trial' : 'none',
+        transactionLimit: TRIAL_LIMIT,
+        usedTransactions: txCount,
+        remainingTransactions,
+        trialStartedAt,
+        trialExpiresAt,
+        trialDaysTotal: TRIAL_DAYS,
+        remainingDays,
+        isTrialActive,
+        isTrialExpired,
+        notes: isTrialExpired
+          ? (isLimitReached ? 'Batas 10 transaksi trial telah tercapai.' : 'Masa percobaan 7 hari telah berakhir.')
+          : `Akses Trial Hybrid Aktif: Sisa ${remainingTransactions} transaksi (${remainingDays} hari).`
+      };
     } catch (e) {
-      console.error('[kasService] Error reading premium status', e);
+      console.error('[kasService] Error calculating hybrid premium status', e);
     }
 
     return {
       namaUsaha,
       isPremium: false,
-      tier: 'free',
-      method: 'none',
-      transactionLimit: 10
+      tier: 'trial',
+      method: 'trial',
+      transactionLimit: TRIAL_LIMIT,
+      usedTransactions: txCount,
+      remainingTransactions: Math.max(0, TRIAL_LIMIT - txCount),
+      trialDaysTotal: TRIAL_DAYS,
+      remainingDays: TRIAL_DAYS,
+      isTrialActive: true,
+      isTrialExpired: false
     };
   }
 
@@ -648,13 +748,18 @@ class KasService {
     if (!namaUsaha) return { namaUsaha: '', isPremium: false, tier: 'free' };
 
     const key = this.getPremiumStorageKey(namaUsaha);
+    const current = this.getPremiumStatus(namaUsaha);
     const access: KasPremiumAccess = {
       namaUsaha,
       isPremium: true,
       tier: 'premium',
       unlockedAt: new Date().toISOString(),
       grantedBy,
-      method
+      method,
+      usedTransactions: current.usedTransactions,
+      remainingTransactions: Infinity,
+      isTrialActive: false,
+      isTrialExpired: false
     };
 
     try {
@@ -668,18 +773,23 @@ class KasService {
   }
 
   /**
-   * Mencabut hak akses Untungin Pro kembali ke Standar Free
+   * Mencabut hak akses Untungin Pro kembali ke Standar Free / Trial
    */
   public revokePremiumAccess(namaUsaha: string): KasPremiumAccess {
     if (!namaUsaha) return { namaUsaha: '', isPremium: false, tier: 'free' };
 
     const key = this.getPremiumStorageKey(namaUsaha);
+    const prev = this.getPremiumStatus(namaUsaha);
     const access: KasPremiumAccess = {
       namaUsaha,
       isPremium: false,
-      tier: 'free',
+      tier: (prev.usedTransactions || 0) < 10 ? 'trial' : 'free',
       method: 'none',
-      transactionLimit: 10
+      transactionLimit: 10,
+      usedTransactions: prev.usedTransactions,
+      remainingTransactions: Math.max(0, 10 - (prev.usedTransactions || 0)),
+      isTrialActive: (prev.usedTransactions || 0) < 10,
+      isTrialExpired: (prev.usedTransactions || 0) >= 10
     };
 
     try {

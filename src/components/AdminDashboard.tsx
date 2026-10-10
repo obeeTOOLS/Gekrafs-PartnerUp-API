@@ -1099,32 +1099,49 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           >
                             Profil
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => setUntunginModalPeserta(p)}
-                            title={`Buka Buku Kas Untungin untuk ${p.namaUsaha}${
-                              kasService.getPremiumStatus(p.namaUsaha).isPremium || p.namaUsaha.toLowerCase().trim() === 'obeecreatives'
-                                ? ' (Untungin Pro Aktif)'
-                                : ' (Akun Standar)'
-                            }`}
-                            className={`px-2.5 py-1 rounded font-bold text-[11px] flex items-center gap-1 transition-colors cursor-pointer border ${
-                              kasService.getPremiumStatus(p.namaUsaha).isPremium || p.namaUsaha.toLowerCase().trim() === 'obeecreatives'
-                                ? 'bg-amber-50 hover:bg-amber-100 text-amber-950 border-amber-300 shadow-2xs'
-                                : 'bg-purple-50 hover:bg-purple-100 text-purple-900 border-purple-200'
-                            }`}
-                          >
-                            <Wallet className={`w-3 h-3 ${
-                              kasService.getPremiumStatus(p.namaUsaha).isPremium || p.namaUsaha.toLowerCase().trim() === 'obeecreatives'
-                                ? 'text-amber-600'
-                                : 'text-purple-600'
-                            }`} />
-                            <span className="hidden xl:inline">Kas</span>
-                            {(kasService.getPremiumStatus(p.namaUsaha).isPremium || p.namaUsaha.toLowerCase().trim() === 'obeecreatives') && (
-                              <span className="text-[9px] bg-amber-400 text-[#001c3c] font-black px-1 rounded-xs leading-tight">
-                                PRO
-                              </span>
-                            )}
-                          </button>
+                          {(() => {
+                            const pStatus = kasService.getPremiumStatus(p.namaUsaha);
+                            const isPro = pStatus.isPremium || p.namaUsaha.toLowerCase().trim() === 'obeecreatives';
+                            const isTrial = !isPro && (pStatus.isTrialActive ?? false);
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => setUntunginModalPeserta(p)}
+                                title={`Buka Buku Kas Untungin untuk ${p.namaUsaha}${
+                                  isPro
+                                    ? ' (Untungin Pro Aktif)'
+                                    : isTrial
+                                    ? ` (Trial Aktif: sisa ${pStatus.remainingTransactions ?? 0} tx / ${pStatus.remainingDays ?? 0} hr)`
+                                    : ' (Akun Standar - Trial Selesai)'
+                                }`}
+                                className={`px-2.5 py-1 rounded font-bold text-[11px] flex items-center gap-1 transition-colors cursor-pointer border ${
+                                  isPro
+                                    ? 'bg-amber-50 hover:bg-amber-100 text-amber-950 border-amber-300 shadow-2xs'
+                                    : isTrial
+                                    ? 'bg-indigo-50 hover:bg-indigo-100 text-indigo-950 border-indigo-200'
+                                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                                }`}
+                              >
+                                <Wallet className={`w-3 h-3 ${
+                                  isPro
+                                    ? 'text-amber-600'
+                                    : isTrial
+                                    ? 'text-indigo-600'
+                                    : 'text-slate-500'
+                                }`} />
+                                <span className="hidden xl:inline">Kas</span>
+                                {isPro ? (
+                                  <span className="text-[9px] bg-amber-400 text-[#001c3c] font-black px-1 rounded-xs leading-tight">
+                                    PRO
+                                  </span>
+                                ) : isTrial ? (
+                                  <span className="text-[9px] bg-indigo-600 text-white font-black px-1 rounded-xs leading-tight">
+                                    {pStatus.remainingTransactions ?? 0}TX
+                                  </span>
+                                ) : null}
+                              </button>
+                            );
+                          })()}
                           <button
                             type="button"
                             onClick={() => setEditingUmkmPeserta(p)}

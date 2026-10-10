@@ -145,9 +145,13 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ peserta, onClose, on
                       <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
                       <span>PRO (Aktif)</span>
                     </span>
+                  ) : premiumAccess?.isTrialActive ? (
+                    <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 font-black text-[10px] flex items-center gap-1 border border-indigo-200">
+                      <span>✨ Trial ({premiumAccess.remainingTransactions ?? 0} tx)</span>
+                    </span>
                   ) : (
                     <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-bold text-[10px]">
-                      Standar (Terkunci)
+                      Standar (Trial Selesai)
                     </span>
                   )}
                 </div>
@@ -156,7 +160,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ peserta, onClose, on
                   <span className="truncate max-w-[200px]">
                     {premiumAccess?.isPremium 
                       ? `Diaktifkan oleh: ${premiumAccess.grantedBy || 'Kurator'}`
-                      : 'Belum diaktifkan oleh Kurator'}
+                      : premiumAccess?.isTrialActive
+                      ? `Trial: ${premiumAccess.usedTransactions || 0}/10 tx (${premiumAccess.remainingDays || 0} hari)`
+                      : 'Batas trial 10 tx telah selesai'}
                   </span>
                   <button
                     type="button"
