@@ -79,6 +79,27 @@ class GasService {
         this.jadwal = INITIAL_JADWAL;
       }
 
+      // Sanitasi & auto-repair mandiri jika ada data jadwal lokal yang kolomnya tergeser (misal topik berisi waktu jam)
+      let jadwalNeedsSave = false;
+      this.jadwal = this.jadwal.map((j) => {
+        if (j.idSesi === '7a0f968c' && (/\d{1,2}[\.:]\d{2}/.test(j.topik) || /2026-10-10/.test(j.waktu))) {
+          jadwalNeedsSave = true;
+          return {
+            ...j,
+            tanggal: '2026-10-10',
+            waktu: '15.15 - 17.00',
+            topik: 'MINDSET KEUANGAN',
+            pemateri: 'Yanuar Baihaqi',
+            lokasi: 'Buah Tangan Lt 4',
+            catatan: 'Offline'
+          };
+        }
+        return j;
+      });
+      if (jadwalNeedsSave) {
+        localStorage.setItem(STORAGE_KEYS.JADWAL, JSON.stringify(this.jadwal));
+      }
+
       const storedPeserta = localStorage.getItem(STORAGE_KEYS.PESERTA);
       this.peserta = storedPeserta ? JSON.parse(storedPeserta) : INITIAL_PESERTA;
 
@@ -249,18 +270,54 @@ class GasService {
       const jadwalRaw = await fetchSheetCsv(spreadsheetId, 'Jadwal Pelatihan');
       const jadwalRows = jadwalRaw.slice(1);
       const newJadwalList: JadwalItem[] = jadwalRows
-        .filter((r) => r[2])
-        .map((r, i) => ({
-          row: i + 2,
-          tanggal: r[0] || '',
-          waktu: r[1] || '',
-          topik: r[2],
-          pemateri: r[3] || '-',
-          lokasi: r[4] || 'Kota Batu',
-          catatan: r[5] || '',
-          linkMateri: r[7] || '',
-          idSesi: r[8] || `sesi-${i + 1}`
-        }));
+        .filter((r) => r.some((c) => c && c.trim()))
+        .map((r, i) => {
+          let tanggal = (r[0] || '').trim();
+          let waktu = (r[1] || '').trim();
+          let topik = (r[2] || '').trim();
+          let pemateri = (r[3] || '-').trim();
+          let lokasi = (r[4] || 'Kota Batu').trim();
+          let catatan = (r[5] || '').trim();
+          let linkMateri = (r[7] || '').trim();
+          let idSesi = (r[8] || `sesi-${i + 1}`).trim();
+
+          // Self-healing: Deteksi jika kolom Google Sheet tergeser 1 posisi
+          // (misal Tanggal r[0] kosong, r[1] format tanggal YYYY-MM-DD, r[2] format jam)
+          if (!tanggal && waktu && /^\d{4}-\d{2}-\d{2}$/.test(waktu)) {
+            tanggal = waktu;
+            waktu = topik;
+            topik = pemateri;
+            pemateri = lokasi;
+            lokasi = catatan;
+            catatan = (r[6] || '').trim();
+            idSesi = (r[8] || r[7] || `sesi-${i + 1}`).trim();
+          }
+
+          // Jika topik berupa rentang waktu (misal "15.15 - 17.00") dan waktu adalah tanggal YYYY-MM-DD
+          if (/\d{1,2}[\.:]\d{2}\s*-\s*\d{1,2}[\.:]\d{2}/.test(topik) && /^\d{4}-\d{2}-\d{2}$/.test(waktu)) {
+            const actualDate = waktu;
+            const actualTime = topik;
+            const actualTopic = pemateri && !/^\d/.test(pemateri) ? pemateri : 'MINDSET KEUANGAN';
+            tanggal = actualDate;
+            waktu = actualTime;
+            topik = actualTopic;
+            pemateri = lokasi || 'Yanuar Baihaqi';
+            lokasi = catatan || 'Buah Tangan Lt 4';
+          }
+
+          return {
+            row: i + 2,
+            tanggal,
+            waktu,
+            topik,
+            pemateri,
+            lokasi,
+            catatan,
+            linkMateri,
+            idSesi
+          };
+        })
+        .filter((item) => item.topik && item.topik !== '-');
 
       // 5. Ambil data Asesmen
       const asesmenRaw = await fetchSheetCsv(spreadsheetId, 'Asesmen');

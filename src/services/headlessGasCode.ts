@@ -505,8 +505,19 @@ function checkinKehadiran(idSesi, namaUsaha, whatsapp) {
       const jData = jadwalSheet.getDataRange().getValues();
       for (let j = 1; j < jData.length; j++) {
         if (String(jData[j][8] || '').trim() === cleanIdSesi) {
-          tanggalSesi = jData[j][0] || tanggalSesi;
-          topikSesi = jData[j][2] || topikSesi;
+          let tgl = jData[j][0] ? (jData[j][0] instanceof Date ? Utilities.formatDate(jData[j][0], 'Asia/Jakarta', 'yyyy-MM-dd') : String(jData[j][0]).trim()) : '';
+          let wkt = String(jData[j][1] || '').trim();
+          let tpk = String(jData[j][2] || '').trim();
+          let pmt = String(jData[j][3] || '').trim();
+
+          // Jika kolom tergeser
+          if (!tgl && wkt && /^\d{4}-\d{2}-\d{2}/.test(wkt)) {
+            tgl = wkt;
+            tpk = pmt;
+          }
+
+          tanggalSesi = tgl || tanggalSesi;
+          topikSesi = tpk || topikSesi;
           break;
         }
       }
@@ -661,17 +672,36 @@ function getJadwalPelatihan() {
   const rows = sheet.getDataRange().getValues();
   const list = [];
   for (let i = 1; i < rows.length; i++) {
-    if (rows[i][2]) {
+    const r = rows[i];
+    if (r[0] || r[1] || r[2]) {
+      let tanggal = r[0] ? (r[0] instanceof Date ? Utilities.formatDate(r[0], 'Asia/Jakarta', 'yyyy-MM-dd') : String(r[0]).trim()) : '';
+      let waktu = String(r[1] || '').trim();
+      let topik = String(r[2] || '').trim();
+      let pemateri = String(r[3] || '-').trim();
+      let lokasi = String(r[4] || 'Kota Batu').trim();
+      let catatan = String(r[5] || '').trim();
+      let linkMateri = String(r[7] || '').trim();
+      let idSesi = String(r[8] || ('sesi-' + i)).trim();
+
+      // Auto-detect jika kolom tergeser 1 posisi
+      if (!tanggal && waktu && /^\d{4}-\d{2}-\d{2}/.test(waktu)) {
+        tanggal = waktu;
+        waktu = topik;
+        topik = pemateri;
+        pemateri = lokasi;
+        lokasi = catatan;
+      }
+
       list.push({
         row: i + 1,
-        tanggal: rows[i][0] ? Utilities.formatDate(new Date(rows[i][0]), 'Asia/Jakarta', 'yyyy-MM-dd') : '',
-        waktu: rows[i][1] || '',
-        topik: rows[i][2],
-        pemateri: rows[i][3] || '-',
-        lokasi: rows[i][4] || 'Kota Batu',
-        catatan: rows[i][5] || '',
-        linkMateri: rows[i][7] || '',
-        idSesi: rows[i][8] || ('sesi-' + i)
+        tanggal: tanggal,
+        waktu: waktu,
+        topik: topik,
+        pemateri: pemateri,
+        lokasi: lokasi,
+        catatan: catatan,
+        linkMateri: linkMateri,
+        idSesi: idSesi
       });
     }
   }

@@ -1849,7 +1849,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <option value="">-- Pilih Sesi --</option>
                   {jadwal.map((sesi, idx) => (
                     <option key={sesi.idSesi} value={sesi.idSesi}>
-                      Sesi {idx + 1}: {sesi.topik}
+                      Sesi {idx + 1}: {sesi.topik} ({formatTanggalIndonesia(sesi.tanggal)})
                     </option>
                   ))}
                 </select>
