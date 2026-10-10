@@ -24,6 +24,8 @@ const SHEET_DASHBOARD = 'Dashboard';
 const SHEET_ASESMEN = 'Asesmen';
 const SHEET_KEHADIRAN = 'Kehadiran';
 const SHEET_TUGAS = 'Tugas';
+const SHEET_KAS_TRANSAKSI = 'Kas_Transaksi';
+const SHEET_KAS_PROFIL = 'Kas_Profil';
 
 const ASESMEN_KRITERIA = [
   'Kejelasan Model Bisnis',
@@ -114,6 +116,15 @@ function doGet(e) {
       case 'getTaskList':
       case 'getTasks':
         return createJsonResponse({ status: 'success', data: getTaskList() });
+
+      case 'getKasData':
+      case 'getKasTransactions':
+        const kasNamaUsaha = e && e.parameter && e.parameter.namaUsaha;
+        return createJsonResponse({
+          status: 'success',
+          data: getKasTransactions(kasNamaUsaha),
+          accounts: getKasAccounts(kasNamaUsaha)
+        });
 
       case 'getSettings':
         return createJsonResponse({
@@ -250,6 +261,29 @@ function doPost(e) {
       case 'deleteTask':
         return createJsonResponse(deleteTaskRow(payload.id));
 
+      case 'saveKasTransaction':
+        return createJsonResponse(saveKasTransaction(payload.transaction));
+
+      case 'saveKasTransactionsBatch':
+        return createJsonResponse(saveKasTransactionsBatch(payload.transactions, payload.namaUsaha));
+
+      case 'deleteKasTransaction':
+        return createJsonResponse(deleteKasTransaction(payload.id, payload.namaUsaha));
+
+      case 'saveKasAccounts':
+      case 'saveKasProfile':
+        return createJsonResponse(saveKasAccounts(payload.namaUsaha, payload.accounts, payload.pinData));
+
+      case 'getKasData':
+        return createJsonResponse({
+          status: 'success',
+          data: getKasTransactions(payload.namaUsaha),
+          accounts: getKasAccounts(payload.namaUsaha)
+        });
+
+      case 'initSheetKas':
+        return createJsonResponse({ status: 'success', message: inisialisasiSheetKas() });
+
       default:
         return createJsonResponse({ status: 'error', message: 'Aksi tidak dikenali: ' + action });
     }
@@ -337,12 +371,81 @@ function inisialisasiSheetTugas() {
 }
 
 /**
- * Inisialisasi Seluruh Tab Sekaligus (Kehadiran & Tugas)
+ * FUNGSI LANGSUNG RUN DI APPS SCRIPT:
+ * Pilih fungsi 'inisialisasiSheetKas' di toolbar atas Apps Script
+ * lalu klik 'Jalankan / Run' (▶️) untuk membuat tab 'Kas_Transaksi' dan 'Kas_Profil'.
+ */
+function inisialisasiSheetKas() {
+  const ss = getSpreadsheet();
+  
+  // 1. Tab Kas_Transaksi
+  let sheetTx = ss.getSheetByName(SHEET_KAS_TRANSAKSI);
+  if (!sheetTx) {
+    sheetTx = ss.insertSheet(SHEET_KAS_TRANSAKSI);
+    Logger.log('Tab "' + SHEET_KAS_TRANSAKSI + '" baru berhasil dibuat.');
+  }
+
+  const txHeaders = [
+    'Timestamp',
+    'ID Transaksi',
+    'Nama Usaha',
+    'Tanggal (YYYY-MM-DD)',
+    'Jenis (income/expense/transfer)',
+    'Kategori',
+    'Nominal (Rp)',
+    'ID Akun Sumber',
+    'ID Akun Tujuan',
+    'Deskripsi / Catatan',
+    'Dibuat Oleh',
+    'Waktu Dibuat',
+    'Data Lengkap (JSON)'
+  ];
+
+  if (sheetTx.getLastRow() === 0) {
+    sheetTx.appendRow(txHeaders);
+    const headerRange = sheetTx.getRange(1, 1, 1, txHeaders.length);
+    headerRange.setFontWeight('bold');
+    headerRange.setBackground('#001c3c');
+    headerRange.setFontColor('#ffffff');
+    sheetTx.setFrozenRows(1);
+    Logger.log('Header tab ' + SHEET_KAS_TRANSAKSI + ' berhasil dibuat.');
+  }
+
+  // 2. Tab Kas_Profil (Akun & PIN)
+  let sheetProfil = ss.getSheetByName(SHEET_KAS_PROFIL);
+  if (!sheetProfil) {
+    sheetProfil = ss.insertSheet(SHEET_KAS_PROFIL);
+    Logger.log('Tab "' + SHEET_KAS_PROFIL + '" baru berhasil dibuat.');
+  }
+
+  const profileHeaders = [
+    'Timestamp',
+    'Nama Usaha',
+    'Daftar Akun (JSON)',
+    'PIN Kas',
+    'Terakhir Diperbarui'
+  ];
+
+  if (sheetProfil.getLastRow() === 0) {
+    sheetProfil.appendRow(profileHeaders);
+    const pHeaderRange = sheetProfil.getRange(1, 1, 1, profileHeaders.length);
+    pHeaderRange.setFontWeight('bold');
+    pHeaderRange.setBackground('#001c3c');
+    pHeaderRange.setFontColor('#ffffff');
+    sheetProfil.setFrozenRows(1);
+  }
+
+  return '✅ Tab "' + SHEET_KAS_TRANSAKSI + '" dan "' + SHEET_KAS_PROFIL + '" siap digunakan di Google Spreadsheet!';
+}
+
+/**
+ * Inisialisasi Seluruh Tab Sekaligus (Kehadiran, Tugas & Buku Kas)
  */
 function inisialisasiSemuaTab() {
   inisialisasiSheetKehadiran();
   inisialisasiSheetTugas();
-  return '✅ Seluruh tab database (Kehadiran & Tugas) berhasil disiapkan dan diformat rapi!';
+  inisialisasiSheetKas();
+  return '✅ Seluruh tab database (Kehadiran, Tugas, Kas_Transaksi & Kas_Profil) berhasil disiapkan dan diformat rapi!';
 }
 
 function deleteTaskRow(id) {
@@ -985,5 +1088,256 @@ function getTaskList() {
     }
   }
   return list;
+}
+
+// ============================================================
+// MODUL BUKU KAS & ARUS KEUANGAN UMKM (UNTUNGIN HYBRID)
+// ============================================================
+
+function saveKasTransaction(tx) {
+  if (!tx || !tx.namaUsaha) {
+    return { status: 'error', message: 'Data transaksi tidak lengkap atau Nama Usaha kosong.' };
+  }
+
+  const sheet = getOrCreateSheet(SHEET_KAS_TRANSAKSI);
+  const data = sheet.getDataRange().getValues();
+
+  if (data.length === 0 || !data[0][0]) {
+    sheet.appendRow([
+      'Timestamp',
+      'ID Transaksi',
+      'Nama Usaha',
+      'Tanggal (YYYY-MM-DD)',
+      'Jenis (income/expense/transfer)',
+      'Kategori',
+      'Nominal (Rp)',
+      'ID Akun Sumber',
+      'ID Akun Tujuan',
+      'Deskripsi / Catatan',
+      'Dibuat Oleh',
+      'Waktu Dibuat',
+      'Data Lengkap (JSON)'
+    ]);
+  }
+
+  const cleanId = String(tx.id || '').trim();
+  const rows = sheet.getDataRange().getValues();
+  let targetRow = -1;
+
+  if (cleanId) {
+    for (let i = 1; i < rows.length; i++) {
+      if (String(rows[i][1] || '').trim() === cleanId) {
+        targetRow = i + 1;
+        break;
+      }
+    }
+  }
+
+  const nowFormatted = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'dd/MM/yyyy HH:mm:ss');
+  const fullJson = JSON.stringify(tx);
+
+  const rowValues = [
+    nowFormatted,
+    tx.id || ('tx_' + new Date().getTime()),
+    tx.namaUsaha,
+    tx.date || Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd'),
+    tx.type || 'income',
+    tx.category || 'Umum',
+    Number(tx.amount) || 0,
+    tx.accountId || '',
+    tx.toAccountId || '',
+    tx.desc || '',
+    tx.createdBy || 'Peserta',
+    tx.createdAt || nowFormatted,
+    fullJson
+  ];
+
+  if (targetRow > 0) {
+    sheet.getRange(targetRow, 1, 1, rowValues.length).setValues([rowValues]);
+    return { 
+      status: 'success', 
+      message: 'Transaksi kas ' + cleanId + ' berhasil diperbarui di spreadsheet!', 
+      row: targetRow 
+    };
+  } else {
+    sheet.appendRow(rowValues);
+    return { 
+      status: 'success', 
+      message: 'Transaksi kas berhasil dicatat ke spreadsheet!', 
+      row: sheet.getLastRow(),
+      id: tx.id 
+    };
+  }
+}
+
+function saveKasTransactionsBatch(transactions, namaUsaha) {
+  if (!Array.isArray(transactions) || transactions.length === 0) {
+    return { status: 'success', count: 0, message: 'Tidak ada transaksi untuk disinkronkan.' };
+  }
+
+  let count = 0;
+  for (let i = 0; i < transactions.length; i++) {
+    const tx = transactions[i];
+    if (tx) {
+      if (!tx.namaUsaha && namaUsaha) tx.namaUsaha = namaUsaha;
+      saveKasTransaction(tx);
+      count++;
+    }
+  }
+
+  return {
+    status: 'success',
+    count: count,
+    message: count + ' transaksi kas berhasil disimpan ke spreadsheet.'
+  };
+}
+
+function deleteKasTransaction(id, namaUsaha) {
+  if (!id) return { status: 'error', message: 'ID Transaksi kosong.' };
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_KAS_TRANSAKSI);
+  if (!sheet) return { status: 'error', message: 'Tab ' + SHEET_KAS_TRANSAKSI + ' belum dibuat.' };
+
+  const cleanId = String(id).trim();
+  const cleanNama = namaUsaha ? String(namaUsaha).toLowerCase().trim() : '';
+  const rows = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < rows.length; i++) {
+    const rowId = String(rows[i][1] || '').trim();
+    const rowNama = String(rows[i][2] || '').toLowerCase().trim();
+    if (rowId === cleanId && (!cleanNama || rowNama === cleanNama)) {
+      sheet.deleteRow(i + 1);
+      return { status: 'success', message: 'Transaksi kas ' + id + ' berhasil dihapus dari spreadsheet.' };
+    }
+  }
+
+  return { status: 'error', message: 'Transaksi dengan ID ' + id + ' tidak ditemukan di sheet.' };
+}
+
+function getKasTransactions(namaUsaha) {
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_KAS_TRANSAKSI);
+  if (!sheet) return [];
+
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return [];
+
+  const cleanNama = namaUsaha ? String(namaUsaha).toLowerCase().trim() : '';
+  const list = [];
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (!row[1]) continue;
+
+    const rowNama = String(row[2] || '').toLowerCase().trim();
+    if (cleanNama && rowNama !== cleanNama) continue;
+
+    let parsedTx = null;
+    try {
+      if (row[12]) parsedTx = JSON.parse(row[12]);
+    } catch (e) {}
+
+    if (parsedTx && parsedTx.id) {
+      list.push(parsedTx);
+    } else {
+      list.push({
+        id: String(row[1] || ''),
+        namaUsaha: String(row[2] || ''),
+        date: String(row[3] || ''),
+        type: String(row[4] || 'income'),
+        category: String(row[5] || 'Umum'),
+        amount: Number(row[6]) || 0,
+        accountId: String(row[7] || ''),
+        toAccountId: row[8] ? String(row[8]) : undefined,
+        desc: String(row[9] || ''),
+        createdBy: String(row[10] || 'Peserta'),
+        createdAt: String(row[11] || '')
+      });
+    }
+  }
+
+  list.sort(function(a, b) {
+    const dateA = a.date || '';
+    const dateB = b.date || '';
+    return dateB.localeCompare(dateA);
+  });
+
+  return list;
+}
+
+function saveKasAccounts(namaUsaha, accounts, pinData) {
+  if (!namaUsaha) return { status: 'error', message: 'Nama Usaha kosong.' };
+
+  const sheet = getOrCreateSheet(SHEET_KAS_PROFIL);
+  const data = sheet.getDataRange().getValues();
+
+  if (data.length === 0 || !data[0][0]) {
+    sheet.appendRow([
+      'Timestamp',
+      'Nama Usaha',
+      'Daftar Akun (JSON)',
+      'PIN Kas',
+      'Terakhir Diperbarui'
+    ]);
+  }
+
+  const cleanNama = String(namaUsaha).toLowerCase().trim();
+  const rows = sheet.getDataRange().getValues();
+  let targetRow = -1;
+
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][1] || '').toLowerCase().trim() === cleanNama) {
+      targetRow = i + 1;
+      break;
+    }
+  }
+
+  const nowFormatted = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'dd/MM/yyyy HH:mm:ss');
+  const accountsJson = Array.isArray(accounts) ? JSON.stringify(accounts) : '';
+  const pinStr = (pinData && pinData.pin) ? String(pinData.pin) : '';
+
+  const rowValues = [
+    nowFormatted,
+    namaUsaha,
+    accountsJson,
+    pinStr,
+    nowFormatted
+  ];
+
+  if (targetRow > 0) {
+    sheet.getRange(targetRow, 1, 1, rowValues.length).setValues([rowValues]);
+  } else {
+    sheet.appendRow(rowValues);
+  }
+
+  return { status: 'success', message: 'Profil kas usaha "' + namaUsaha + '" berhasil disimpan ke spreadsheet.' };
+}
+
+function getKasAccounts(namaUsaha) {
+  if (!namaUsaha) return null;
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_KAS_PROFIL);
+  if (!sheet) return null;
+
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return null;
+
+  const cleanNama = String(namaUsaha).toLowerCase().trim();
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][1] || '').toLowerCase().trim() === cleanNama) {
+      let accounts = null;
+      try {
+        if (data[i][2]) accounts = JSON.parse(data[i][2]);
+      } catch (e) {}
+
+      return {
+        namaUsaha: String(data[i][1] || ''),
+        accounts: accounts || [],
+        pin: String(data[i][3] || ''),
+        lastUpdated: String(data[i][4] || '')
+      };
+    }
+  }
+  return null;
 }
 `;

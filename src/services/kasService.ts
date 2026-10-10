@@ -12,6 +12,8 @@
  * - Estimasi PPh Final UMKM 0,5% (PP 23/2018)
  */
 
+import { gasService } from './gasService';
+
 export interface KasAccount {
   id: string;
   namaUsaha: string;
@@ -267,6 +269,12 @@ class KasService {
 
     const updated = [newTx, ...transactions];
     this.saveKasData(namaUsaha, categories, accounts, updated);
+
+    // Kirim pembaruan ke Google Spreadsheet di background
+    gasService.dispatchRemoteAction('saveKasTransaction', { transaction: newTx }).catch(err => {
+      console.warn('[kasService] Cloud sync addTransaction error:', err);
+    });
+
     return newTx;
   }
 
@@ -283,6 +291,12 @@ class KasService {
 
     transactions[idx] = { ...tx, namaUsaha };
     this.saveKasData(namaUsaha, categories, accounts, transactions);
+
+    // Kirim pembaruan ke Google Spreadsheet di background
+    gasService.dispatchRemoteAction('saveKasTransaction', { transaction: transactions[idx] }).catch(err => {
+      console.warn('[kasService] Cloud sync updateTransaction error:', err);
+    });
+
     return true;
   }
 
@@ -295,6 +309,12 @@ class KasService {
     if (updated.length === transactions.length) return false;
 
     this.saveKasData(namaUsaha, categories, accounts, updated);
+
+    // Hapus dari Google Spreadsheet di background
+    gasService.dispatchRemoteAction('deleteKasTransaction', { id: txId, namaUsaha }).catch(err => {
+      console.warn('[kasService] Cloud sync deleteTransaction error:', err);
+    });
+
     return true;
   }
 
@@ -312,6 +332,12 @@ class KasService {
     };
     accounts.push(newAcc);
     this.saveKasData(namaUsaha, categories, accounts, transactions);
+
+    // Sinkronkan akun ke Google Spreadsheet di background
+    gasService.dispatchRemoteAction('saveKasAccounts', { namaUsaha, accounts }).catch(err => {
+      console.warn('[kasService] Cloud sync saveKasAccounts error:', err);
+    });
+
     return newAcc;
   }
 
@@ -325,7 +351,79 @@ class KasService {
 
     const updated = accounts.filter(a => a.id !== accId);
     this.saveKasData(namaUsaha, categories, updated, transactions);
+
+    // Sinkronkan akun ke Google Spreadsheet di background
+    gasService.dispatchRemoteAction('saveKasAccounts', { namaUsaha, accounts: updated }).catch(err => {
+      console.warn('[kasService] Cloud sync deleteAccount error:', err);
+    });
+
     return true;
+  }
+
+  /**
+   * Sinkronisasi data kas antara penyimpanan lokal dan Google Spreadsheet
+   */
+  public async syncKasFromCloud(namaUsaha: string): Promise<{ success: boolean; message: string; count?: number }> {
+    if (!namaUsaha) return { success: false, message: 'Nama Usaha kosong' };
+
+    try {
+      const response = await gasService.dispatchRemoteAction('getKasData', { namaUsaha });
+      if (!response || response.status !== 'success') {
+        return { success: false, message: 'Gagal menghubungi Google Apps Script atau offline' };
+      }
+
+      const cloudTxs: KasTransaction[] = Array.isArray(response.data) ? response.data : [];
+      const current = this.getKasData(namaUsaha);
+      const localTxs = current.transactions;
+
+      const txMap = new Map<string, KasTransaction>();
+      
+      // Masukkan cloud transactions
+      cloudTxs.forEach(t => {
+        if (t && t.id) txMap.set(t.id, t);
+      });
+
+      // Transaksi lokal yang belum ada di cloud
+      const unsyncedLocal: KasTransaction[] = [];
+      localTxs.forEach(t => {
+        if (t && t.id) {
+          if (!txMap.has(t.id)) {
+            txMap.set(t.id, t);
+            unsyncedLocal.push(t);
+          }
+        }
+      });
+
+      const mergedTransactions = Array.from(txMap.values()).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+      // Sinkronkan akun jika ada akun dari cloud
+      let mergedAccounts = current.accounts;
+      if (response.accounts && Array.isArray(response.accounts.accounts) && response.accounts.accounts.length > 0) {
+        if (current.accounts.length <= 3 && current.transactions.length === 0) {
+          mergedAccounts = response.accounts.accounts;
+        }
+      }
+
+      // Simpan hasil gabungan ke local storage
+      this.saveKasData(namaUsaha, current.categories, mergedAccounts, mergedTransactions);
+
+      // Jika ada transaksi lokal yang belum ada di cloud, upload ke spreadsheet
+      if (unsyncedLocal.length > 0) {
+        gasService.dispatchRemoteAction('saveKasTransactionsBatch', {
+          transactions: unsyncedLocal,
+          namaUsaha
+        }).catch(e => console.warn('[kasService] Upload batch local unsynced error:', e));
+      }
+
+      return {
+        success: true,
+        message: `Sinkronisasi berhasil! ${mergedTransactions.length} transaksi kas tersambung.`,
+        count: mergedTransactions.length
+      };
+    } catch (e: any) {
+      console.error('[kasService] syncKasFromCloud error:', e);
+      return { success: false, message: e.message || 'Terjadi kesalahan sinkronisasi' };
+    }
   }
 
   /* =========================================================================

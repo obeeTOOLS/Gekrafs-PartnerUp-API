@@ -27,7 +27,9 @@ import {
   Unlock,
   Key,
   KeyRound,
-  ShieldCheck
+  ShieldCheck,
+  Cloud,
+  RefreshCw
 } from 'lucide-react';
 import {
   kasService,
@@ -207,6 +209,32 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
     setTimeout(() => setToastMsg(null), 3500);
   };
 
+  // State Sinkronisasi Cloud (Google Spreadsheet)
+  const [isSyncingCloud, setIsSyncingCloud] = useState(false);
+  const [lastSyncedTime, setLastSyncedTime] = useState<string | null>(null);
+
+  const handleSyncCloud = async (showManualToast = true) => {
+    if (!namaUsaha || isSyncingCloud) return;
+    setIsSyncingCloud(true);
+    try {
+      const res = await kasService.syncKasFromCloud(namaUsaha);
+      if (res.success) {
+        setLastSyncedTime(new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }));
+        if (showManualToast) {
+          showToast(res.message, 'success');
+        }
+      } else if (showManualToast) {
+        showToast(res.message, 'warning');
+      }
+    } catch {
+      if (showManualToast) {
+        showToast('Sinkronisasi cloud tertunda. Menggunakan data lokal.', 'warning');
+      }
+    } finally {
+      setIsSyncingCloud(false);
+    }
+  };
+
   // Muat data saat modal terbuka atau namaUsaha berubah
   const loadData = () => {
     if (!namaUsaha) return;
@@ -229,6 +257,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       loadData();
+      handleSyncCloud(false);
     }
   }, [isOpen, namaUsaha]);
 
@@ -584,6 +613,29 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                     <span className="hidden md:inline">Reset PIN</span>
                   </button>
                 )}
+
+                {/* Tombol Sinkronisasi Cloud Google Spreadsheet */}
+                <button
+                  type="button"
+                  onClick={() => handleSyncCloud(true)}
+                  disabled={isSyncingCloud}
+                  title={
+                    lastSyncedTime
+                      ? `Tersinkron dengan Google Spreadsheet (pukul ${lastSyncedTime}). Klik untuk sinkron ulang.`
+                      : 'Sinkronkan data kas langsung dengan Google Spreadsheet'
+                  }
+                  className={`px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    isSyncingCloud
+                      ? 'bg-blue-500/20 text-blue-200 border-blue-400/40 animate-pulse'
+                      : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border-emerald-400/40'
+                  }`}
+                >
+                  <Cloud className={`w-3.5 h-3.5 ${isSyncingCloud ? 'animate-bounce text-blue-300' : 'text-emerald-300'}`} />
+                  <span className="hidden sm:inline">
+                    {isSyncingCloud ? 'Sinkron...' : 'Cloud'}
+                  </span>
+                  <RefreshCw className={`w-3 h-3 ${isSyncingCloud ? 'animate-spin text-blue-300' : 'text-emerald-300/80'}`} />
+                </button>
 
                 <button
                   type="button"
