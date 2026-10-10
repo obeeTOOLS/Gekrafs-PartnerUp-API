@@ -17,6 +17,8 @@ import {
 import { EngineerSession } from '../services/authService';
 import { UserRole } from '../types';
 import { PwaInstallModal } from './PwaInstallModal';
+import { presenceService, PresenceSummary } from '../services/presenceService';
+import { ActiveUsersModal } from './ActiveUsersModal';
 
 interface HeaderProps {
   activeTab: string;
@@ -109,6 +111,31 @@ export const Header: React.FC<HeaderProps> = ({
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+
+  // Real-time user presence tracking
+  const [presenceSummary, setPresenceSummary] = useState<PresenceSummary>(() => presenceService.getLastSummary());
+  const [isActiveUsersModalOpen, setIsActiveUsersModalOpen] = useState(false);
+  const [isPresenceRefreshing, setIsPresenceRefreshing] = useState(false);
+
+  useEffect(() => {
+    // Subscribe to presence updates
+    const unsubscribe = presenceService.subscribe((data) => {
+      setPresenceSummary(data);
+    });
+
+    // Ping server with current tab
+    presenceService.ping(activeTab);
+
+    return () => {
+      unsubscribe();
+    };
+  }, [activeTab]);
+
+  const handleRefreshPresence = async () => {
+    setIsPresenceRefreshing(true);
+    await presenceService.fetchActivePresence();
+    setIsPresenceRefreshing(false);
+  };
 
   useEffect(() => {
     // Check fullscreen state
@@ -258,6 +285,25 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Right Side: Status Badges, Share & Quick Utilities */}
           <div className="flex items-center gap-2">
+            {/* Real-time User Presence Online Badge */}
+            <button
+              type="button"
+              onClick={() => setIsActiveUsersModalOpen(true)}
+              title="Klik untuk melihat siapa saja user & UMKM yang sedang login"
+              className="flex items-center gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold transition-all cursor-pointer shadow-2xs hover:scale-102 active:scale-98"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="font-extrabold text-[11px] sm:text-xs text-emerald-900">
+                {presenceSummary.totalOnline || 1}
+              </span>
+              <span className="hidden sm:inline text-[11px] font-semibold text-emerald-700">
+                Online
+              </span>
+            </button>
+
             {/* Sync Status Badge (Hanya tampil untuk Admin/Engineer) */}
             {canShowAdminTools && (
               <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100 hover:bg-slate-200/80 px-2.5 py-1 rounded-full border border-slate-200 transition-colors">
@@ -389,6 +435,15 @@ export const Header: React.FC<HeaderProps> = ({
           setIsStandalone(true);
           setDeferredPrompt(null);
         }}
+      />
+
+      {/* Active Users Presence Modal */}
+      <ActiveUsersModal
+        isOpen={isActiveUsersModalOpen}
+        onClose={() => setIsActiveUsersModalOpen(false)}
+        presenceData={presenceSummary}
+        onRefresh={handleRefreshPresence}
+        isRefreshing={isPresenceRefreshing}
       />
     </header>
   );

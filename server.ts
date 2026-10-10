@@ -14,6 +14,126 @@ const app = express();
 const port = 3000;
 
 app.use(express.json({ limit: '10mb' }));
+app.use(express.text({ type: ['text/plain'] }));
+
+// ==========================================
+// REAL-TIME USER PRESENCE & ACTIVE SESSIONS
+// ==========================================
+interface ActivePresenceUser {
+  id: string;
+  userId: string;
+  namaUsaha: string;
+  namaPemilik: string;
+  role: 'peserta' | 'admin' | 'developer';
+  activeTab: string;
+  deviceType: 'mobile' | 'desktop';
+  lastSeen: number;
+  loginTime: number;
+}
+
+const activePresenceMap = new Map<string, ActivePresenceUser>();
+
+function pruneInactivePresence() {
+  const now = Date.now();
+  // Sesi tidak aktif jika tidak ada heartbeat selama lebih dari 65 detik
+  for (const [key, user] of activePresenceMap.entries()) {
+    if (now - user.lastSeen > 65000) {
+      activePresenceMap.delete(key);
+    }
+  }
+}
+
+// Heartbeat ping dari browser pengguna
+app.post('/api/presence/ping', (req, res) => {
+  try {
+    let payload = req.body;
+    if (typeof payload === 'string') {
+      try {
+        payload = JSON.parse(payload);
+      } catch {
+        payload = {};
+      }
+    }
+    const { id, userId, namaUsaha, namaPemilik, role, activeTab, deviceType } = payload || {};
+    if (!id) {
+      return res.status(400).json({ error: 'Session ID diperlukan' });
+    }
+
+    const now = Date.now();
+    const existing = activePresenceMap.get(id);
+
+    activePresenceMap.set(id, {
+      id,
+      userId: userId || 'anon',
+      namaUsaha: namaUsaha || (role === 'developer' ? 'Lead Developer' : role === 'admin' ? 'Tim Kurator' : 'Peserta UMKM'),
+      namaPemilik: namaPemilik || '',
+      role: role || 'peserta',
+      activeTab: activeTab || 'pendaftaran',
+      deviceType: deviceType || 'mobile',
+      lastSeen: now,
+      loginTime: existing ? existing.loginTime : now
+    });
+
+    pruneInactivePresence();
+
+    const users = Array.from(activePresenceMap.values());
+    res.json({
+      success: true,
+      totalOnline: users.length,
+      counts: {
+        total: users.length,
+        peserta: users.filter(u => u.role === 'peserta').length,
+        admin: users.filter(u => u.role === 'admin').length,
+        developer: users.filter(u => u.role === 'developer').length,
+      }
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Gagal merekam presence' });
+  }
+});
+
+// Sinyal leave saat logout atau browser ditutup
+app.post('/api/presence/leave', (req, res) => {
+  try {
+    let id: string | undefined;
+    if (typeof req.body === 'object' && req.body !== null) {
+      id = req.body.id;
+    } else if (typeof req.body === 'string') {
+      try {
+        const parsed = JSON.parse(req.body);
+        id = parsed.id;
+      } catch {
+        id = req.body;
+      }
+    }
+    if (id && activePresenceMap.has(id)) {
+      activePresenceMap.delete(id);
+    }
+    res.json({ success: true, totalOnline: activePresenceMap.size });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Gagal menghapus presence' });
+  }
+});
+
+// Mengambil statistik dan daftar user yang sedang login
+app.get('/api/presence/active', (req, res) => {
+  try {
+    pruneInactivePresence();
+    const users = Array.from(activePresenceMap.values()).sort((a, b) => b.lastSeen - a.lastSeen);
+    res.json({
+      totalOnline: users.length,
+      counts: {
+        total: users.length,
+        peserta: users.filter(u => u.role === 'peserta').length,
+        admin: users.filter(u => u.role === 'admin').length,
+        developer: users.filter(u => u.role === 'developer').length,
+      },
+      users
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Gagal mengambil data presence' });
+  }
+});
 
 // Initialize Gemini Client with User-Agent header for telemetry
 const ai = new GoogleGenAI({

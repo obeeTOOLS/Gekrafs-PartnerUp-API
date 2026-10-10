@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { gasService } from './services/gasService';
 import { authService, EngineerSession } from './services/authService';
+import { presenceService } from './services/presenceService';
 import { UserRole } from './types';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -213,9 +214,10 @@ export default function App() {
     };
   }, []);
 
-  // Segarkan data di latar belakang saat berpindah tab
+  // Segarkan data di latar belakang saat berpindah tab & update presence
   useEffect(() => {
     gasService.triggerBackgroundRefresh(false, 15000);
+    presenceService.ping(activeTab);
   }, [activeTab]);
 
   const handleRefreshData = async () => {
@@ -239,6 +241,7 @@ export default function App() {
   };
 
   const handleAdminLogout = () => {
+    presenceService.leave();
     authService.logout();
     setIsAdminLoggedIn(false);
     setEngineerSession(null);
@@ -287,18 +290,18 @@ export default function App() {
             setEngineerSession(sess);
             setIsAdminLoggedIn(true);
             setActiveTab('developer');
+            presenceService.ping('developer');
           } else if (type === 'admin') {
             setEngineerSession(null);
             setIsAdminLoggedIn(true);
             setActiveTab('admin');
+            presenceService.ping('admin');
           } else if (type === 'peserta') {
             setEngineerSession(null);
             setIsAdminLoggedIn(false);
-            if (details?.targetTab) {
-              setActiveTab(details.targetTab);
-            } else {
-              setActiveTab('pendaftaran');
-            }
+            const target = details?.targetTab || 'pendaftaran';
+            setActiveTab(target);
+            presenceService.ping(target);
           }
         }} 
       />
