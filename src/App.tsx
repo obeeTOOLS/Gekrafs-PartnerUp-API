@@ -354,7 +354,7 @@ export default function App() {
         />
 
         {/* Main View Area */}
-        <main className="flex-1 pb-24 sm:pb-28 md:pb-12" style={{ paddingBottom: 'calc(4.75rem + env(safe-area-inset-bottom, 0px))' }}>
+        <main className="flex-1 pb-24 sm:pb-28 md:pb-12" style={{ paddingBottom: 'calc(5.25rem + env(safe-area-inset-bottom, 0px))' }}>
           {activeTab === 'pendaftaran' && (
             <FormPendaftaran onSuccessNavigate={(tab) => setActiveTab(tab)} />
           )}

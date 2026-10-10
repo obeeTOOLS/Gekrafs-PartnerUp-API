@@ -610,8 +610,14 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-[#f8fafc] w-full max-w-4xl max-h-[92vh] rounded-3xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden relative">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-sm animate-in fade-in"
+      style={{ 
+        paddingTop: 'max(env(safe-area-inset-top, 0px), 1rem)', 
+        paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 1.25rem)' 
+      }}
+    >
+      <div className="bg-[#f8fafc] w-full max-w-4xl max-h-[85vh] sm:max-h-[86vh] rounded-3xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden relative">
         
         {/* Toast Notifikasi */}
         {toastMsg && (

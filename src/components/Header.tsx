@@ -173,7 +173,10 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-20 bg-white border-b border-slate-200 text-[#001c3c] shadow-xs print:hidden">
+    <header 
+      className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-slate-200/90 text-[#001c3c] shadow-xs print:hidden"
+      style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 6px)' }}
+    >
       {/* Top Banner Accent */}
       <div className="h-0.5 bg-gradient-to-r from-[#004c80] via-[#ffc72c] to-[#0070b3]" />
 
@@ -206,8 +209,8 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       )}
 
-      <div className="px-3 sm:px-6 py-2.5">
-        <div className="flex items-center justify-between h-9 sm:h-10">
+      <div className="px-3 sm:px-6 py-2">
+        <div className="flex items-center justify-between h-9 sm:h-9">
           {/* Left Side: Mobile Brand & Desktop Breadcrumb */}
           <div className="flex items-center gap-3 min-w-0">
             {/* Mobile-only Brand Logo */}
