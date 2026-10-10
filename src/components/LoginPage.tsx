@@ -83,30 +83,28 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         const verification = gasService.verifyPesertaIdentity(pesertaNamaUsaha, pesertaWhatsapp);
         if (!verification.found) {
           setPesertaError(
-            'Data peserta tidak ditemukan dengan kombinasi Nama Usaha & WhatsApp tersebut. Jika Anda belum mendaftar, pilih tab "Daftar Baru".'
+            'Data peserta tidak ditemukan dengan kombinasi Nama Usaha & WhatsApp tersebut. Pastikan nama usaha dan nomor WhatsApp sama dengan formulir pendaftaran, atau hubungi panitia.'
           );
           return;
         }
 
-        // Cari data pendaftar lengkap untuk mendapatkan nama pemilik
-        const allPeserta = gasService.getPeserta();
-        const matched = allPeserta.find(
-          (p) => p.namaUsaha.toLowerCase().trim() === pesertaNamaUsaha.toLowerCase().trim()
-        );
+        const finalNamaUsaha = verification.namaUsaha || pesertaNamaUsaha.trim();
+        const finalWhatsapp = verification.whatsapp || pesertaWhatsapp.trim();
+        const finalNamaPemilik = verification.namaPemilik || verification.matchedPeserta?.namaPemilik;
 
         authService.setPesertaSession({
-          namaUsaha: matched?.namaUsaha || pesertaNamaUsaha.trim(),
-          whatsapp: matched?.whatsapp || pesertaWhatsapp.trim(),
-          namaPemilik: matched?.namaPemilik,
+          namaUsaha: finalNamaUsaha,
+          whatsapp: finalWhatsapp,
+          namaPemilik: finalNamaPemilik,
           isRegistered: true,
           loggedInAt: Date.now()
         });
 
-        setPesertaSuccess(`Selamat datang kembali, ${matched?.namaUsaha || pesertaNamaUsaha}! Mengalihkan...`);
+        setPesertaSuccess(`Selamat datang kembali, ${finalNamaUsaha}! Mengalihkan...`);
         setTimeout(() => {
           onLoginSuccess('peserta', {
-            namaUsaha: matched?.namaUsaha || pesertaNamaUsaha.trim(),
-            whatsapp: matched?.whatsapp || pesertaWhatsapp.trim(),
+            namaUsaha: finalNamaUsaha,
+            whatsapp: finalWhatsapp,
             targetTab: 'asesmen'
           });
         }, 800);

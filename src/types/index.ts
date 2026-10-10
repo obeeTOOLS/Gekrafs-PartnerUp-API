@@ -9,6 +9,8 @@ export type StatusKurasi =
   | 'Lolos Administrasi'
   | 'Lolos Wawancara'
   | 'Diterima'
+  | 'Lolos Kurasi'
+  | 'Menunggu Kurasi'
   | 'Ditolak';
 
 export type AssessmentWindowStatus = 'open' | 'not_yet_open' | 'closed';

@@ -101,7 +101,22 @@ class GasService {
       }
 
       const storedPeserta = localStorage.getItem(STORAGE_KEYS.PESERTA);
-      this.peserta = storedPeserta ? JSON.parse(storedPeserta) : INITIAL_PESERTA;
+      if (storedPeserta) {
+        try {
+          const parsed = JSON.parse(storedPeserta);
+          // Sanitasi & auto-repair jika data peserta di local storage rusak/hanya 1 baris
+          if (!Array.isArray(parsed) || parsed.length < 50) {
+            this.peserta = INITIAL_PESERTA;
+            localStorage.setItem(STORAGE_KEYS.PESERTA, JSON.stringify(this.peserta));
+          } else {
+            this.peserta = parsed;
+          }
+        } catch {
+          this.peserta = INITIAL_PESERTA;
+        }
+      } else {
+        this.peserta = INITIAL_PESERTA;
+      }
 
       const storedAsesmen = localStorage.getItem(STORAGE_KEYS.ASESMEN);
       this.asesmen = storedAsesmen ? JSON.parse(storedAsesmen) : INITIAL_ASESMEN;
@@ -192,63 +207,114 @@ class GasService {
     }
 
     try {
-      // 1. Ambil data Pendaftaran (profil lengkap)
+      // Helper cerdas ekstraksi field dengan toleransi kolom bergeser di Google Spreadsheet Pendaftaran
+      const extractWa = (row: string[]): string => {
+        const candidates = [row[9], row[4], row[5], row[3]];
+        for (const c of candidates) {
+          if (!c) continue;
+          const clean = c.replace(/[\s\-()+]/g, '');
+          if (/^(08|628|8)\d{7,13}$/.test(clean)) return clean;
+        }
+        for (let i = 0; i < row.length; i++) {
+          const c = row[i];
+          if (!c) continue;
+          const clean = c.replace(/[\s\-()+]/g, '');
+          if (/^(08|628|8)\d{7,13}$/.test(clean)) return clean;
+        }
+        return '-';
+      };
+
+      const extractEmail = (row: string[]): string => {
+        for (const c of [row[10], row[5], row[9]]) {
+          if (c && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.trim())) return c.trim();
+        }
+        for (const c of row) {
+          if (c && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.trim())) return c.trim();
+        }
+        return '-';
+      };
+
+      const extractSubsektor = (row: string[]): string => {
+        const subsektors = [
+          'Kuliner', 'Fashion', 'Kriya / Kerajinan', 'Desain Produk',
+          'Desain Grafis / Komunikasi Visual', 'Fotografi', 'Film, Animasi & Video',
+          'Musik', 'Seni Rupa', 'Lainnya'
+        ];
+        for (const c of [row[3], row[6], row[2]]) {
+          if (!c) continue;
+          const found = subsektors.find((s) => s.toLowerCase() === c.toLowerCase().trim());
+          if (found) return found;
+        }
+        return row[3] || 'Lainnya';
+      };
+
+      const extractSesi = (row: string[]): string => {
+        for (const c of [row[25], row[15], row[8]]) {
+          if (c && /sesi\s*[12]/i.test(c)) return c.trim();
+        }
+        for (const c of row) {
+          if (c && /sesi\s*[12]/i.test(c)) return c.trim();
+        }
+        return 'Sesi 2';
+      };
+
+      // 1. Ambil data Pendaftaran (profil lengkap pendaftar resmi)
       const pendaftaranRaw = await fetchSheetCsv(spreadsheetId, 'Pendaftaran');
       const pendaftaranRows = pendaftaranRaw.slice(1);
-      const profileMap: Record<string, any> = {};
 
-      pendaftaranRows.forEach((r) => {
-        if (!r[1]) return;
-        const key = r[1].trim().toLowerCase();
-        profileMap[key] = {
-          namaUsaha: r[1],
-          namaPemilik: r[2],
-          subsektor: r[3],
-          tahunBerdiri: r[4],
-          nib: r[5],
-          alamatUsaha: r[6],
-          kotaKabupaten: r[7],
-          omzet: r[8],
-          whatsapp: r[9],
-          email: r[10],
-          instagram: r[11],
-          tiktok: r[12],
-          marketplace: r[13],
-          ktpUrl: r[14],
-          nibUrl: r[15],
-          deskripsi: r[16],
-          sesi: r[25] || 'Sesi 2'
-        };
-      });
+      // Ambil data kurasi dari tab Peserta jika tersedia
+      const kurasiMap: Record<string, { status: any; catatan: string }> = {};
+      try {
+        const pesertaRaw = await fetchSheetCsv(spreadsheetId, 'Peserta');
+        const pesertaRows = pesertaRaw.slice(1);
+        pesertaRows.forEach((r) => {
+          const usaha = (r[1] || r[0] || '').trim().toLowerCase();
+          if (usaha && usaha !== 'timestamp') {
+            const statusCandidate = r[6] || r[4] || '';
+            const status = /lolos|review|menunggu|tolak/i.test(statusCandidate)
+              ? statusCandidate
+              : 'Lolos Kurasi';
+            kurasiMap[usaha] = {
+              status: status as any,
+              catatan: r[7] || ''
+            };
+          }
+        });
+      } catch (err) {
+        console.warn('[GAS] Info: Tab Peserta belum bisa disinkronkan:', err);
+      }
 
-      // 2. Ambil data Peserta
-      const pesertaRaw = await fetchSheetCsv(spreadsheetId, 'Peserta');
-      const pesertaRows = pesertaRaw.slice(1);
+      // 2. Bangun master list Peserta DARI Pendaftaran (semua pendaftar aktif terakomodasi)
       const newPesertaList: PesertaItem[] = [];
+      pendaftaranRows.forEach((r, i) => {
+        const usaha = (r[1] || '').trim();
+        if (!usaha) return;
+        const key = usaha.toLowerCase();
+        const kurasi = kurasiMap[key];
+        const wa = extractWa(r);
+        const email = extractEmail(r);
+        const subsektor = extractSubsektor(r);
+        const sesi = extractSesi(r);
 
-      pesertaRows.forEach((r, i) => {
-        if (!r[1]) return;
-        const key = r[1].trim().toLowerCase();
-        const prof = profileMap[key] || {};
         newPesertaList.push({
           row: i + 2,
           timestamp: r[0] || '',
-          namaUsaha: r[1],
-          namaPemilik: r[2] || prof.namaPemilik || '-',
-          subsektor: r[3] || prof.subsektor || 'Lainnya',
-          whatsapp: r[4] || prof.whatsapp || '-',
-          email: r[5] || prof.email || '-',
-          statusKurasi: (r[6] as any) || 'Belum Direview',
-          catatanKurator: r[7] || '',
-          sesi: r[8] || prof.sesi || 'Sesi 2',
-          nib: prof.nib || '-',
-          alamatUsaha: prof.alamatUsaha || '-',
-          kotaKabupaten: prof.kotaKabupaten || 'Kota Batu',
-          omzet: prof.omzet || '-',
-          instagram: prof.instagram || '',
-          tiktok: prof.tiktok || '',
-          marketplace: prof.marketplace || '',
-          deskripsi: prof.deskripsi || ''
+          namaUsaha: usaha,
+          namaPemilik: (r[2] || '-').trim(),
+          subsektor: subsektor,
+          whatsapp: wa,
+          email: email,
+          statusKurasi: kurasi?.status || 'Lolos Kurasi',
+          catatanKurator: kurasi?.catatan || '',
+          sesi: sesi,
+          nib: r[5] || '-',
+          alamatUsaha: r[6] || r[7] || '-',
+          kotaKabupaten: r[7] || 'Kota Batu',
+          omzet: r[8] || '-',
+          instagram: r[11] || '',
+          tiktok: r[12] || '',
+          marketplace: r[13] || '',
+          deskripsi: r[16] || r[13] || ''
         });
       });
 
@@ -393,8 +459,12 @@ class GasService {
         });
       });
 
-      // Update state aplikasi jika data berhasil ditarik
-      if (newPesertaList.length > 0) this.peserta = newPesertaList;
+      // Update state aplikasi jika data berhasil ditarik dengan validasi kuorum keamanan
+      if (newPesertaList.length >= 10) {
+        this.peserta = newPesertaList;
+      } else if (newPesertaList.length > 0 && this.peserta.length <= 1) {
+        this.peserta = newPesertaList;
+      }
       if (newAsesmenList.length > 0) this.asesmen = newAsesmenList;
       if (newTimelineList.length > 0) this.timeline = newTimelineList;
       if (newJadwalList.length > 0) this.jadwal = newJadwalList;
@@ -788,37 +858,92 @@ class GasService {
     return { status: 'success', message: 'Pendaftaran berhasil dikirim!' };
   }
 
-  // --- Asesmen Methods ---
+  // --- Asesmen & Identitas Methods ---
   public verifyPesertaIdentity(
     namaUsaha: string,
     whatsapp: string
-  ): { found: boolean; namaUsaha?: string; alreadySubmitted?: boolean } {
-    const cleanNama = namaUsaha.toLowerCase().trim();
-    const cleanWa = whatsapp.replace(/[\s\-()]/g, '').replace(/^\+?62/, '').replace(/^0/, '');
-    const cleanSesi = this.settings.sesiAktif.toLowerCase().trim();
+  ): {
+    found: boolean;
+    namaUsaha?: string;
+    namaPemilik?: string;
+    whatsapp?: string;
+    sesi?: string;
+    alreadySubmitted?: boolean;
+    matchedPeserta?: PesertaItem;
+  } {
+    const rawNama = (namaUsaha || '').trim();
+    const cleanNama = rawNama.toLowerCase();
 
-    const matched = this.peserta.find((p) => {
-      const pWa = p.whatsapp.replace(/[\s\-()]/g, '').replace(/^\+?62/, '').replace(/^0/, '');
-      return (
-        p.namaUsaha.toLowerCase().trim() === cleanNama &&
-        pWa === cleanWa &&
-        (!cleanSesi || p.sesi.toLowerCase().trim() === cleanSesi)
-      );
+    // Normalisasi nama: hilangkan tanda petik ganda/tunggal, simbol non-alphanumerik khusus, spasi ganda
+    const normalizeNama = (s: string) =>
+      (s || '')
+        .toLowerCase()
+        .replace(/["'“”‘’]/g, '')
+        .replace(/[^\w\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    const normNama = normalizeNama(rawNama);
+
+    // Normalisasi WhatsApp: buang spasi, strip, kurung, +62, 62, serta awalan 0
+    const normalizeWa = (s: string) =>
+      (s || '')
+        .replace(/[\s\-()+]/g, '')
+        .replace(/^62/, '')
+        .replace(/^0/, '');
+
+    const cleanWa = normalizeWa(whatsapp);
+
+    // 1. Prioritas 1: Kecocokan persis nomor WhatsApp dan nama usaha
+    let matched = this.peserta.find((p) => {
+      const pWa = normalizeWa(p.whatsapp);
+      const pClean = p.namaUsaha.toLowerCase().trim();
+      const pNorm = normalizeNama(p.namaUsaha);
+      return pWa === cleanWa && (pClean === cleanNama || pNorm === normNama);
     });
+
+    // 2. Prioritas 2: Nomor WhatsApp cocok 100%, nama usaha mengandung atau terkandung (toleransi perbedaan ketikan/gelar)
+    if (!matched && cleanWa) {
+      matched = this.peserta.find((p) => {
+        const pWa = normalizeWa(p.whatsapp);
+        if (pWa !== cleanWa) return false;
+        const pNorm = normalizeNama(p.namaUsaha);
+        return pNorm.includes(normNama) || normNama.includes(pNorm);
+      });
+    }
+
+    // 3. Prioritas 3: Nama usaha persis sama, nomor WhatsApp berakhiran sama (toleransi format digit awalan)
+    if (!matched && normNama) {
+      matched = this.peserta.find((p) => {
+        const pNorm = normalizeNama(p.namaUsaha);
+        if (pNorm !== normNama) return false;
+        const pWa = normalizeWa(p.whatsapp);
+        return pWa && cleanWa && (pWa.endsWith(cleanWa) || cleanWa.endsWith(pWa));
+      });
+    }
 
     if (!matched) {
       return { found: false };
     }
 
-    const alreadySubmitted = this.asesmen.some(
-      (a) =>
-        a.namaUsaha.toLowerCase().trim() === cleanNama &&
-        (!cleanSesi || a.sesi.toLowerCase().trim() === cleanSesi)
-    );
+    const matchedCleanNama = matched.namaUsaha.toLowerCase().trim();
+    const matchedNormNama = normalizeNama(matched.namaUsaha);
+    const cleanSesi = (this.settings.sesiAktif || '').toLowerCase().trim();
+
+    const alreadySubmitted = this.asesmen.some((a) => {
+      const aClean = a.namaUsaha.toLowerCase().trim();
+      const aNorm = normalizeNama(a.namaUsaha);
+      const isNameMatch = aClean === matchedCleanNama || aNorm === matchedNormNama;
+      return isNameMatch && (!cleanSesi || (a.sesi || '').toLowerCase().trim() === cleanSesi);
+    });
 
     return {
       found: true,
       namaUsaha: matched.namaUsaha,
+      namaPemilik: matched.namaPemilik,
+      whatsapp: matched.whatsapp,
+      sesi: matched.sesi,
+      matchedPeserta: matched,
       alreadySubmitted
     };
   }
