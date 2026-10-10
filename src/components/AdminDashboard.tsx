@@ -80,6 +80,7 @@ import { StrategicRoadmapReview } from './StrategicRoadmapReview';
 import { TaskQuestionEditor } from './TaskQuestionEditor';
 import { UntunginKasModal } from './UntunginKasModal';
 import { taskService } from '../services/taskService';
+import { kasService } from '../services/kasService';
 import { HEADLESS_GAS_CODE } from '../services/headlessGasCode';
 import { diagnoseAssessment } from '../services/assessmentDiagnosisService';
 
@@ -1101,11 +1102,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <button
                             type="button"
                             onClick={() => setUntunginModalPeserta(p)}
-                            title={`Buka Buku Kas Untungin untuk ${p.namaUsaha}`}
-                            className="px-2.5 py-1 rounded bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 font-bold text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
+                            title={`Buka Buku Kas Untungin untuk ${p.namaUsaha}${
+                              kasService.getPremiumStatus(p.namaUsaha).isPremium || p.namaUsaha.toLowerCase().trim() === 'obeecreatives'
+                                ? ' (Untungin Pro Aktif)'
+                                : ' (Akun Standar)'
+                            }`}
+                            className={`px-2.5 py-1 rounded font-bold text-[11px] flex items-center gap-1 transition-colors cursor-pointer border ${
+                              kasService.getPremiumStatus(p.namaUsaha).isPremium || p.namaUsaha.toLowerCase().trim() === 'obeecreatives'
+                                ? 'bg-amber-50 hover:bg-amber-100 text-amber-950 border-amber-300 shadow-2xs'
+                                : 'bg-purple-50 hover:bg-purple-100 text-purple-900 border-purple-200'
+                            }`}
                           >
-                            <Wallet className="w-3 h-3 text-purple-600" />
+                            <Wallet className={`w-3 h-3 ${
+                              kasService.getPremiumStatus(p.namaUsaha).isPremium || p.namaUsaha.toLowerCase().trim() === 'obeecreatives'
+                                ? 'text-amber-600'
+                                : 'text-purple-600'
+                            }`} />
                             <span className="hidden xl:inline">Kas</span>
+                            {(kasService.getPremiumStatus(p.namaUsaha).isPremium || p.namaUsaha.toLowerCase().trim() === 'obeecreatives') && (
+                              <span className="text-[9px] bg-amber-400 text-[#001c3c] font-black px-1 rounded-xs leading-tight">
+                                PRO
+                              </span>
+                            )}
                           </button>
                           <button
                             type="button"

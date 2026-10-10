@@ -27,8 +27,10 @@ import {
   ExternalLink,
   X,
   Wallet,
-  Key
+  Key,
+  Crown
 } from 'lucide-react';
+import { kasService } from '../services/kasService';
 import { taskService } from '../services/taskService';
 import { taskConfigService } from '../services/taskConfigService';
 import { gasService } from '../services/gasService';
@@ -466,11 +468,15 @@ Salam hangat,
             <button
               type="button"
               onClick={() => setIsUntunginKasOpen(true)}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 text-[11px] font-bold transition-all shadow-2xs cursor-pointer"
-              title="Buka Buku Kas & Laporan Keuangan Untungin"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gradient-to-r from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 text-purple-900 border border-purple-200 text-[11px] font-bold transition-all shadow-2xs cursor-pointer"
+              title="Buka Buku Kas & Laporan Keuangan Untungin (Fitur Premium)"
             >
               <Wallet className="w-3 h-3 text-purple-600" />
               <span>Buku Kas Untungin</span>
+              <span className="text-[9px] bg-gradient-to-r from-amber-400 to-amber-500 text-[#001c3c] font-black px-1.5 py-0.2 rounded-full shadow-2xs flex items-center gap-0.5">
+                <Crown className="w-2.5 h-2.5 fill-current" />
+                <span>PRO</span>
+              </span>
             </button>
           </div>
         </div>

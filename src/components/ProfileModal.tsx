@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { PesertaItem } from '../types';
-import { X, MessageCircle, Mail, Instagram, MapPin, Building, FileCheck, Wallet, KeyRound } from 'lucide-react';
+import { X, MessageCircle, Mail, Instagram, MapPin, Building, FileCheck, Wallet, KeyRound, Crown, CheckCircle2 } from 'lucide-react';
 import { toWaLink } from '../utils/qrUtils';
 import { kasService } from '../services/kasService';
 
@@ -12,6 +12,27 @@ interface ProfileModalProps {
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({ peserta, onClose, onOpenUntungin }) => {
   if (!peserta) return null;
+
+  const [premiumAccess, setPremiumAccess] = useState(() =>
+    peserta ? kasService.getPremiumStatus(peserta.namaUsaha) : null
+  );
+
+  useEffect(() => {
+    if (peserta) {
+      setPremiumAccess(kasService.getPremiumStatus(peserta.namaUsaha));
+    }
+  }, [peserta]);
+
+  const handleTogglePro = () => {
+    if (!peserta) return;
+    if (premiumAccess?.isPremium) {
+      const revoked = kasService.revokePremiumAccess(peserta.namaUsaha);
+      setPremiumAccess(revoked);
+    } else {
+      const granted = kasService.grantPremiumAccess(peserta.namaUsaha, 'Kurator PartnerUp', 'kurator');
+      setPremiumAccess(granted);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
@@ -111,16 +132,52 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ peserta, onClose, on
           )}
 
           {/* Action Links */}
-          <div className="pt-3 border-t border-slate-100 space-y-2">
+          <div className="pt-3 border-t border-slate-100 space-y-2.5">
             {onOpenUntungin && (
-              <div className="space-y-1">
+              <div className="space-y-2 bg-gradient-to-br from-slate-50 to-purple-50/30 p-3 rounded-xl border border-slate-200">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 font-bold text-slate-800">
+                    <Crown className={`w-3.5 h-3.5 ${premiumAccess?.isPremium ? 'text-amber-500 fill-amber-400' : 'text-slate-400'}`} />
+                    <span>Fitur Buku Kas Untungin</span>
+                  </div>
+                  {premiumAccess?.isPremium ? (
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-black text-[10px] flex items-center gap-1 border border-emerald-200">
+                      <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
+                      <span>PRO (Aktif)</span>
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-bold text-[10px]">
+                      Standar (Terkunci)
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-slate-600">
+                  <span className="truncate max-w-[200px]">
+                    {premiumAccess?.isPremium 
+                      ? `Diaktifkan oleh: ${premiumAccess.grantedBy || 'Kurator'}`
+                      : 'Belum diaktifkan oleh Kurator'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleTogglePro}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer shadow-2xs ${
+                      premiumAccess?.isPremium
+                        ? 'bg-rose-100 text-rose-800 hover:bg-rose-200 border border-rose-200'
+                        : 'bg-amber-400 hover:bg-amber-300 text-[#001c3c]'
+                    }`}
+                  >
+                    {premiumAccess?.isPremium ? 'Cabut Akses Pro' : '✨ Beri Akses Pro (Lolos)'}
+                  </button>
+                </div>
+
                 <button
                   type="button"
                   onClick={() => {
                     onClose();
                     onOpenUntungin(peserta);
                   }}
-                  className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#001c3c] to-[#003366] text-white font-bold hover:from-[#002b55] transition-all shadow-sm cursor-pointer"
+                  className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#001c3c] to-[#003366] text-white font-bold hover:from-[#002b55] transition-all shadow-sm cursor-pointer mt-1"
                 >
                   <Wallet className="w-4 h-4 text-amber-300" />
                   <span>Buka Buku Kas Untungin ({peserta.namaUsaha})</span>
@@ -128,7 +185,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ peserta, onClose, on
                 {(() => {
                   const pinData = kasService.getKasPin(peserta.namaUsaha);
                   return (
-                    <div className="flex items-center justify-between px-2 text-[11px] text-slate-500">
+                    <div className="flex items-center justify-between px-1 text-[11px] text-slate-500">
                       <span className="flex items-center gap-1">
                         <KeyRound className="w-3 h-3 text-amber-600" />
                         <span>Status PIN: {pinData.isDefaultPin ? 'Standar (123456)' : 'Kustom Terproteksi'}</span>

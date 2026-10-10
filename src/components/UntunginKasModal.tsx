@@ -29,7 +29,11 @@ import {
   KeyRound,
   ShieldCheck,
   Cloud,
-  RefreshCw
+  RefreshCw,
+  Crown,
+  CheckCircle2,
+  ExternalLink,
+  Award
 } from 'lucide-react';
 import {
   kasService,
@@ -40,7 +44,8 @@ import {
   REF_EXPENSE_CATEGORIES,
   TARIF_PPH_FINAL_UMKM,
   BATAS_OMZET_PP23,
-  DEFAULT_KAS_PIN
+  DEFAULT_KAS_PIN,
+  KasPremiumAccess
 } from '../services/kasService';
 import { gasService } from '../services/gasService';
 
@@ -73,9 +78,11 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
 
   // obeecreatives adalah unit bisnis pengembang yang selalu memiliki hak akses penuh input data
   const isObeeCreatives = (namaUsaha || '').toLowerCase().trim() === 'obeecreatives';
-  const isPrivileged = isObeeCreatives || viewerRole === 'developer' || viewerRole === 'peserta';
+  const isDeveloperUser = viewerRole === 'developer' || isObeeCreatives;
+  const isCuratorUser = viewerRole === 'kurator' || viewerRole === 'admin';
+  const isPrivileged = isDeveloperUser;
   const [isSimulasiMode, setIsSimulasiMode] = useState(false);
-  const effectiveReadOnly = isPrivileged ? false : (readOnly && !isSimulasiMode);
+  const effectiveReadOnly = isDeveloperUser ? false : (readOnly && !isSimulasiMode);
 
   // Data Kas
   const [categories, setCategories] = useState<KasCategories>({ income: [], expense: [] });
@@ -138,7 +145,6 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
   } | null>(null);
 
   // Keamanan PIN Kas
-  const isDeveloperUser = viewerRole === 'developer' || isObeeCreatives;
   const [isKasUnlocked, setIsKasUnlocked] = useState<boolean>(() => {
     return isDeveloperUser;
   });
@@ -202,6 +208,68 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
       setConfirmNewPinInput('');
     } else {
       setChangePinError(res.message);
+    }
+  };
+
+  // Manajemen Akses Premium / Untungin Pro
+  const [premiumStatus, setPremiumStatus] = useState<KasPremiumAccess>(() => kasService.getPremiumStatus(namaUsaha));
+  const hasPremiumAccess = premiumStatus.isPremium || isPrivileged;
+  const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
+  const [licenseCodeInput, setLicenseCodeInput] = useState('');
+  const [licenseFeedback, setLicenseFeedback] = useState<{ success: boolean; message: string } | null>(null);
+  const [isActivatingLicense, setIsActivatingLicense] = useState(false);
+
+  useEffect(() => {
+    setPremiumStatus(kasService.getPremiumStatus(namaUsaha));
+  }, [namaUsaha]);
+
+  useEffect(() => {
+    const handlePremiumUpdate = (e: any) => {
+      if (!e.detail?.namaUsaha || e.detail.namaUsaha.toLowerCase() === namaUsaha.toLowerCase()) {
+        setPremiumStatus(kasService.getPremiumStatus(namaUsaha));
+      }
+    };
+    window.addEventListener('gkf-kas-premium-updated', handlePremiumUpdate);
+    return () => window.removeEventListener('gkf-kas-premium-updated', handlePremiumUpdate);
+  }, [namaUsaha]);
+
+  const handleGrantProByKurator = () => {
+    const access = kasService.grantPremiumAccess(namaUsaha, 'Kurator PartnerUp', 'kurator');
+    setPremiumStatus(access);
+    showToast(`Hak akses Untungin Pro untuk "${namaUsaha}" berhasil diaktifkan oleh Kurator!`, 'success');
+  };
+
+  const handleRevokePro = () => {
+    const access = kasService.revokePremiumAccess(namaUsaha);
+    setPremiumStatus(access);
+    showToast(`Akses Untungin Pro untuk "${namaUsaha}" dikembalikan ke akun Standar.`, 'warning');
+  };
+
+  const handleCheckKurasiStatus = () => {
+    const current = kasService.getPremiumStatus(namaUsaha);
+    setPremiumStatus(current);
+    if (current.isPremium) {
+      showToast(`Akses Untungin Pro aktif! Diberikan oleh: ${current.grantedBy || 'Kurator'}.`, 'success');
+    } else {
+      showToast('Status saat ini: Belum diaktifkan oleh Tim Kurator. Silakan tunggu rekomendasi kurasi atau aktivasi dengan kode lisensi.', 'warning');
+    }
+  };
+
+  const handleActivateLicense = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsActivatingLicense(true);
+    setLicenseFeedback(null);
+    const res = kasService.activateLicenseCode(namaUsaha, licenseCodeInput);
+    setLicenseFeedback(res);
+    setIsActivatingLicense(false);
+    if (res.success && res.access) {
+      setPremiumStatus(res.access);
+      showToast(res.message, 'success');
+      setLicenseCodeInput('');
+      setTimeout(() => {
+        setIsPremiumModalOpen(false);
+        setLicenseFeedback(null);
+      }, 1800);
     }
   };
 
@@ -657,6 +725,21 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
               </>
             )}
 
+            {/* Badge Status Lisensi Untungin Pro */}
+            <button
+              type="button"
+              onClick={() => setIsPremiumModalOpen(true)}
+              title="Lihat Informasi Lisensi Untungin Pro"
+              className={`px-2.5 py-1.5 rounded-xl border text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-xs ${
+                hasPremiumAccess
+                  ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-[#001c3c] border-amber-300 hover:from-amber-300 hover:to-amber-400'
+                  : 'bg-white/10 hover:bg-white/20 text-slate-200 border-white/20'
+              }`}
+            >
+              <Crown className={`w-3.5 h-3.5 ${hasPremiumAccess ? 'fill-[#001c3c] text-[#001c3c]' : 'text-amber-300'}`} />
+              <span className="hidden sm:inline">{hasPremiumAccess ? 'PRO' : 'Standar'}</span>
+            </button>
+
             <button
               type="button"
               onClick={onClose}
@@ -667,7 +750,241 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
           </div>
         </div>
 
-        {!isKasUnlocked ? (
+        {/* Banner Kurator jika viewer adalah Kurator atau Admin */}
+        {isCuratorUser && (
+          <div className="bg-gradient-to-r from-purple-900 via-indigo-950 to-[#001c3c] text-white px-3 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-2.5 text-xs border-b border-purple-500/30 flex-shrink-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Award className="w-4 h-4 text-amber-300 flex-shrink-0" />
+              <span className="font-semibold text-purple-200">Panel Kurasi &middot; Hak Akses Kas:</span>
+              {premiumStatus.isPremium ? (
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-400/40 text-[11px] flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                  <span>💎 Premium Aktif ({premiumStatus.grantedBy || 'Kurator'})</span>
+                </span>
+              ) : (
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-400/30 text-[11px] flex items-center gap-1">
+                  <Lock className="w-3 h-3 text-amber-400" />
+                  <span>🔒 Akun Standar (Belum Premium)</span>
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {premiumStatus.isPremium ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConfirmDialog({
+                      isOpen: true,
+                      title: 'Cabut Akses Pro',
+                      message: `Cabut akses Untungin Pro untuk "${namaUsaha}"?`,
+                      details: 'Peserta akan kembali ke akun Standar dan fitur buku kas akan memerlukan lisensi atau kurasi ulang.',
+                      confirmLabel: 'Ya, Cabut Akses',
+                      onConfirm: () => {
+                        setConfirmDialog(null);
+                        handleRevokePro();
+                      }
+                    });
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 hover:text-white border border-rose-400/30 font-bold transition-all cursor-pointer text-[11px]"
+                >
+                  Cabut Akses Pro
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleGrantProByKurator}
+                  className="px-3 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-[#001c3c] font-black transition-all cursor-pointer text-[11px] flex items-center gap-1.5 shadow-sm"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Beri Hak Akses Premium (Lolos Seleksi)</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {!hasPremiumAccess && !isSimulasiMode && !isCuratorUser ? (
+          /* TAMPILAN GERBANG AKSES UNTUNGIN PRO (FITUR PREMIUM) */
+          <div className="flex-1 overflow-y-auto p-4 sm:p-8 flex flex-col items-center justify-center animate-in fade-in">
+            <div className="max-w-2xl w-full mx-auto my-auto space-y-6 text-center">
+              
+              {/* Badge & Crown Header */}
+              <div className="space-y-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-xs font-extrabold tracking-wide uppercase shadow-2xs">
+                  <Crown className="w-3.5 h-3.5 fill-amber-500 text-amber-600" />
+                  <span>Fitur Premium Eksklusif &middot; Untungin Pro</span>
+                </span>
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-gradient-to-tr from-amber-400 via-amber-500 to-amber-600 text-[#001c3c] flex items-center justify-center shadow-xl shadow-amber-500/25 mx-auto">
+                  <Wallet className="w-8 h-8 sm:w-10 sm:h-10" />
+                </div>
+                <h3 className="text-xl sm:text-2xl font-black text-[#001c3c] tracking-tight">
+                  Buku Kas & Manajemen Keuangan UMKM
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 max-w-lg mx-auto leading-relaxed">
+                  Fitur ini dirancang khusus untuk membantu <strong className="text-[#004c80]">{namaUsaha}</strong> memisahkan uang pribadi & bisnis, mencatat transaksi harian, mengukur laba bersih, serta simulasi pajak PPh 0,5%.
+                </p>
+              </div>
+
+              {/* 4 Keunggulan Utama */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
+                <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-1">
+                  <div className="font-bold text-xs text-[#001c3c] flex items-center gap-1.5">
+                    <span className="text-base">💳</span>
+                    <span>Multi-Akun Kas & Bank</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Pisahkan Kas Tunai Toko, Rekening Bank Bisnis, dan QRIS/E-Wallet dalam satu pintu.
+                  </p>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-1">
+                  <div className="font-bold text-xs text-[#001c3c] flex items-center gap-1.5">
+                    <span className="text-base">📊</span>
+                    <span>Laba Rugi & Arus Kas Otomatis</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Ketahui keuntungan bersih harian dan pos pengeluaran terbesar tanpa hitung manual.
+                  </p>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-1">
+                  <div className="font-bold text-xs text-[#001c3c] flex items-center gap-1.5">
+                    <span className="text-base">🏛️</span>
+                    <span>Simulasi Pajak UMKM 0,5%</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Kalkulasi estimasi PPh Final PP 23/2018 otomatis dari omzet usaha per bulan.
+                  </p>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-1">
+                  <div className="font-bold text-xs text-[#001c3c] flex items-center gap-1.5">
+                    <span className="text-base">☁️</span>
+                    <span>Sinkron Cloud & Ekspor Excel</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Data aman tersimpan di Google Spreadsheet Anda dan siap diunduh dalam format CSV.
+                  </p>
+                </div>
+              </div>
+
+              {/* Dua Opsi Cara Akses (Sesuai Arahan Pengguna) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                {/* Opsi 1: Diberi hak oleh kurator/admin */}
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-50 to-indigo-50/50 border-2 border-purple-200 space-y-3 flex flex-col justify-between">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2.5 py-0.5 rounded-full bg-purple-200/80 text-purple-900 font-black text-[10px] uppercase tracking-wide">
+                        Opsi 1: Jalur Kurasi
+                      </span>
+                      <Award className="w-4 h-4 text-purple-700" />
+                    </div>
+                    <h4 className="font-extrabold text-sm text-[#001c3c]">
+                      Diberikan oleh Tim Kurator / Panitia
+                    </h4>
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      Peserta yang dinyatakan lolos kurasi tahap tertentu atau direkomendasikan oleh kurator akan diaktifkan hak aksesnya secara gratis.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 pt-2 border-t border-purple-200/60">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-500 font-medium">Status Anda:</span>
+                      <span className="font-bold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-md text-[11px]">
+                        Menunggu Penilaian
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCheckKurasiStatus}
+                      className="w-full py-2 px-3 rounded-xl bg-purple-700 hover:bg-purple-800 active:scale-98 text-white font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>Periksa Pembaruan Status Kurasi</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Opsi 2: Peserta membayar nilai tertentu / aktivasi kode lisensi */}
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50/50 border-2 border-amber-300 space-y-3 flex flex-col justify-between">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-950 font-black text-[10px] uppercase tracking-wide">
+                        Opsi 2: Beli / Aktivasi
+                      </span>
+                      <Crown className="w-4 h-4 text-amber-600 fill-amber-500" />
+                    </div>
+                    <h4 className="font-extrabold text-sm text-[#001c3c]">
+                      Aktivasi Kode Lisensi / Pembayaran
+                    </h4>
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      Jika Anda telah memiliki kode voucher lisensi resmi atau telah melakukan pembayaran, masukkan kode lisensi untuk aktivasi instan.
+                    </p>
+                  </div>
+
+                  <form onSubmit={handleActivateLicense} className="space-y-2 pt-2 border-t border-amber-200/60">
+                    <div className="space-y-1">
+                      <input
+                        type="text"
+                        placeholder="Contoh: UNTUNGINPRO2026"
+                        value={licenseCodeInput}
+                        onChange={(e) => setLicenseCodeInput(e.target.value.toUpperCase())}
+                        className="w-full py-2 px-3 text-xs font-mono font-bold bg-white border border-amber-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 rounded-xl outline-none"
+                      />
+                      {licenseFeedback && (
+                        <p className={`text-[11px] font-bold ${licenseFeedback.success ? 'text-emerald-700' : 'text-rose-600'}`}>
+                          {licenseFeedback.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="submit"
+                        disabled={isActivatingLicense}
+                        className="py-2 px-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-98 text-[#001c3c] font-black text-xs transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>{isActivatingLicense ? 'Memeriksa...' : 'Aktivasi'}</span>
+                      </button>
+                      <a
+                        href={`https://wa.me/6285156557675?text=${encodeURIComponent(
+                          `Halo Admin PartnerUp,\n\nSaya ingin membeli / aktivasi akses Premium Buku Kas Untungin untuk unit usaha kami:\n- Nama Usaha: ${namaUsaha}\n- Pemilik: ${namaPemilik || '-'}\n- WhatsApp: ${whatsapp || '-'}\n\nMohon informasi nilai pembayaran & nomor rekening resmi. Terima kasih!`
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="py-2 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all flex items-center justify-center gap-1 cursor-pointer text-center"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        <span>Beli via WA</span>
+                      </a>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              {/* Tombol Preview Simulasi & Tutup */}
+              <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSimulasiMode(true);
+                    showToast('Mode Simulasi Aktif. Anda dapat melihat dan mencoba simulasi pembukuan.', 'warning');
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-all cursor-pointer flex items-center gap-1.5 border border-slate-300"
+                >
+                  <Eye className="w-3.5 h-3.5 text-slate-500" />
+                  <span>👁️ Coba Mode Simulasi (Demo)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs transition-all cursor-pointer"
+                >
+                  Tutup
+                </button>
+              </div>
+
+            </div>
+          </div>
+        ) : !isKasUnlocked ? (
           /* TAMPILAN KUNCI PIN BUKU KAS */
           <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-10 text-center max-w-md mx-auto my-auto space-y-5 animate-in fade-in">
             <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-blue-600 text-white flex items-center justify-center shadow-xl shadow-purple-500/25">
@@ -753,6 +1070,36 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
           </div>
         ) : (
           <>
+            {/* Banner Mode Simulasi */}
+            {isSimulasiMode && (
+              <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-xs text-amber-900 flex-shrink-0">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                  <span>
+                    <strong>Mode Simulasi Aktif:</strong> Anda sedang menjelajahi simulasi pembukuan Buku Kas Untungin.
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {!hasPremiumAccess && (
+                    <button
+                      type="button"
+                      onClick={() => setIsSimulasiMode(false)}
+                      className="px-2.5 py-1 rounded bg-amber-400 hover:bg-amber-300 text-[#001c3c] font-black text-[11px] transition-all cursor-pointer shadow-xs"
+                    >
+                      Aktivasi Premium
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setIsSimulasiMode(false)}
+                    className="text-[11px] text-amber-800 hover:text-amber-950 underline font-semibold cursor-pointer"
+                  >
+                    Keluar Demo
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* 2. SUB-NAVBAR TAB */}
             <div className="bg-white border-b border-slate-200 px-4 py-2 flex flex-wrap items-center justify-between gap-3 flex-shrink-0 shadow-2xs">
               <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
@@ -1776,6 +2123,108 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                 className="flex-1 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md transition-all cursor-pointer"
               >
                 {confirmDialog.confirmLabel || 'OK'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 6. MODAL INFORMASI LISENSI UNTUNGIN PRO */}
+      {isPremiumModalOpen && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-md w-full p-6 space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shadow-2xs">
+                  <Crown className="w-5 h-5 fill-amber-500 text-amber-600" />
+                </div>
+                <div>
+                  <h4 className="font-black text-sm text-[#001c3c]">
+                    Informasi Lisensi Untungin Pro
+                  </h4>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    Fitur Premium Buku Kas & Keuangan UMKM
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPremiumModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2.5 text-xs">
+              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 via-orange-50/50 to-amber-50 border border-amber-200 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block">
+                    Status Akses
+                  </span>
+                  <span className="font-black text-amber-950 text-sm flex items-center gap-1.5 mt-0.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>{hasPremiumAccess ? '💎 PRO (Akses Penuh Aktif)' : 'Akun Standar'}</span>
+                  </span>
+                </div>
+                <span className="px-2.5 py-1 rounded-full bg-amber-400 text-[#001c3c] font-black text-[10px] shadow-2xs">
+                  VIP TIER
+                </span>
+              </div>
+
+              <div className="space-y-2 pt-1 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                <div className="flex items-center justify-between py-1 border-b border-slate-200/60">
+                  <span className="text-slate-500">Unit Usaha:</span>
+                  <span className="font-bold text-slate-800">{namaUsaha}</span>
+                </div>
+                <div className="flex items-center justify-between py-1 border-b border-slate-200/60">
+                  <span className="text-slate-500">Diberikan Oleh:</span>
+                  <span className="font-bold text-slate-800">
+                    {premiumStatus.grantedBy || (isDeveloperUser ? 'Lead Developer (Lifetime)' : 'Kurator PartnerUp')}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between py-1 border-b border-slate-200/60">
+                  <span className="text-slate-500">Jalur Akses:</span>
+                  <span className="font-bold text-[#004c80]">
+                    {premiumStatus.method === 'kurator'
+                      ? 'Rekomendasi Kurator (Lolos Seleksi)'
+                      : premiumStatus.method === 'payment'
+                      ? 'Aktivasi Lisensi / Pembayaran'
+                      : 'Sistem VIP'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between py-1">
+                  <span className="text-slate-500">Waktu Aktivasi:</span>
+                  <span className="font-mono text-slate-700">
+                    {premiumStatus.unlockedAt ? new Date(premiumStatus.unlockedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Permanen'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-3 bg-purple-50 rounded-xl border border-purple-100 text-[11px] text-purple-900 leading-relaxed">
+                <strong>Hak Istimewa Untungin Pro:</strong> Pencatatan transaksi tanpa limit, multi-akun kas (Tunai, Bank, QRIS), laba rugi otomatis, simulasi pajak UMKM 0,5%, serta sinkronisasi dua arah ke Google Spreadsheet.
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              {(isCuratorUser || isDeveloperUser) && hasPremiumAccess && !isObeeCreatives && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleRevokePro();
+                    setIsPremiumModalOpen(false);
+                  }}
+                  className="px-3 py-2 rounded-xl text-xs font-bold text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer mr-auto border border-rose-200"
+                >
+                  Cabut Akses Pro
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setIsPremiumModalOpen(false)}
+                className="px-5 py-2.5 bg-[#001c3c] hover:bg-[#002f5e] text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm"
+              >
+                Tutup
               </button>
             </div>
           </div>

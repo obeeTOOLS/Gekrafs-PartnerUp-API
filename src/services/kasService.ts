@@ -95,7 +95,19 @@ export interface KasPinData {
   updatedBy?: string;
 }
 
+export interface KasPremiumAccess {
+  namaUsaha: string;
+  isPremium: boolean;
+  tier: 'free' | 'premium';
+  unlockedAt?: string;
+  grantedBy?: string;
+  method?: 'kurator' | 'payment' | 'system' | 'none';
+  transactionLimit?: number;
+  notes?: string;
+}
+
 const STORAGE_PIN_PREFIX = 'gkf_untungin_pin_v1_';
+const STORAGE_PREMIUM_PREFIX = 'gkf_untungin_premium_v1_';
 
 class KasService {
   private getStorageKey(namaUsaha: string): string {
@@ -563,6 +575,156 @@ class KasService {
     } catch (e) {
       return { success: false, pinReset: '', message: 'Gagal melakukan reset PIN di memori browser.' };
     }
+  }
+
+  /* =========================================================================
+     MANAJEMEN HAK AKSES PREMIUM / UNTUNGIN PRO
+     ========================================================================= */
+
+  private getPremiumStorageKey(namaUsaha: string): string {
+    const clean = (namaUsaha || 'default').toLowerCase().trim().replace(/[^a-z0-9]/g, '_');
+    return `${STORAGE_PREMIUM_PREFIX}${clean}`;
+  }
+
+  /**
+   * Mengambil status akses lisensi Untungin Pro untuk unit usaha
+   */
+  public getPremiumStatus(namaUsaha: string): KasPremiumAccess {
+    if (!namaUsaha) {
+      return { namaUsaha: '', isPremium: false, tier: 'free', transactionLimit: 10 };
+    }
+
+    const clean = namaUsaha.toLowerCase().trim();
+    // Developer & Tim Inti selalu Lifetime VIP Pro
+    if (clean === 'obeecreatives' || clean === 'default') {
+      return {
+        namaUsaha,
+        isPremium: true,
+        tier: 'premium',
+        grantedBy: 'Lead Developer (Lifetime VIP)',
+        method: 'system',
+        unlockedAt: '2026-01-01T00:00:00.000Z'
+      };
+    }
+
+    try {
+      const key = this.getPremiumStorageKey(namaUsaha);
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed.isPremium === 'boolean') {
+          return {
+            namaUsaha,
+            isPremium: parsed.isPremium,
+            tier: parsed.isPremium ? 'premium' : 'free',
+            unlockedAt: parsed.unlockedAt,
+            grantedBy: parsed.grantedBy || (parsed.isPremium ? 'Kurator / Panitia' : undefined),
+            method: parsed.method || (parsed.isPremium ? 'kurator' : 'none'),
+            transactionLimit: parsed.isPremium ? undefined : 10
+          };
+        }
+      }
+    } catch (e) {
+      console.error('[kasService] Error reading premium status', e);
+    }
+
+    return {
+      namaUsaha,
+      isPremium: false,
+      tier: 'free',
+      method: 'none',
+      transactionLimit: 10
+    };
+  }
+
+  /**
+   * Memberikan akses Untungin Pro (oleh Kurator/Admin atau sistem)
+   */
+  public grantPremiumAccess(
+    namaUsaha: string, 
+    grantedBy: string = 'Kurator PartnerUp', 
+    method: 'kurator' | 'payment' | 'system' = 'kurator'
+  ): KasPremiumAccess {
+    if (!namaUsaha) return { namaUsaha: '', isPremium: false, tier: 'free' };
+
+    const key = this.getPremiumStorageKey(namaUsaha);
+    const access: KasPremiumAccess = {
+      namaUsaha,
+      isPremium: true,
+      tier: 'premium',
+      unlockedAt: new Date().toISOString(),
+      grantedBy,
+      method
+    };
+
+    try {
+      localStorage.setItem(key, JSON.stringify(access));
+      window.dispatchEvent(new CustomEvent('gkf-kas-premium-updated', { detail: { namaUsaha, access } }));
+    } catch (e) {
+      console.error('[kasService] Error saving premium status', e);
+    }
+
+    return access;
+  }
+
+  /**
+   * Mencabut hak akses Untungin Pro kembali ke Standar Free
+   */
+  public revokePremiumAccess(namaUsaha: string): KasPremiumAccess {
+    if (!namaUsaha) return { namaUsaha: '', isPremium: false, tier: 'free' };
+
+    const key = this.getPremiumStorageKey(namaUsaha);
+    const access: KasPremiumAccess = {
+      namaUsaha,
+      isPremium: false,
+      tier: 'free',
+      method: 'none',
+      transactionLimit: 10
+    };
+
+    try {
+      localStorage.setItem(key, JSON.stringify(access));
+      window.dispatchEvent(new CustomEvent('gkf-kas-premium-updated', { detail: { namaUsaha, access } }));
+    } catch (e) {
+      console.error('[kasService] Error revoking premium status', e);
+    }
+
+    return access;
+  }
+
+  /**
+   * Aktivasi kode lisensi / verifikasi pembayaran
+   */
+  public activateLicenseCode(namaUsaha: string, code: string): { success: boolean; message: string; access?: KasPremiumAccess } {
+    if (!namaUsaha) return { success: false, message: 'Nama usaha tidak valid.' };
+    const cleanCode = (code || '').toUpperCase().trim();
+
+    // Kode lisensi resmi / voucher yang didukung
+    const validCodes = [
+      'UNTUNGINPRO2026',
+      'GEKRAFS-PRO-BATU',
+      'PARTNERUP-VIP',
+      'KAS-PREMIUM-LIFETIME',
+      'BATCH2-JUARA'
+    ];
+
+    if (!cleanCode) {
+      return { success: false, message: 'Masukkan kode lisensi atau bukti transaksi Anda.' };
+    }
+
+    if (validCodes.includes(cleanCode) || cleanCode.startsWith('VIP-') || cleanCode.startsWith('PRO-')) {
+      const access = this.grantPremiumAccess(namaUsaha, `Aktivasi Lisensi (${cleanCode})`, 'payment');
+      return {
+        success: true,
+        message: `Selamat! Lisensi Untungin Pro untuk "${namaUsaha}" berhasil diaktifkan. Semua fitur kas terbuka penuh.`,
+        access
+      };
+    }
+
+    return {
+      success: false,
+      message: 'Kode lisensi tidak valid atau belum terdaftar. Hubungi Kurator atau Panitia PartnerUp untuk mendapatkan kode lisensi resmi.'
+    };
   }
 }
 
