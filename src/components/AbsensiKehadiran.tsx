@@ -1,8 +1,29 @@
 import React, { useState } from 'react';
 import { gasService } from '../services/gasService';
-import { formatTanggalIndonesia, generateQrSvgUrl, downloadBrandedQrPngFile } from '../utils/qrUtils';
+import { 
+  formatTanggalIndonesia, 
+  generateQrSvgUrl, 
+  downloadBrandedQrPngFile,
+  getAppLoginInstallUrl,
+  downloadAppInstallBrandedQrPngFile
+} from '../utils/qrUtils';
 import { UserRole } from '../types';
-import { QrCode, Calendar, Clock, User, CheckCircle2, AlertCircle, Sparkles, Copy, Check, Lock, ShieldCheck, Download } from 'lucide-react';
+import { 
+  QrCode, 
+  Calendar, 
+  Clock, 
+  User, 
+  CheckCircle2, 
+  AlertCircle, 
+  Sparkles, 
+  Copy, 
+  Check, 
+  Lock, 
+  ShieldCheck, 
+  Download,
+  Smartphone,
+  ExternalLink
+} from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { authService } from '../services/authService';
 
@@ -28,6 +49,9 @@ export const AbsensiKehadiran: React.FC<AbsensiKehadiranProps> = ({ initialSesiI
   const [checkinSuccess, setCheckinSuccess] = useState<{ namaUsaha: string; topik: string } | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
   const [isDownloadingQr, setIsDownloadingQr] = useState(false);
+  const [qrDisplayTab, setQrDisplayTab] = useState<'presensi' | 'app_install'>('presensi');
+  const [isDownloadingAppQr, setIsDownloadingAppQr] = useState(false);
+  const [copiedAppUrl, setCopiedAppUrl] = useState(false);
 
   // Sinkronisasi jika initialSesiId berubah dari URL
   React.useEffect(() => {
@@ -291,78 +315,191 @@ export const AbsensiKehadiran: React.FC<AbsensiKehadiranProps> = ({ initialSesiI
             <details className="text-xs text-slate-600 group">
               <summary className="cursor-pointer font-bold text-[#004c80] hover:underline flex items-center justify-center gap-1.5">
                 <QrCode className="w-3.5 h-3.5" />
-                <span>Tampilkan QR Code & Download Poster Presensi Sesi Ini</span>
+                <span>Tampilkan QR Code Presensi & QR Pasang Aplikasi (PWA)</span>
               </summary>
               <div className="mt-3 flex flex-col items-center p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                {/* Branded Card Mini Preview */}
-                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm relative text-center max-w-xs w-full">
-                  <div className="text-[10px] font-extrabold text-[#001c3c] mb-1">
-                    {selectedSesi?.topik || 'Presensi Sesi Pelatihan'}
-                  </div>
+                
+                {/* Mode Selector Tab */}
+                <div className="flex w-full max-w-xs mb-3 bg-slate-200/70 p-1 rounded-xl text-xs font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setQrDisplayTab('presensi')}
+                    className={`flex-1 py-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                      qrDisplayTab === 'presensi'
+                        ? 'bg-white text-[#001c3c] shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <QrCode className="w-3 h-3" />
+                    <span>QR Presensi Sesi</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQrDisplayTab('app_install')}
+                    className={`flex-1 py-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                      qrDisplayTab === 'app_install'
+                        ? 'bg-white text-[#004c80] shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <Smartphone className="w-3 h-3 text-[#004c80]" />
+                    <span>QR Install & Login</span>
+                  </button>
+                </div>
 
-                  <div className="relative inline-block mx-auto">
-                    <img
-                      src={generateQrSvgUrl(checkinUrl, 180)}
-                      alt="QR Absensi Sesi"
-                      className="w-36 h-36 bg-white p-1.5 rounded-xl border border-slate-200"
-                    />
-                    {/* Badge Tema di Tengah */}
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div className="w-10 h-10 rounded-lg bg-[#001c3c] border-2 border-[#ffc72c] ring-2 ring-white flex flex-col items-center justify-center shadow-md text-center">
-                        <span className="text-[6px] font-black text-white leading-tight">EKRAF</span>
-                        <span className="text-[5px] font-bold text-[#ffc72c]">BATU</span>
+                {qrDisplayTab === 'presensi' ? (
+                  <>
+                    {/* Branded Card Mini Preview: Presensi Sesi */}
+                    <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm relative text-center max-w-xs w-full">
+                      <div className="text-[10px] font-extrabold text-[#001c3c] mb-1">
+                        {selectedSesi?.topik || 'Presensi Sesi Pelatihan'}
+                      </div>
+
+                      <div className="relative inline-block mx-auto">
+                        <img
+                          src={generateQrSvgUrl(checkinUrl, 180)}
+                          alt="QR Absensi Sesi"
+                          className="w-36 h-36 bg-white p-1.5 rounded-xl border border-slate-200"
+                        />
+                        {/* Badge Tema di Tengah */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="w-10 h-10 rounded-lg bg-[#001c3c] border-2 border-[#ffc72c] ring-2 ring-white flex flex-col items-center justify-center shadow-md text-center">
+                            <span className="text-[6px] font-black text-white leading-tight">EKRAF</span>
+                            <span className="text-[5px] font-bold text-[#ffc72c]">BATU</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Di Bawah QR: Tulisan PartnerUp */}
+                      <div className="mt-2 pt-1 border-t border-slate-100">
+                        <span className="text-xs font-black text-[#001c3c] tracking-tight">PartnerUp</span>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Di Bawah QR: Tulisan PartnerUp */}
-                  <div className="mt-2 pt-1 border-t border-slate-100">
-                    <span className="text-xs font-black text-[#001c3c] tracking-tight">PartnerUp</span>
-                  </div>
-                </div>
+                    <p className="mt-2 text-[11px] text-slate-500 max-w-xs">
+                      Scan QR di atas untuk presensi sesi ini atau unduh poster cetak resolusi tinggi.
+                    </p>
 
-                <p className="mt-2 text-[11px] text-slate-500 max-w-xs">
-                  Scan QR di atas dengan kamera HP peserta atau download file PNG untuk dicetak / dipajang di proyektor.
-                </p>
+                    <div className="mt-3 flex flex-wrap items-center justify-center gap-2 w-full max-w-xs">
+                      <button
+                        type="button"
+                        disabled={isDownloadingQr}
+                        onClick={async () => {
+                          if (!selectedSesi) return;
+                          const sesiIdx = jadwal.findIndex((j) => j.idSesi === selectedSesiId) + 1;
+                          setIsDownloadingQr(true);
+                          try {
+                            await downloadBrandedQrPngFile({
+                              url: checkinUrl,
+                              topik: selectedSesi.topik,
+                              nomorSesi: sesiIdx || undefined,
+                              tanggal: selectedSesi.tanggal ? formatTanggalIndonesia(selectedSesi.tanggal) : undefined,
+                              waktu: selectedSesi.waktu,
+                              pemateri: selectedSesi.pemateri
+                            });
+                          } catch (e) {
+                            console.error('Error downloading QR PNG', e);
+                          } finally {
+                            setIsDownloadingQr(false);
+                          }
+                        }}
+                        className="flex-1 min-w-[130px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold text-xs shadow-sm cursor-pointer disabled:opacity-50"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>{isDownloadingQr ? 'Menyiapkan...' : 'Download PNG'}</span>
+                      </button>
 
-                <div className="mt-3 flex flex-wrap items-center justify-center gap-2 w-full max-w-xs">
-                  <button
-                    type="button"
-                    disabled={isDownloadingQr}
-                    onClick={async () => {
-                      if (!selectedSesi) return;
-                      const sesiIdx = jadwal.findIndex((j) => j.idSesi === selectedSesiId) + 1;
-                      setIsDownloadingQr(true);
-                      try {
-                        await downloadBrandedQrPngFile({
-                          url: checkinUrl,
-                          topik: selectedSesi.topik,
-                          nomorSesi: sesiIdx || undefined,
-                          tanggal: selectedSesi.tanggal ? formatTanggalIndonesia(selectedSesi.tanggal) : undefined,
-                          waktu: selectedSesi.waktu,
-                          pemateri: selectedSesi.pemateri
-                        });
-                      } catch (e) {
-                        console.error('Error downloading QR PNG', e);
-                      } finally {
-                        setIsDownloadingQr(false);
-                      }
-                    }}
-                    className="flex-1 min-w-[130px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold text-xs shadow-sm cursor-pointer disabled:opacity-50"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>{isDownloadingQr ? 'Menyiapkan...' : 'Download PNG'}</span>
-                  </button>
+                      <button
+                        type="button"
+                        onClick={handleCopyLink}
+                        className="flex-1 min-w-[130px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-300 font-bold text-slate-700 hover:bg-slate-100 text-xs cursor-pointer"
+                      >
+                        {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                        <span>{copiedLink ? 'Link Tersalin!' : 'Salin Tautan'}</span>
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Branded Card Mini Preview: Install & Menu Login */}
+                    {(() => {
+                      const appLoginUrl = getAppLoginInstallUrl();
+                      return (
+                        <>
+                          <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm relative text-center max-w-xs w-full">
+                            <div className="text-[10px] font-extrabold text-[#001c3c] mb-1">
+                              Akses Web App PartnerUp
+                            </div>
 
-                  <button
-                    type="button"
-                    onClick={handleCopyLink}
-                    className="flex-1 min-w-[130px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-300 font-bold text-slate-700 hover:bg-slate-100 text-xs cursor-pointer"
-                  >
-                    {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{copiedLink ? 'Link Tersalin!' : 'Salin Tautan'}</span>
-                  </button>
-                </div>
+                            <div className="relative inline-block mx-auto">
+                              <img
+                                src={generateQrSvgUrl(appLoginUrl, 180)}
+                                alt="QR Web App Install & Login"
+                                className="w-36 h-36 bg-white p-1.5 rounded-xl border border-slate-200"
+                              />
+                              {/* Badge Tema di Tengah */}
+                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div className="w-10 h-10 rounded-lg bg-[#001c3c] border-2 border-[#ffc72c] ring-2 ring-white flex flex-col items-center justify-center shadow-md text-center">
+                                  <span className="text-[6px] font-black text-[#ffc72c] leading-tight">INSTALL</span>
+                                  <span className="text-[7px] font-black text-white leading-tight">APP</span>
+                                  <span className="text-[5px] font-bold text-slate-300">BATU</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Di Bawah QR: Tulisan PartnerUp */}
+                            <div className="mt-2 pt-1 border-t border-slate-100">
+                              <span className="text-xs font-black text-[#001c3c] tracking-tight">PartnerUp</span>
+                            </div>
+                          </div>
+
+                          <p className="mt-2 text-[11px] text-slate-500 max-w-xs">
+                            Scan QR untuk membuka <strong>Menu Login</strong> & memasang aplikasi di layar utama HP peserta.
+                          </p>
+
+                          <div className="mt-3 flex flex-wrap items-center justify-center gap-2 w-full max-w-xs">
+                            <button
+                              type="button"
+                              disabled={isDownloadingAppQr}
+                              onClick={async () => {
+                                setIsDownloadingAppQr(true);
+                                try {
+                                  await downloadAppInstallBrandedQrPngFile({
+                                    url: appLoginUrl,
+                                    title: 'Scan QR Code untuk Membuka & Pasang Aplikasi di HP',
+                                    subtitle: 'Peserta otomatis diarahkan ke Menu Login untuk verifikasi & pendaftaran',
+                                    badgeText: 'MENU LOGIN & PASANG APLIKASI'
+                                  });
+                                } catch (e) {
+                                  console.error('Error downloading app QR PNG', e);
+                                } finally {
+                                  setIsDownloadingAppQr(false);
+                                }
+                              }}
+                              className="flex-1 min-w-[130px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold text-xs shadow-sm cursor-pointer disabled:opacity-50"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                              <span>{isDownloadingAppQr ? 'Menyiapkan...' : 'Download PNG'}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(appLoginUrl);
+                                setCopiedAppUrl(true);
+                                setTimeout(() => setCopiedAppUrl(false), 2000);
+                              }}
+                              className="flex-1 min-w-[130px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-300 font-bold text-slate-700 hover:bg-slate-100 text-xs cursor-pointer"
+                            >
+                              {copiedAppUrl ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                              <span>{copiedAppUrl ? 'URL Tersalin!' : 'Salin URL Login'}</span>
+                            </button>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </>
+                )}
               </div>
             </details>
           </div>

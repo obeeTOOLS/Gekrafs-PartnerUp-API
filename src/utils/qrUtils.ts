@@ -344,3 +344,232 @@ export function toWaLink(phone: string): string {
   cleaned = cleaned.replace(/^0/, '');
   return `https://wa.me/62${cleaned}`;
 }
+
+export interface AppInstallQrOptions {
+  url?: string;
+  title?: string;
+  subtitle?: string;
+  badgeText?: string;
+}
+
+/**
+ * Mengambil URL resmi instalasi & login web app PartnerUp.
+ * Parameter ?page=login memastikan aplikasi langsung membuka Menu Login saat di-scan.
+ */
+export function getAppLoginInstallUrl(): string {
+  if (typeof window === 'undefined') return 'https://partnerup.gekrafsbatu.id/?page=login';
+  const origin = window.location.origin;
+  const pathname = window.location.pathname.replace(/\/+$/, '');
+  return `${origin}${pathname ? pathname : ''}/?page=login`;
+}
+
+/**
+ * Menghasilkan Data URL PNG Poster Resmi untuk Instalasi & Akses Web App PartnerUp:
+ * - Mengarah langsung ke menu login (?page=login)
+ * - Tampilan visual resmi selaras dengan QR Presensi (Gekrafs Kota Batu, PartnerUp, Emas & Navy)
+ * - Lencana tengah 'INSTALL APP'
+ * - Panduan instalasi PWA di bawah QR
+ */
+export async function generateAppInstallBrandedQrPng(options?: AppInstallQrOptions): Promise<string> {
+  const targetUrl = options?.url || getAppLoginInstallUrl();
+  const mainTitle = options?.title || 'Scan QR Code untuk Membuka & Pasang Aplikasi di HP';
+  const subTitle = options?.subtitle || 'Peserta otomatis diarahkan ke Menu Login untuk verifikasi & pendaftaran';
+  const badgeText = options?.badgeText || 'MENU LOGIN & PASANG APLIKASI';
+
+  // 1. Buat offscreen canvas untuk QR Code dengan koreksi kesalahan tinggi ('H')
+  const qrCanvas = document.createElement('canvas');
+  const qrSize = 540;
+  await QRCode.toCanvas(qrCanvas, targetUrl, {
+    width: qrSize,
+    margin: 1,
+    errorCorrectionLevel: 'H',
+    color: {
+      dark: '#001c3c',
+      light: '#ffffff'
+    }
+  });
+
+  // 2. Buat canvas utama dengan resolusi tinggi (900 x 1280 px) untuk cetak tajam
+  const canvas = document.createElement('canvas');
+  const width = 900;
+  const height = 1280;
+  canvas.width = width;
+  canvas.height = height;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return qrCanvas.toDataURL('image/png');
+
+  // Background utama putih bersih
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, width, height);
+
+  // Border kartu luar elegan
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = 8;
+  ctx.strokeRect(4, 4, width - 8, height - 8);
+
+  // Header Banner Deep Navy (#001c3c)
+  ctx.fillStyle = '#001c3c';
+  ctx.fillRect(8, 8, width - 16, 160);
+
+  // Garis aksen emas di bawah header
+  ctx.fillStyle = '#ffc72c';
+  ctx.fillRect(8, 168, width - 16, 8);
+
+  // Teks Brand Header
+  ctx.fillStyle = '#ffc72c';
+  ctx.font = 'bold 22px system-ui, -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('GEKRAFS KOTA BATU', width / 2, 58);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '800 32px system-ui, -apple-system, sans-serif';
+  ctx.fillText('AKSES & INSTALASI APLIKASI WEB', width / 2, 108);
+
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '500 17px system-ui, -apple-system, sans-serif';
+  ctx.fillText('Portal Resmi Inkubasi & Pendampingan UMKM Kreatif', width / 2, 144);
+
+  // Area Info & Judul Poster
+  let currentY = 220;
+
+  // Badge Status: Menu Login & Pasang Aplikasi
+  ctx.fillStyle = '#eaf2fb';
+  const badgeWidth = 320;
+  const badgeHeight = 40;
+  const badgeX = (width - badgeWidth) / 2;
+  drawRoundedRect(ctx, badgeX, currentY, badgeWidth, badgeHeight, 20);
+  ctx.fill();
+
+  ctx.fillStyle = '#004c80';
+  ctx.font = '800 16px system-ui, -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(badgeText, width / 2, currentY + 26);
+
+  currentY += 75;
+
+  // Judul Utama Poster
+  ctx.fillStyle = '#001c3c';
+  ctx.font = 'bold 28px system-ui, -apple-system, sans-serif';
+  const maxTextWidth = width - 120;
+  const lines = wrapCanvasText(ctx, mainTitle, maxTextWidth);
+  lines.forEach((line) => {
+    ctx.fillText(line, width / 2, currentY);
+    currentY += 38;
+  });
+
+  // Subtitle Deskripsi
+  ctx.fillStyle = '#64748b';
+  ctx.font = '600 17px system-ui, -apple-system, sans-serif';
+  const subLines = wrapCanvasText(ctx, subTitle, maxTextWidth);
+  subLines.forEach((sLine) => {
+    ctx.fillText(sLine, width / 2, currentY);
+    currentY += 26;
+  });
+
+  // Posisi QR Code
+  const qrX = (width - qrSize) / 2;
+  const qrY = currentY + 15;
+
+  // Frame putih berbayang halus di sekeliling QR
+  ctx.fillStyle = '#ffffff';
+  ctx.shadowColor = 'rgba(0, 28, 60, 0.12)';
+  ctx.shadowBlur = 24;
+  ctx.shadowOffsetY = 8;
+  drawRoundedRect(ctx, qrX - 16, qrY - 16, qrSize + 32, qrSize + 32, 24);
+  ctx.fill();
+
+  // Reset shadow
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
+
+  // Gambar QR Code
+  ctx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
+
+  // ==========================================
+  // DITENGAH QR: Lencana Khusus "INSTALL APP"
+  // ==========================================
+  const centerSize = 148;
+  const centerX = width / 2;
+  const centerY = qrY + qrSize / 2;
+
+  // Halo putih tebal
+  ctx.fillStyle = '#ffffff';
+  drawRoundedRect(ctx, centerX - centerSize / 2 - 10, centerY - centerSize / 2 - 10, centerSize + 20, centerSize + 20, 28);
+  ctx.fill();
+
+  // Badge background navy gelap
+  ctx.fillStyle = '#001c3c';
+  drawRoundedRect(ctx, centerX - centerSize / 2, centerY - centerSize / 2, centerSize, centerSize, 22);
+  ctx.fill();
+
+  // Aksen garis tepi emas
+  ctx.strokeStyle = '#ffc72c';
+  ctx.lineWidth = 3.5;
+  drawRoundedRect(ctx, centerX - centerSize / 2 + 4, centerY - centerSize / 2 + 4, centerSize - 8, centerSize - 8, 18);
+  ctx.stroke();
+
+  // Teks lencana tengah
+  ctx.fillStyle = '#ffc72c';
+  ctx.font = 'bold 13px system-ui, -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('GEKRAFS', centerX, centerY - 38);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 22px system-ui, -apple-system, sans-serif';
+  ctx.fillText('INSTALL', centerX, centerY - 8);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 22px system-ui, -apple-system, sans-serif';
+  ctx.fillText('APP', centerX, centerY + 18);
+
+  ctx.fillStyle = '#ffc72c';
+  ctx.font = 'bold 11px system-ui, -apple-system, sans-serif';
+  ctx.fillText('BATU 2026', centerX, centerY + 46);
+
+  // ==========================================
+  // DIBAWAH QR: Tulisan "PartnerUp" & Panduan
+  // ==========================================
+  const afterQrY = qrY + qrSize + 55;
+
+  ctx.fillStyle = '#001c3c';
+  ctx.font = '900 52px system-ui, -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('PartnerUp', width / 2, afterQrY);
+
+  // Garis aksen emas di bawah tulisan PartnerUp
+  ctx.fillStyle = '#ffc72c';
+  ctx.fillRect(width / 2 - 50, afterQrY + 12, 100, 5);
+
+  // Panduan langkah bagi peserta
+  ctx.fillStyle = '#1e293b';
+  ctx.font = '700 18px system-ui, -apple-system, sans-serif';
+  ctx.fillText('1. Arahkan kamera HP ke QR Code di atas untuk menuju Menu Login', width / 2, afterQrY + 45);
+
+  ctx.fillStyle = '#475569';
+  ctx.font = '600 16px system-ui, -apple-system, sans-serif';
+  ctx.fillText('2. Di browser, ketuk menu ⋮ (Android) atau Bagikan (iPhone) lalu pilih "Instal Aplikasi"', width / 2, afterQrY + 72);
+
+  // Footer URL kecil di bagian paling bawah
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '14px monospace';
+  ctx.fillText(targetUrl, width / 2, height - 30);
+
+  return canvas.toDataURL('image/png');
+}
+
+/**
+ * Download file PNG poster resmi instalasi & akses web app PartnerUp
+ */
+export async function downloadAppInstallBrandedQrPngFile(options?: AppInstallQrOptions, customFilename?: string): Promise<void> {
+  const dataUrl = await generateAppInstallBrandedQrPng(options);
+  const filename = customFilename || 'QR_PartnerUp_Akses_dan_Install_Aplikasi.png';
+
+  const link = document.createElement('a');
+  link.href = dataUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}

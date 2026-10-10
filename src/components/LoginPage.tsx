@@ -460,6 +460,22 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         </div>
       </div>
 
+      {/* PWA Install Notice for Mobile Users */}
+      <div className="max-w-md w-full mx-auto z-10 px-2">
+        <div className="bg-white/90 backdrop-blur-md rounded-2xl p-3.5 border border-slate-200/80 shadow-xs flex items-start gap-3">
+          <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#004c80] flex items-center justify-center flex-shrink-0 mt-0.5 border border-blue-100">
+            <Sparkles className="w-4 h-4 text-[#004c80]" />
+          </div>
+          <div className="text-xs">
+            <span className="font-bold text-[#001c3c] block">Pasang di Layar Utama HP:</span>
+            <span className="text-slate-500 leading-relaxed block mt-0.5">
+              Di Android (Chrome): Ketuk menu titik tiga <strong className="text-slate-700">⋮</strong> lalu pilih <strong className="text-[#004c80]">"Instal Aplikasi"</strong>.<br />
+              Di iPhone (Safari): Ketuk tombol <strong className="text-slate-700">Bagikan</strong> lalu pilih <strong className="text-[#004c80]">"Tambah ke Layar Utama"</strong>.
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* Footer Branding & Security Badge */}
       <div className="max-w-md w-full mx-auto text-center z-10 pb-2">
         <p className="text-[11px] text-slate-400 font-medium">

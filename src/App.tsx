@@ -25,9 +25,17 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      if (params.get('logout') === '1' || params.get('reset_session') === '1') {
+      // Jika scan QR mengarah ke ?page=login, ?login=1, ?auth=login, ?logout=1, atau #login:
+      // Pastikan sesi dibersihkan dan pengguna langsung berada di Menu Login (LoginPage)
+      if (
+        params.get('page') === 'login' ||
+        params.get('login') === '1' ||
+        params.get('auth') === 'login' ||
+        params.get('logout') === '1' ||
+        params.get('reset_session') === '1' ||
+        window.location.hash === '#login'
+      ) {
         authService.logout();
-        window.history.replaceState({}, '', window.location.pathname);
         return false;
       }
     }
