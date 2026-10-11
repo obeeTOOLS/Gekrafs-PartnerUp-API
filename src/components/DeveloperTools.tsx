@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { gasService } from '../services/gasService';
-import { HEADLESS_GAS_CODE } from '../services/headlessGasCode';
+import { HEADLESS_GAS_CODE, DOKTER_ASESMEN_GS_CODE } from '../services/headlessGasCode';
 import { whatsappService } from '../services/whatsappService';
 import { taskService } from '../services/taskService';
 import { 
@@ -45,6 +45,7 @@ import {
   ShieldCheck,
   Mail,
   Clipboard,
+  ClipboardCheck,
   Eye,
   EyeOff,
   RefreshCw,
@@ -165,6 +166,7 @@ export const DeveloperTools: React.FC = () => {
   // Dokter Database Spreadsheet (Repair Tab Peserta & Kehadiran)
   const [isRepairingSheet, setIsRepairingSheet] = useState<string | null>(null);
   const [repairResult, setRepairResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [copiedAsesmenScript, setCopiedAsesmenScript] = useState(false);
 
   const handleRepairPeserta = async () => {
     setIsRepairingSheet('peserta');
@@ -188,6 +190,17 @@ export const DeveloperTools: React.FC = () => {
     }
   };
 
+  const handleRepairAsesmenHeader = async () => {
+    setIsRepairingSheet('asesmen');
+    setRepairResult(null);
+    try {
+      const res = await gasService.repairAsesmenHeaderSheet();
+      setRepairResult(res);
+    } finally {
+      setIsRepairingSheet(null);
+    }
+  };
+
   const handleRepairAllSheets = async () => {
     setIsRepairingSheet('all');
     setRepairResult(null);
@@ -197,6 +210,12 @@ export const DeveloperTools: React.FC = () => {
     } finally {
       setIsRepairingSheet(null);
     }
+  };
+
+  const handleCopyAsesmenScript = () => {
+    navigator.clipboard.writeText(DOKTER_ASESMEN_GS_CODE);
+    setCopiedAsesmenScript(true);
+    setTimeout(() => setCopiedAsesmenScript(false), 3000);
   };
 
   const handleCopyCode = () => {
@@ -1559,16 +1578,16 @@ export const DeveloperTools: React.FC = () => {
         </div>
       </div>
 
-      {/* Section: Dokter Database Spreadsheet (Repair Tab Peserta & Kehadiran) */}
+      {/* Section: Dokter Database Spreadsheet (Repair Tab Peserta, Kehadiran & Asesmen) */}
       <div className="bg-white rounded-2xl p-6 border-2 border-[#004c80]/40 shadow-sm space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <div>
             <h2 className="text-sm font-extrabold text-[#001c3c] uppercase flex items-center gap-2">
               <Wrench className="w-4 h-4 text-[#004c80]" />
-              <span>Dokter Spreadsheet: Perbaikan Tab Peserta & Kehadiran</span>
+              <span>Dokter Spreadsheet: Perbaikan Tab Peserta, Kehadiran & Asesmen</span>
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Menambal baris kosong pada tab Kehadiran, membersihkan error formula #REF! pada tab Peserta, dan menyinkronkan 67 peserta resmi.
+              Menambal baris kosong tab Kehadiran, membersihkan formula #REF! tab Peserta, serta menyelaraskan 47 kolom header tab Asesmen.
             </p>
           </div>
           <span className="px-2.5 py-1 bg-blue-50 text-[#004c80] text-[11px] font-bold rounded-lg border border-blue-200 self-start sm:self-auto">
@@ -1576,7 +1595,7 @@ export const DeveloperTools: React.FC = () => {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
             <div>
               <div className="text-xs font-bold text-[#001c3c] flex items-center gap-1.5 mb-1">
@@ -1619,6 +1638,27 @@ export const DeveloperTools: React.FC = () => {
             </button>
           </div>
 
+          <div className="p-4 bg-purple-50/60 rounded-xl border border-purple-200 flex flex-col justify-between space-y-3">
+            <div>
+              <div className="text-xs font-bold text-purple-950 flex items-center gap-1.5 mb-1">
+                <ClipboardCheck className="w-4 h-4 text-purple-700" />
+                <span>Tab Asesmen (47 Kolom)</span>
+              </div>
+              <p className="text-[11px] text-slate-600 leading-relaxed">
+                Merapikan seluruh 47 kolom header tab Asesmen agar skor 15 kriteria, Total Skor (kolom AH), dan 8 rata-rata Bagian 3 presisi.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleRepairAsesmenHeader}
+              disabled={!!isRepairingSheet}
+              className="w-full py-2 bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRepairingSheet === 'asesmen' ? 'animate-spin' : ''}`} />
+              <span>{isRepairingSheet === 'asesmen' ? 'Memperbaiki...' : 'Perbaiki Header Asesmen'}</span>
+            </button>
+          </div>
+
           <div className="p-4 bg-[#eaf2fb] rounded-xl border border-blue-200 flex flex-col justify-between space-y-3">
             <div>
               <div className="text-xs font-bold text-[#004c80] flex items-center gap-1.5 mb-1">
@@ -1626,7 +1666,7 @@ export const DeveloperTools: React.FC = () => {
                 <span>Semua Tab Sekaligus</span>
               </div>
               <p className="text-[11px] text-slate-600 leading-relaxed">
-                Eksekusi perbaikan menyeluruh pada Tab Peserta, Kehadiran, Tugas, dan Buku Kas secara paralel.
+                Eksekusi perbaikan menyeluruh pada Tab Peserta, Kehadiran, Asesmen, Tugas, dan Buku Kas secara paralel.
               </p>
             </div>
             <button
@@ -1658,11 +1698,21 @@ export const DeveloperTools: React.FC = () => {
           </div>
         )}
 
-        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 flex items-start gap-2">
-          <Terminal className="w-4 h-4 text-slate-500 flex-shrink-0 mt-0.5" />
-          <div className="text-[11px] leading-relaxed">
-            <strong>Opsi Eksekusi Langsung di Apps Script:</strong> Anda juga dapat membuka <code>script.google.com</code>, memilih fungsi <code className="bg-slate-200 text-slate-900 px-1 py-0.5 rounded font-mono font-bold">perbaikiDanSinkronkanSheetPeserta</code> atau <code className="bg-slate-200 text-slate-900 px-1 py-0.5 rounded font-mono font-bold">inisialisasiSemuaTab</code> pada menu toolbar atas editor Apps Script, lalu klik <strong>Run (▶️)</strong>.
+        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-start gap-2">
+            <Terminal className="w-4 h-4 text-slate-500 flex-shrink-0 mt-0.5" />
+            <div className="text-[11px] leading-relaxed">
+              <strong>Opsi Eksekusi Langsung di Apps Script Editor:</strong> Buka <code>script.google.com</code> &rarr; pilih fungsi <code className="bg-slate-200 text-slate-900 px-1 py-0.5 rounded font-mono font-bold">perbaikiHeaderTabAsesmen</code> atau <code className="bg-slate-200 text-slate-900 px-1 py-0.5 rounded font-mono font-bold">inisialisasiSemuaTab</code> pada menu toolbar atas editor Apps Script &rarr; klik <strong>Run (▶️)</strong>.
+            </div>
           </div>
+          <button
+            type="button"
+            onClick={handleCopyAsesmenScript}
+            className="flex-shrink-0 px-3 py-1.5 bg-white border border-purple-300 text-purple-900 hover:bg-purple-50 text-[11px] font-bold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
+          >
+            {copiedAsesmenScript ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-purple-600" />}
+            <span>{copiedAsesmenScript ? 'Script Asesmen Tersalin!' : 'Salin Script perbaikiHeaderTabAsesmen'}</span>
+          </button>
         </div>
       </div>
 

@@ -684,6 +684,19 @@ class GasService {
     }
   }
 
+  public async repairAsesmenHeaderSheet(): Promise<{ success: boolean; message: string }> {
+    try {
+      const res = await this.dispatchRemoteAction('repairAsesmenHeaderSheet');
+      if (res && res.status === 'success') {
+        await this.syncFromLiveSpreadsheet(undefined, true);
+        return { success: true, message: res.message || 'Header Tab Asesmen (47 kolom) berhasil diperbaiki dan diselaraskan!' };
+      }
+      return { success: false, message: res?.message || 'Gagal memperbaiki Header Tab Asesmen di Apps Script.' };
+    } catch (e: any) {
+      return { success: false, message: e.message || 'Error koneksi saat perbaikan Header Tab Asesmen.' };
+    }
+  }
+
   public async repairAllSheets(): Promise<{ success: boolean; message: string }> {
     try {
       const res = await this.dispatchRemoteAction('repairAllSheets');

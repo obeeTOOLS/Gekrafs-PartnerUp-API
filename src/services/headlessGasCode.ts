@@ -115,6 +115,9 @@ function doGet(e) {
       case 'repairKehadiranSheet':
         return createJsonResponse(perbaikiSheetKehadiran());
 
+      case 'repairAsesmenHeaderSheet':
+        return createJsonResponse(perbaikiHeaderTabAsesmen());
+
       case 'repairAllSheets':
         return createJsonResponse(perbaikiSemuaTab());
 
@@ -206,6 +209,9 @@ function doPost(e) {
 
       case 'repairKehadiranSheet':
         return createJsonResponse(perbaikiSheetKehadiran());
+
+      case 'repairAsesmenHeaderSheet':
+        return createJsonResponse(perbaikiHeaderTabAsesmen());
 
       case 'repairAllSheets':
         return createJsonResponse(perbaikiSemuaTab());
@@ -457,15 +463,123 @@ function inisialisasiSheetKas() {
 }
 
 /**
- * Inisialisasi Seluruh Tab Sekaligus (Peserta, Kehadiran, Tugas & Buku Kas)
+ * Inisialisasi Seluruh Tab Sekaligus (Peserta, Kehadiran, Asesmen, Tugas & Buku Kas)
  */
 function inisialisasiSemuaTab() {
   perbaikiDanSinkronkanSheetPeserta();
   perbaikiSheetKehadiran();
+  perbaikiHeaderTabAsesmen();
   inisialisasiSheetKehadiran();
   inisialisasiSheetTugas();
   inisialisasiSheetKas();
-  return '✅ Seluruh tab database (Peserta, Kehadiran, Tugas, Kas_Transaksi & Kas_Profil) berhasil disiapkan, diperbaiki, dan diformat rapi!';
+  return '✅ Seluruh tab database (Peserta, Kehadiran, Asesmen, Tugas, Kas_Transaksi & Kas_Profil) berhasil disiapkan, diperbaiki, dan diformat rapi!';
+}
+
+/**
+ * FUNGSI DOKTER SPREADSHEET: Perbaiki Seluruh Tab Database Sekaligus
+ */
+function perbaikiSemuaTab() {
+  const resPeserta = perbaikiDanSinkronkanSheetPeserta();
+  const resKehadiran = perbaikiSheetKehadiran();
+  const resAsesmen = perbaikiHeaderTabAsesmen();
+  inisialisasiSheetKehadiran();
+  inisialisasiSheetTugas();
+  inisialisasiSheetKas();
+  return {
+    status: 'success',
+    message: 'Seluruh tab database (Peserta, Kehadiran, Asesmen, Tugas & Buku Kas) berhasil diperbaiki dan disinkronkan!',
+    details: {
+      peserta: resPeserta,
+      kehadiran: resKehadiran,
+      asesmen: resAsesmen
+    }
+  };
+}
+
+/**
+ * FUNGSI DOKTER SPREADSHEET: Perbaiki Header Tab 'Asesmen'
+ * Menyelaraskan seluruh 47 kolom header agar pas dengan data 15 kriteria skor & catatan,
+ * Total Skor (kolom AH), Poin Refleksi, dan 8 Nilai Rata-rata Bagian 3.
+ */
+function perbaikiHeaderTabAsesmen() {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_ASESMEN);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_ASESMEN);
+    Logger.log('Tab "' + SHEET_ASESMEN + '" baru berhasil dibuat.');
+  }
+
+  const headers = [
+    'Timestamp',
+    'Nama Usaha',
+    'Nomor WhatsApp',
+    'Skor - Kejelasan Model Bisnis',
+    'Catatan - Kejelasan Model Bisnis',
+    'Skor - Kualitas & Keunikan Produk/Jasa',
+    'Catatan - Kualitas & Keunikan Produk/Jasa',
+    'Skor - Branding & Kehadiran Digital',
+    'Catatan - Branding & Kehadiran Digital',
+    'Skor - Pengelolaan Keuangan Usaha',
+    'Catatan - Pengelolaan Keuangan Usaha',
+    'Skor - Legalitas & Kelengkapan Dokumen',
+    'Catatan - Legalitas & Kelengkapan Dokumen',
+    'Skor - Kesiapan Berkolaborasi & Belajar',
+    'Catatan - Kesiapan Berkolaborasi & Belajar',
+    'Skor - Dampak & Kontribusi ke Ekosistem Kreatif',
+    'Catatan - Dampak & Kontribusi ke Ekosistem Kreatif',
+    'Skor - Leadership (Kepemimpinan)',
+    'Catatan - Leadership (Kepemimpinan)',
+    'Skor - Operasional',
+    'Catatan - Operasional',
+    'Skor - Marketing (Pemasaran)',
+    'Catatan - Marketing (Pemasaran)',
+    'Skor - Financial (Keuangan)',
+    'Catatan - Financial (Keuangan)',
+    'Skor - Sales (Penjualan)',
+    'Catatan - Sales (Penjualan)',
+    'Skor - Service (Layanan)',
+    'Catatan - Service (Layanan)',
+    'Skor - Growth (Pertumbuhan)',
+    'Catatan - Growth (Pertumbuhan)',
+    'Skor - Product (Produk/Jasa)',
+    'Catatan - Product (Produk/Jasa)',
+    'Total Skor',
+    'Poin Kekuatan (Bisa Diajarkan)',
+    'Poin Tantangan (Perlu Dipelajari)',
+    'Bagian 3 - Skor Rata2 - Leadership (Kepemimpinan)',
+    'Bagian 3 - Skor Rata2 - Finance (Keuangan)',
+    'Bagian 3 - Skor Rata2 - Operation (Operasional)',
+    'Bagian 3 - Skor Rata2 - Product (Produk/Jasa)',
+    'Bagian 3 - Skor Rata2 - Service (Layanan)',
+    'Bagian 3 - Skor Rata2 - Sales (Penjualan)',
+    'Bagian 3 - Skor Rata2 - Marketing (Pemasaran)',
+    'Bagian 3 - Skor Rata2 - Growth (Pertumbuhan)',
+    'Bagian 3 - Detail Lengkap (JSON)',
+    'Materi yang Bisa Diajarkan',
+    'Sesi PartnerUp'
+  ];
+
+  const maxCols = sheet.getMaxColumns();
+  if (maxCols < headers.length) {
+    sheet.insertColumnsAfter(maxCols, headers.length - maxCols);
+  }
+
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+
+  const headerRange = sheet.getRange(1, 1, 1, headers.length);
+  headerRange.setFontWeight('bold');
+  headerRange.setBackground('#001c3c');
+  headerRange.setFontColor('#ffffff');
+  headerRange.setHorizontalAlignment('center');
+  headerRange.setVerticalAlignment('middle');
+  sheet.setRowHeight(1, 38);
+  sheet.setFrozenRows(1);
+
+  return {
+    status: 'success',
+    message: 'Header tab Asesmen (47 kolom) berhasil diperbaiki dan ditata rapi!',
+    columnCount: headers.length
+  };
 }
 
 /**
@@ -1640,5 +1754,111 @@ function getKasAccounts(namaUsaha) {
     }
   }
   return null;
+}
+`;
+
+export const DOKTER_ASESMEN_GS_CODE = `/**
+ * ==============================================================================
+ * DOKTER SPREADSHEET: FUNGSI PERBAIKAN HEADER TAB ASESMEN (47 KOLOM)
+ * ==============================================================================
+ * Petunjuk Penggunaan:
+ * 1. Buka Google Apps Script (script.google.com)
+ * 2. Anda dapat menempelkan fungsi ini ke Kode.gs atau DokterPerbaikan.gs
+ * 3. Pada menu dropdown toolbar atas, pilih: perbaikiHeaderTabAsesmen
+ * 4. Klik tombol Run (Jalankan ▶️)
+ * 5. Tab Asesmen akan langsung memiliki 47 kolom header yang pas dan rapi!
+ * ==============================================================================
+ */
+
+function perbaikiHeaderTabAsesmen() {
+  var ss;
+  if (typeof SPREADSHEET_ID !== 'undefined' && SPREADSHEET_ID) {
+    try {
+      ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    } catch (e) {
+      ss = SpreadsheetApp.getActiveSpreadsheet();
+    }
+  } else {
+    ss = SpreadsheetApp.getActiveSpreadsheet();
+  }
+
+  var sheet = ss.getSheetByName('Asesmen');
+  if (!sheet) {
+    sheet = ss.insertSheet('Asesmen');
+    Logger.log('Tab Asesmen baru dibuat.');
+  }
+
+  var headers = [
+    'Timestamp',
+    'Nama Usaha',
+    'Nomor WhatsApp',
+    'Skor - Kejelasan Model Bisnis',
+    'Catatan - Kejelasan Model Bisnis',
+    'Skor - Kualitas & Keunikan Produk/Jasa',
+    'Catatan - Kualitas & Keunikan Produk/Jasa',
+    'Skor - Branding & Kehadiran Digital',
+    'Catatan - Branding & Kehadiran Digital',
+    'Skor - Pengelolaan Keuangan Usaha',
+    'Catatan - Pengelolaan Keuangan Usaha',
+    'Skor - Legalitas & Kelengkapan Dokumen',
+    'Catatan - Legalitas & Kelengkapan Dokumen',
+    'Skor - Kesiapan Berkolaborasi & Belajar',
+    'Catatan - Kesiapan Berkolaborasi & Belajar',
+    'Skor - Dampak & Kontribusi ke Ekosistem Kreatif',
+    'Catatan - Dampak & Kontribusi ke Ekosistem Kreatif',
+    'Skor - Leadership (Kepemimpinan)',
+    'Catatan - Leadership (Kepemimpinan)',
+    'Skor - Operasional',
+    'Catatan - Operasional',
+    'Skor - Marketing (Pemasaran)',
+    'Catatan - Marketing (Pemasaran)',
+    'Skor - Financial (Keuangan)',
+    'Catatan - Financial (Keuangan)',
+    'Skor - Sales (Penjualan)',
+    'Catatan - Sales (Penjualan)',
+    'Skor - Service (Layanan)',
+    'Catatan - Service (Layanan)',
+    'Skor - Growth (Pertumbuhan)',
+    'Catatan - Growth (Pertumbuhan)',
+    'Skor - Product (Produk/Jasa)',
+    'Catatan - Product (Produk/Jasa)',
+    'Total Skor',
+    'Poin Kekuatan (Bisa Diajarkan)',
+    'Poin Tantangan (Perlu Dipelajari)',
+    'Bagian 3 - Skor Rata2 - Leadership (Kepemimpinan)',
+    'Bagian 3 - Skor Rata2 - Finance (Keuangan)',
+    'Bagian 3 - Skor Rata2 - Operation (Operasional)',
+    'Bagian 3 - Skor Rata2 - Product (Produk/Jasa)',
+    'Bagian 3 - Skor Rata2 - Service (Layanan)',
+    'Bagian 3 - Skor Rata2 - Sales (Penjualan)',
+    'Bagian 3 - Skor Rata2 - Marketing (Pemasaran)',
+    'Bagian 3 - Skor Rata2 - Growth (Pertumbuhan)',
+    'Bagian 3 - Detail Lengkap (JSON)',
+    'Materi yang Bisa Diajarkan',
+    'Sesi PartnerUp'
+  ];
+
+  var maxCols = sheet.getMaxColumns();
+  if (maxCols < headers.length) {
+    sheet.insertColumnsAfter(maxCols, headers.length - maxCols);
+  }
+
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+
+  var headerRange = sheet.getRange(1, 1, 1, headers.length);
+  headerRange.setFontWeight('bold');
+  headerRange.setBackground('#001c3c');
+  headerRange.setFontColor('#ffffff');
+  headerRange.setHorizontalAlignment('center');
+  headerRange.setVerticalAlignment('middle');
+  sheet.setRowHeight(1, 38);
+  sheet.setFrozenRows(1);
+
+  Logger.log('✅ SUKSES: Header tab Asesmen (47 kolom) telah berhasil diperbaiki!');
+  return {
+    status: 'success',
+    message: 'Header tab Asesmen (47 kolom) berhasil diperbaiki dan ditata rapi!',
+    columnCount: headers.length
+  };
 }
 `;
