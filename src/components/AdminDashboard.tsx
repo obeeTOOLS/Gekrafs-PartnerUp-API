@@ -262,9 +262,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [editingJadwalRow, setEditingJadwalRow] = useState<number | null>(null);
 
   // Kehadiran state
-  const [selectedKehadiranSesiId, setSelectedKehadiranSesiId] = useState<string>(
-    () => (jadwal.length > 0 ? (jadwal[jadwal.length - 1]?.idSesi || jadwal[0]?.idSesi) : '')
-  );
+  const [selectedKehadiranSesiId, setSelectedKehadiranSesiId] = useState<string>(() => {
+    const listJadwal = gasService.getJadwal();
+    return listJadwal.length > 0 ? (listJadwal[listJadwal.length - 1]?.idSesi || listJadwal[0]?.idSesi) : '';
+  });
   const [manualNamaUsaha, setManualNamaUsaha] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
 
