@@ -48,6 +48,7 @@ import {
   KasPremiumAccess
 } from '../services/kasService';
 import { gasService } from '../services/gasService';
+import { TrialManagerModal } from './TrialManagerModal';
 
 interface UntunginKasModalProps {
   isOpen: boolean;
@@ -219,6 +220,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
   const hasPremiumAccess = hasProAccess; // alias kompatibilitas
   const effectiveReadOnly = isDeveloperUser ? false : ((readOnly && !isSimulasiMode) || (isTrialExpired && isTrialReadOnlyView));
   const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
+  const [isTrialManagerOpen, setIsTrialManagerOpen] = useState(false);
   const [licenseCodeInput, setLicenseCodeInput] = useState('');
   const [licenseFeedback, setLicenseFeedback] = useState<{ success: boolean; message: string } | null>(null);
   const [isActivatingLicense, setIsActivatingLicense] = useState(false);
@@ -827,6 +829,17 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
               )}
             </div>
             <div className="flex items-center gap-2">
+              {/* Tombol Atur / Perpanjang Trial */}
+              <button
+                type="button"
+                onClick={() => setIsTrialManagerOpen(true)}
+                className="px-2.5 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/35 text-indigo-200 hover:text-white border border-indigo-400/40 font-bold transition-all cursor-pointer text-[11px] flex items-center gap-1.5 shadow-2xs"
+                title="Atur kuota kredit transaksi atau perpanjang masa aktif hari trial"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <span>⚙️ Atur / Perpanjang Trial</span>
+              </button>
+
               {premiumStatus.isPremium ? (
                 <button
                   type="button"
@@ -2429,6 +2442,20 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              {(isCuratorUser || isDeveloperUser) && !isObeeCreatives && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsPremiumModalOpen(false);
+                    setIsTrialManagerOpen(true);
+                  }}
+                  className="px-3 py-2 rounded-xl text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors cursor-pointer mr-auto border border-indigo-200 flex items-center gap-1.5"
+                  title="Atur kuota transaksi atau perpanjang masa aktif trial"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <span>⚙️ Atur / Perpanjang Trial</span>
+                </button>
+              )}
               {(isCuratorUser || isDeveloperUser) && hasPremiumAccess && !isObeeCreatives && (
                 <button
                   type="button"
@@ -2436,7 +2463,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                     handleRevokePro();
                     setIsPremiumModalOpen(false);
                   }}
-                  className="px-3 py-2 rounded-xl text-xs font-bold text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer mr-auto border border-rose-200"
+                  className="px-3 py-2 rounded-xl text-xs font-bold text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer border border-rose-200"
                 >
                   Cabut Akses Pro
                 </button>
@@ -2452,6 +2479,19 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
           </div>
         </div>
       )}
+
+      {/* 7. MODAL PENGATURAN KREDIT & PERPANJANGAN TRIAL */}
+      <TrialManagerModal
+        isOpen={isTrialManagerOpen}
+        onClose={() => setIsTrialManagerOpen(false)}
+        namaUsaha={namaUsaha}
+        namaPemilik={namaPemilik}
+        onUpdated={(newAccess) => {
+          setPremiumStatus(newAccess);
+          showToast(`Masa trial untuk "${namaUsaha}" berhasil diperbarui!`, 'success');
+        }}
+        onGrantPro={handleGrantProByKurator}
+      />
     </div>
   );
 };

@@ -3,6 +3,7 @@ import { PesertaItem } from '../types';
 import { X, MessageCircle, Mail, Instagram, MapPin, Building, FileCheck, Wallet, KeyRound, Crown, CheckCircle2 } from 'lucide-react';
 import { toWaLink } from '../utils/qrUtils';
 import { kasService } from '../services/kasService';
+import { TrialManagerModal } from './TrialManagerModal';
 
 interface ProfileModalProps {
   peserta: PesertaItem | null;
@@ -16,6 +17,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ peserta, onClose, on
   const [premiumAccess, setPremiumAccess] = useState(() =>
     peserta ? kasService.getPremiumStatus(peserta.namaUsaha) : null
   );
+  const [isTrialManagerOpen, setIsTrialManagerOpen] = useState(false);
 
   useEffect(() => {
     if (peserta) {
@@ -157,24 +159,34 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ peserta, onClose, on
                 </div>
 
                 <div className="flex items-center justify-between text-[11px] text-slate-600">
-                  <span className="truncate max-w-[200px]">
+                  <span className="truncate max-w-[180px]">
                     {premiumAccess?.isPremium 
                       ? `Diaktifkan oleh: ${premiumAccess.grantedBy || 'Kurator'}`
                       : premiumAccess?.isTrialActive
-                      ? `Trial: ${premiumAccess.usedTransactions || 0}/10 tx (${premiumAccess.remainingDays || 0} hari)`
-                      : 'Batas trial 10 tx telah selesai'}
+                      ? `Trial: ${premiumAccess.usedTransactions || 0}/${premiumAccess.transactionLimit || 10} tx (${premiumAccess.remainingDays || 0} hari)`
+                      : `Batas trial ${premiumAccess?.transactionLimit || 10} tx selesai`}
                   </span>
-                  <button
-                    type="button"
-                    onClick={handleTogglePro}
-                    className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer shadow-2xs ${
-                      premiumAccess?.isPremium
-                        ? 'bg-rose-100 text-rose-800 hover:bg-rose-200 border border-rose-200'
-                        : 'bg-amber-400 hover:bg-amber-300 text-[#001c3c]'
-                    }`}
-                  >
-                    {premiumAccess?.isPremium ? 'Cabut Akses Pro' : '✨ Beri Akses Pro (Lolos)'}
-                  </button>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setIsTrialManagerOpen(true)}
+                      className="px-2 py-1 rounded-lg text-[10px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-all cursor-pointer shadow-2xs"
+                      title="Atur kuota kredit transaksi atau perpanjang masa aktif trial"
+                    >
+                      ⚙️ Atur Trial
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleTogglePro}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer shadow-2xs ${
+                        premiumAccess?.isPremium
+                          ? 'bg-rose-100 text-rose-800 hover:bg-rose-200 border border-rose-200'
+                          : 'bg-amber-400 hover:bg-amber-300 text-[#001c3c]'
+                      }`}
+                    >
+                      {premiumAccess?.isPremium ? 'Cabut Pro' : '✨ Beri Pro'}
+                    </button>
+                  </div>
                 </div>
 
                 <button
@@ -248,6 +260,18 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ peserta, onClose, on
           </button>
         </div>
       </div>
+
+      {/* Modal Pengaturan Kredit & Perpanjangan Masa Trial */}
+      <TrialManagerModal
+        isOpen={isTrialManagerOpen}
+        onClose={() => setIsTrialManagerOpen(false)}
+        namaUsaha={peserta.namaUsaha}
+        namaPemilik={peserta.namaPemilik}
+        onUpdated={(newAccess) => {
+          setPremiumAccess(newAccess);
+        }}
+        onGrantPro={handleTogglePro}
+      />
     </div>
   );
 };

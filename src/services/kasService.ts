@@ -112,6 +112,9 @@ export interface KasPremiumAccess {
   isTrialActive?: boolean;
   isTrialExpired?: boolean;
   notes?: string;
+  extendedBy?: string;
+  lastExtendedAt?: string;
+  bonusCredits?: number;
 }
 
 const STORAGE_PIN_PREFIX = 'gkf_untungin_pin_v1_';
@@ -666,6 +669,9 @@ class KasService {
       // 2. Inisialisasi atau muat data Hybrid Trial
       let trialStartedAt = parsed?.trialStartedAt;
       let trialExpiresAt = parsed?.trialExpiresAt;
+      const currentLimit = Number(parsed?.transactionLimit) || TRIAL_LIMIT;
+      const txBaseline = Number(parsed?.txBaseline) || 0;
+      const effectiveUsed = Math.max(0, txCount - txBaseline);
 
       if (!trialStartedAt) {
         const now = new Date();
@@ -680,7 +686,8 @@ class KasService {
             isPremium: false,
             trialStartedAt,
             trialExpiresAt,
-            transactionLimit: TRIAL_LIMIT
+            transactionLimit: TRIAL_LIMIT,
+            txBaseline: 0
           };
           localStorage.setItem(key, JSON.stringify(trialRecord));
         } catch {
@@ -694,10 +701,12 @@ class KasService {
       const remainingDays = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
       const isTimeExpired = diffMs <= 0;
 
-      const remainingTransactions = Math.max(0, TRIAL_LIMIT - txCount);
-      const isLimitReached = txCount >= TRIAL_LIMIT;
+      const remainingTransactions = Math.max(0, currentLimit - effectiveUsed);
+      const isLimitReached = effectiveUsed >= currentLimit;
       const isTrialExpired = isLimitReached || isTimeExpired;
       const isTrialActive = !isTrialExpired;
+
+      const totalDays = Math.max(1, Math.ceil((expireMs - new Date(trialStartedAt).getTime()) / (1000 * 60 * 60 * 24))) || TRIAL_DAYS;
 
       return {
         namaUsaha,
@@ -705,17 +714,19 @@ class KasService {
         tier: isTrialActive ? 'trial' : 'free',
         grantedBy: parsed?.grantedBy,
         method: isTrialActive ? 'trial' : 'none',
-        transactionLimit: TRIAL_LIMIT,
-        usedTransactions: txCount,
+        transactionLimit: currentLimit,
+        usedTransactions: effectiveUsed,
         remainingTransactions,
         trialStartedAt,
         trialExpiresAt,
-        trialDaysTotal: TRIAL_DAYS,
+        trialDaysTotal: totalDays,
         remainingDays,
         isTrialActive,
         isTrialExpired,
+        extendedBy: parsed?.extendedBy,
+        lastExtendedAt: parsed?.lastExtendedAt,
         notes: isTrialExpired
-          ? (isLimitReached ? 'Batas 10 transaksi trial telah tercapai.' : 'Masa percobaan 7 hari telah berakhir.')
+          ? (isLimitReached ? `Batas ${currentLimit} transaksi trial telah tercapai.` : 'Masa percobaan hari telah berakhir.')
           : `Akses Trial Hybrid Aktif: Sisa ${remainingTransactions} transaksi (${remainingDays} hari).`
       };
     } catch (e) {
@@ -735,6 +746,80 @@ class KasService {
       isTrialActive: true,
       isTrialExpired: false
     };
+  }
+
+  /**
+   * Mengatur atau memperpanjang masa trial dan kredit kuota transaksi peserta
+   */
+  public updateTrialConfig(
+    namaUsaha: string,
+    params: {
+      additionalDays?: number;
+      additionalTransactions?: number;
+      setExactLimit?: number;
+      setExactDays?: number;
+      resetUsed?: boolean;
+      grantedBy?: string;
+      notes?: string;
+    }
+  ): KasPremiumAccess {
+    if (!namaUsaha) return { namaUsaha: '', isPremium: false, tier: 'free' };
+
+    const key = this.getPremiumStorageKey(namaUsaha);
+    const raw = localStorage.getItem(key);
+    let record = raw ? JSON.parse(raw) : {};
+
+    const kasData = this.getKasData(namaUsaha);
+    const actualTxCount = Array.isArray(kasData.transactions) ? kasData.transactions.length : 0;
+
+    // 1. Hitung Batas Transaksi Baru
+    const currentLimit = Number(record.transactionLimit) || 10;
+    let newLimit = currentLimit;
+    if (params.setExactLimit !== undefined && params.setExactLimit > 0) {
+      newLimit = params.setExactLimit;
+    } else if (params.additionalTransactions && params.additionalTransactions > 0) {
+      newLimit = currentLimit + params.additionalTransactions;
+    }
+
+    // 2. Reset Tx Usage jika diminta
+    let txBaseline = Number(record.txBaseline) || 0;
+    if (params.resetUsed) {
+      txBaseline = actualTxCount; // reset hitungan relatif ke total yang ada sekarang
+    }
+
+    // 3. Hitung Tanggal Kedaluwarsa Baru
+    const now = Date.now();
+    let currentExpireMs = record.trialExpiresAt ? new Date(record.trialExpiresAt).getTime() : now + 7 * 86400000;
+    // Jika sudah kedaluwarsa, mulai perpanjangan dari waktu saat ini
+    const baseExpireMs = Math.max(now, currentExpireMs);
+    let newExpireMs = baseExpireMs;
+
+    if (params.setExactDays !== undefined && params.setExactDays > 0) {
+      newExpireMs = now + params.setExactDays * 86400000;
+    } else if (params.additionalDays && params.additionalDays > 0) {
+      newExpireMs = baseExpireMs + params.additionalDays * 86400000;
+    }
+
+    const trialStartedAt = record.trialStartedAt || new Date().toISOString();
+    const trialExpiresAt = new Date(newExpireMs).toISOString();
+
+    const updatedRecord = {
+      ...record,
+      namaUsaha,
+      isPremium: false, // tetap akun trial (bukan unmetered pro)
+      transactionLimit: newLimit,
+      txBaseline,
+      trialStartedAt,
+      trialExpiresAt,
+      lastExtendedAt: new Date().toISOString(),
+      extendedBy: params.grantedBy || 'Kurator PartnerUp',
+      trialNotes: params.notes || `Diperpanjang: limit ${newLimit} tx, aktif s/d ${new Date(trialExpiresAt).toLocaleDateString('id-ID')}`
+    };
+
+    localStorage.setItem(key, JSON.stringify(updatedRecord));
+    window.dispatchEvent(new CustomEvent('gkf-kas-premium-updated', { detail: { namaUsaha, access: updatedRecord } }));
+
+    return this.getPremiumStatus(namaUsaha);
   }
 
   /**
