@@ -190,7 +190,7 @@ class GasService {
   public async syncFromLiveSpreadsheet(customSheetId?: string, silent: boolean = false): Promise<{
     success: boolean;
     message: string;
-    counts?: { peserta: number; asesmen: number; timeline: number; jadwal: number };
+    counts?: { peserta: number; kehadiran?: number; asesmen: number; timeline: number; jadwal: number };
   }> {
     if (this.isSyncingSpreadsheet) {
       return {
@@ -485,6 +485,62 @@ class GasService {
         // Tab 'Tugas' belum dibuat di spreadsheet atau belum ada baris, abaikan secara graceful
       }
 
+      // 7. Ambil data Kehadiran Peserta & Self-Healing Baris Kosong (Live Presensi)
+      try {
+        const kehadiranRaw = await fetchSheetCsv(spreadsheetId, 'Kehadiran');
+        if (kehadiranRaw && kehadiranRaw.length > 1) {
+          const newKehadiranList: KehadiranItem[] = [];
+          const kRows = kehadiranRaw.slice(1);
+          kRows.forEach((r, idx) => {
+            const namaUsaha = (r[4] || '').trim();
+            if (!namaUsaha) return; // Lewati baris kosong jika ada
+
+            const idSesi = (r[1] || '').trim();
+            let tanggalSesi = (r[2] || '').trim();
+            let topikSesi = (r[3] || '').trim();
+
+            // Self-healing jika Tanggal Sesi atau Topik Sesi di sheet kosong (seperti baris 38 & 39)
+            if (!tanggalSesi || !topikSesi) {
+              const matchedJadwal = this.jadwal.find((j) => j.idSesi === idSesi);
+              if (matchedJadwal) {
+                if (!tanggalSesi) tanggalSesi = matchedJadwal.tanggal;
+                if (!topikSesi) topikSesi = matchedJadwal.topik;
+              } else if (idSesi === '8f75e785') {
+                if (!tanggalSesi) tanggalSesi = '2026-10-03';
+                if (!topikSesi) topikSesi = 'MINDSET BISNIS DAN PENYELARASAN TUJUAN KEGIATAN';
+              } else if (idSesi === '7a0f968c') {
+                if (!tanggalSesi) tanggalSesi = '2026-10-10';
+                if (!topikSesi) topikSesi = 'MINDSET KEUANGAN';
+              }
+            }
+
+            // Normalisasi format tanggal DD/MM/YYYY ke YYYY-MM-DD jika diperlukan
+            if (/^\d{2}\/\d{2}\/\d{4}$/.test(tanggalSesi)) {
+              const parts = tanggalSesi.split('/');
+              tanggalSesi = `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+
+            newKehadiranList.push({
+              id: `kh-live-${idx + 1}-${idSesi}`,
+              timestamp: r[0] || '',
+              idSesi,
+              tanggalSesi: tanggalSesi || '2026-10-03',
+              topikSesi: topikSesi || 'Pelatihan UMKM',
+              namaUsaha,
+              whatsapp: (r[5] || '').trim(),
+              sesiPartnerUp: (r[6] || 'Sesi 2').trim(),
+              metode: (r[7] || 'Self Check-in').trim()
+            });
+          });
+
+          if (newKehadiranList.length > 0) {
+            this.kehadiran = newKehadiranList;
+          }
+        }
+      } catch (kehadiranErr) {
+        console.warn('[GAS] Info: Tab Kehadiran belum bisa ditarik live:', kehadiranErr);
+      }
+
       const now = new Date();
       this.lastSyncTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} WIB`;
       this.lastLiveSyncTimestamp = Date.now();
@@ -492,12 +548,13 @@ class GasService {
       this.syncMessage = `Sinkron (${this.lastSyncTime})`;
       this.saveToStorage();
 
-      // Dispatch event agar seluruh tampilan (Timeline, Jadwal, Peserta, dll) langsung diperbarui otomatis
+      // Dispatch event agar seluruh tampilan (Timeline, Jadwal, Peserta, Kehadiran, dll) langsung diperbarui otomatis
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('gkf-data-updated', {
           detail: {
             counts: {
               peserta: this.peserta.length,
+              kehadiran: this.kehadiran.length,
               asesmen: this.asesmen.length,
               timeline: this.timeline.length,
               jadwal: this.jadwal.length
@@ -510,9 +567,10 @@ class GasService {
 
       return {
         success: true,
-        message: `Berhasil menarik ${this.peserta.length} Peserta, ${this.asesmen.length} Asesmen, ${this.timeline.length} Timeline, dan ${this.jadwal.length} Jadwal dari Google Sheets asli.`,
+        message: `Berhasil menarik ${this.peserta.length} Peserta, ${this.kehadiran.length} Kehadiran, ${this.asesmen.length} Asesmen, ${this.timeline.length} Timeline, dan ${this.jadwal.length} Jadwal dari Google Sheets asli.`,
         counts: {
           peserta: this.peserta.length,
+          kehadiran: this.kehadiran.length,
           asesmen: this.asesmen.length,
           timeline: this.timeline.length,
           jadwal: this.jadwal.length
@@ -598,6 +656,45 @@ class GasService {
       this.syncMessage = 'Mode Cache Lokal (Offline)';
     }
     return null;
+  }
+
+  public async repairPesertaSheet(): Promise<{ success: boolean; message: string }> {
+    try {
+      const res = await this.dispatchRemoteAction('repairPesertaSheet');
+      if (res && res.status === 'success') {
+        await this.syncFromLiveSpreadsheet(undefined, true);
+        return { success: true, message: res.message || 'Tab Peserta berhasil diperbaiki!' };
+      }
+      return { success: false, message: res?.message || 'Gagal memperbaiki Tab Peserta di Apps Script.' };
+    } catch (e: any) {
+      return { success: false, message: e.message || 'Error koneksi saat perbaikan Tab Peserta.' };
+    }
+  }
+
+  public async repairKehadiranSheet(): Promise<{ success: boolean; message: string }> {
+    try {
+      const res = await this.dispatchRemoteAction('repairKehadiranSheet');
+      if (res && res.status === 'success') {
+        await this.syncFromLiveSpreadsheet(undefined, true);
+        return { success: true, message: res.message || 'Tab Kehadiran berhasil diperbaiki!' };
+      }
+      return { success: false, message: res?.message || 'Gagal memperbaiki Tab Kehadiran di Apps Script.' };
+    } catch (e: any) {
+      return { success: false, message: e.message || 'Error koneksi saat perbaikan Tab Kehadiran.' };
+    }
+  }
+
+  public async repairAllSheets(): Promise<{ success: boolean; message: string }> {
+    try {
+      const res = await this.dispatchRemoteAction('repairAllSheets');
+      if (res && res.status === 'success') {
+        await this.syncFromLiveSpreadsheet(undefined, true);
+        return { success: true, message: res.message || 'Seluruh tab database berhasil diperbaiki & disinkronkan!' };
+      }
+      return { success: false, message: res?.message || 'Gagal perbaikan spreadsheet di Apps Script.' };
+    } catch (e: any) {
+      return { success: false, message: e.message || 'Error koneksi saat perbaikan spreadsheet.' };
+    }
   }
 
   public async testConnection(url?: string): Promise<{ success: boolean; message: string; latency?: number }> {
@@ -790,7 +887,12 @@ class GasService {
       this.peserta[index].statusKurasi = status as any;
       this.peserta[index].catatanKurator = catatan;
       this.saveToStorage();
-      this.dispatchRemoteAction('updateStatusKurasi', { row, status, catatan });
+      this.dispatchRemoteAction('updateStatusKurasi', { 
+        row, 
+        status, 
+        catatan, 
+        namaUsaha: this.peserta[index].namaUsaha 
+      });
       return { status: 'success', message: 'Status kurasi berhasil diperbarui!' };
     }
     return { status: 'error', message: 'Peserta tidak ditemukan.' };

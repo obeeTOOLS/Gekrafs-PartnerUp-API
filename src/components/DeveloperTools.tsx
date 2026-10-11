@@ -162,6 +162,43 @@ export const DeveloperTools: React.FC = () => {
     }
   };
 
+  // Dokter Database Spreadsheet (Repair Tab Peserta & Kehadiran)
+  const [isRepairingSheet, setIsRepairingSheet] = useState<string | null>(null);
+  const [repairResult, setRepairResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const handleRepairPeserta = async () => {
+    setIsRepairingSheet('peserta');
+    setRepairResult(null);
+    try {
+      const res = await gasService.repairPesertaSheet();
+      setRepairResult(res);
+    } finally {
+      setIsRepairingSheet(null);
+    }
+  };
+
+  const handleRepairKehadiran = async () => {
+    setIsRepairingSheet('kehadiran');
+    setRepairResult(null);
+    try {
+      const res = await gasService.repairKehadiranSheet();
+      setRepairResult(res);
+    } finally {
+      setIsRepairingSheet(null);
+    }
+  };
+
+  const handleRepairAllSheets = async () => {
+    setIsRepairingSheet('all');
+    setRepairResult(null);
+    try {
+      const res = await gasService.repairAllSheets();
+      setRepairResult(res);
+    } finally {
+      setIsRepairingSheet(null);
+    }
+  };
+
   const handleCopyCode = () => {
     navigator.clipboard.writeText(HEADLESS_GAS_CODE);
     setCopiedCode(true);
@@ -1518,6 +1555,113 @@ export const DeveloperTools: React.FC = () => {
             <p className="mt-1 text-slate-600">
               Setelah menempelkan kode ke <code>Code.gs</code>, Anda tidak perlu menunggu ada absensi masuk. Cukup pilih fungsi <code className="bg-slate-200 text-slate-900 px-1 py-0.5 rounded font-mono font-bold">inisialisasiSheetKehadiran</code> atau <code className="bg-slate-200 text-slate-900 px-1 py-0.5 rounded font-mono font-bold">inisialisasiSemuaTab</code> pada dropdown di toolbar atas editor Apps Script, lalu klik tombol <strong>Run (Jalankan ▶️)</strong>. Tab baru beserta header lengkap akan langsung tercipta di Google Spreadsheet Anda!
             </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Section: Dokter Database Spreadsheet (Repair Tab Peserta & Kehadiran) */}
+      <div className="bg-white rounded-2xl p-6 border-2 border-[#004c80]/40 shadow-sm space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+          <div>
+            <h2 className="text-sm font-extrabold text-[#001c3c] uppercase flex items-center gap-2">
+              <Wrench className="w-4 h-4 text-[#004c80]" />
+              <span>Dokter Spreadsheet: Perbaikan Tab Peserta & Kehadiran</span>
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Menambal baris kosong pada tab Kehadiran, membersihkan error formula #REF! pada tab Peserta, dan menyinkronkan 67 peserta resmi.
+            </p>
+          </div>
+          <span className="px-2.5 py-1 bg-blue-50 text-[#004c80] text-[11px] font-bold rounded-lg border border-blue-200 self-start sm:self-auto">
+            Self-Healing Active
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
+            <div>
+              <div className="text-xs font-bold text-[#001c3c] flex items-center gap-1.5 mb-1">
+                <Users className="w-4 h-4 text-[#004c80]" />
+                <span>Tab Peserta (#REF! Fix)</span>
+              </div>
+              <p className="text-[11px] text-slate-600 leading-relaxed">
+                Membersihkan formula #REF! dan menata ulang 9 kolom header bersih serta mengisi 67 peserta resmi dari tab Pendaftaran.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleRepairPeserta}
+              disabled={!!isRepairingSheet}
+              className="w-full py-2 bg-[#001c3c] hover:bg-[#004c80] text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRepairingSheet === 'peserta' ? 'animate-spin' : ''}`} />
+              <span>{isRepairingSheet === 'peserta' ? 'Memperbaiki...' : 'Perbaiki Tab Peserta'}</span>
+            </button>
+          </div>
+
+          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
+            <div>
+              <div className="text-xs font-bold text-[#001c3c] flex items-center gap-1.5 mb-1">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span>Tab Kehadiran (Baris Kosong)</span>
+              </div>
+              <p className="text-[11px] text-slate-600 leading-relaxed">
+                Menambal baris 38 & 39 yang kehilangan Tanggal Sesi & Topik Sesi di datasheet Google Sheets.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleRepairKehadiran}
+              disabled={!!isRepairingSheet}
+              className="w-full py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRepairingSheet === 'kehadiran' ? 'animate-spin' : ''}`} />
+              <span>{isRepairingSheet === 'kehadiran' ? 'Memperbaiki...' : 'Perbaiki Tab Kehadiran'}</span>
+            </button>
+          </div>
+
+          <div className="p-4 bg-[#eaf2fb] rounded-xl border border-blue-200 flex flex-col justify-between space-y-3">
+            <div>
+              <div className="text-xs font-bold text-[#004c80] flex items-center gap-1.5 mb-1">
+                <Database className="w-4 h-4 text-[#004c80]" />
+                <span>Semua Tab Sekaligus</span>
+              </div>
+              <p className="text-[11px] text-slate-600 leading-relaxed">
+                Eksekusi perbaikan menyeluruh pada Tab Peserta, Kehadiran, Tugas, dan Buku Kas secara paralel.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleRepairAllSheets}
+              disabled={!!isRepairingSheet}
+              className="w-full py-2 bg-[#004c80] hover:bg-[#0070b3] text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRepairingSheet === 'all' ? 'animate-spin' : ''}`} />
+              <span>{isRepairingSheet === 'all' ? 'Memproses...' : 'Perbaiki Semua Tab'}</span>
+            </button>
+          </div>
+        </div>
+
+        {repairResult && (
+          <div
+            className={`p-3.5 rounded-xl border text-xs flex items-start gap-2.5 ${
+              repairResult.success
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                : 'bg-rose-50 border-rose-200 text-rose-800'
+            }`}
+          >
+            {repairResult.success ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+            ) : (
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            )}
+            <div>{repairResult.message}</div>
+          </div>
+        )}
+
+        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 flex items-start gap-2">
+          <Terminal className="w-4 h-4 text-slate-500 flex-shrink-0 mt-0.5" />
+          <div className="text-[11px] leading-relaxed">
+            <strong>Opsi Eksekusi Langsung di Apps Script:</strong> Anda juga dapat membuka <code>script.google.com</code>, memilih fungsi <code className="bg-slate-200 text-slate-900 px-1 py-0.5 rounded font-mono font-bold">perbaikiDanSinkronkanSheetPeserta</code> atau <code className="bg-slate-200 text-slate-900 px-1 py-0.5 rounded font-mono font-bold">inisialisasiSemuaTab</code> pada menu toolbar atas editor Apps Script, lalu klik <strong>Run (▶️)</strong>.
           </div>
         </div>
       </div>

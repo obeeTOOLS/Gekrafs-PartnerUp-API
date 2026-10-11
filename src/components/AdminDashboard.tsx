@@ -132,6 +132,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     };
     const handleDataUpdate = () => {
       setAdminDataVersion(v => v + 1);
+      setSelectedKehadiranSesiId(prev => {
+        if (!prev) {
+          const freshJadwal = gasService.getJadwal();
+          return freshJadwal.length > 0 ? (freshJadwal[freshJadwal.length - 1]?.idSesi || freshJadwal[0]?.idSesi) : '';
+        }
+        return prev;
+      });
     };
     window.addEventListener('gkf-tasks-updated', handleTasksUpdate);
     window.addEventListener('gkf-data-updated', handleDataUpdate);
@@ -255,7 +262,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [editingJadwalRow, setEditingJadwalRow] = useState<number | null>(null);
 
   // Kehadiran state
-  const [selectedKehadiranSesiId, setSelectedKehadiranSesiId] = useState<string>('');
+  const [selectedKehadiranSesiId, setSelectedKehadiranSesiId] = useState<string>(
+    () => (jadwal.length > 0 ? (jadwal[jadwal.length - 1]?.idSesi || jadwal[0]?.idSesi) : '')
+  );
   const [manualNamaUsaha, setManualNamaUsaha] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
 

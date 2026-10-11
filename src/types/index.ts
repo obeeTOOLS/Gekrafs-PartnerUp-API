@@ -102,7 +102,7 @@ export interface KehadiranItem {
   namaUsaha: string;
   whatsapp: string;
   sesiPartnerUp: string;
-  metode: 'Self Check-in' | 'Manual Admin';
+  metode: 'Self Check-in' | 'Manual Admin' | 'QR Mandiri' | string;
 }
 
 export interface QuestionAnswerDetail {

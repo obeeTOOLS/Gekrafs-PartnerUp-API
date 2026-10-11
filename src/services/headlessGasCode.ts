@@ -109,6 +109,15 @@ function doGet(e) {
       case 'getRegisteredBusinessNames':
         return createJsonResponse({ status: 'success', data: getRegisteredBusinessNames() });
 
+      case 'repairPesertaSheet':
+        return createJsonResponse(perbaikiDanSinkronkanSheetPeserta());
+
+      case 'repairKehadiranSheet':
+        return createJsonResponse(perbaikiSheetKehadiran());
+
+      case 'repairAllSheets':
+        return createJsonResponse(perbaikiSemuaTab());
+
       case 'getKehadiranBySesi':
         const idSesi = e.parameter.idSesi;
         return createJsonResponse({ status: 'success', data: getKehadiranBySesi(idSesi) });
@@ -192,6 +201,15 @@ function doPost(e) {
       case 'initAllSheets':
         return createJsonResponse({ status: 'success', message: inisialisasiSemuaTab() });
 
+      case 'repairPesertaSheet':
+        return createJsonResponse(perbaikiDanSinkronkanSheetPeserta());
+
+      case 'repairKehadiranSheet':
+        return createJsonResponse(perbaikiSheetKehadiran());
+
+      case 'repairAllSheets':
+        return createJsonResponse(perbaikiSemuaTab());
+
       case 'saveKehadiranManual':
         return createJsonResponse(saveKehadiranManual(payload.idSesi, payload.namaUsaha));
 
@@ -199,7 +217,7 @@ function doPost(e) {
         return createJsonResponse(deleteKehadiranItem(payload.idSesi, payload.namaUsaha));
 
       case 'updateStatusKurasi':
-        return createJsonResponse(updateStatusKurasi(payload.row, payload.status, payload.catatan));
+        return createJsonResponse(updateStatusKurasi(payload.row, payload.status, payload.catatan, payload.namaUsaha));
 
       case 'saveTimelineItem':
         return createJsonResponse(saveTimelineItem(payload.item));
@@ -439,13 +457,227 @@ function inisialisasiSheetKas() {
 }
 
 /**
- * Inisialisasi Seluruh Tab Sekaligus (Kehadiran, Tugas & Buku Kas)
+ * Inisialisasi Seluruh Tab Sekaligus (Peserta, Kehadiran, Tugas & Buku Kas)
  */
 function inisialisasiSemuaTab() {
+  perbaikiDanSinkronkanSheetPeserta();
+  perbaikiSheetKehadiran();
   inisialisasiSheetKehadiran();
   inisialisasiSheetTugas();
   inisialisasiSheetKas();
-  return '✅ Seluruh tab database (Kehadiran, Tugas, Kas_Transaksi & Kas_Profil) berhasil disiapkan dan diformat rapi!';
+  return '✅ Seluruh tab database (Peserta, Kehadiran, Tugas, Kas_Transaksi & Kas_Profil) berhasil disiapkan, diperbaiki, dan diformat rapi!';
+}
+
+/**
+ * FUNGSI DOKTER SPREADSHEET: Perbaiki Tab 'Kehadiran'
+ * Menambal baris yang kehilangan Tanggal Sesi & Topik Sesi (seperti baris 38 & 39)
+ */
+function perbaikiSheetKehadiran() {
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_KEHADIRAN);
+  if (!sheet) {
+    return { status: 'error', message: 'Sheet Kehadiran belum dibuat.' };
+  }
+
+  const rows = sheet.getDataRange().getValues();
+  if (rows.length <= 1) {
+    return { status: 'success', message: 'Sheet Kehadiran kosong.', fixedCount: 0 };
+  }
+
+  let fixedCount = 0;
+  for (let i = 1; i < rows.length; i++) {
+    const rowNum = i + 1;
+    const idSesi = String(rows[i][1] || '').trim();
+    let tgl = String(rows[i][2] || '').trim();
+    let tpk = String(rows[i][3] || '').trim();
+
+    let needsUpdate = false;
+    if (!tgl || !tpk) {
+      if (idSesi === '8f75e785') {
+        if (!tgl) tgl = '2026-10-03';
+        if (!tpk) tpk = 'MINDSET BISNIS DAN PENYELARASAN TUJUAN KEGIATAN';
+        needsUpdate = true;
+      } else if (idSesi === '7a0f968c') {
+        if (!tgl) tgl = '2026-10-10';
+        if (!tpk) tpk = 'MINDSET KEUANGAN';
+        needsUpdate = true;
+      } else {
+        if (!tgl) tgl = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd');
+        if (!tpk) tpk = 'Pelatihan UMKM Kota Batu';
+        needsUpdate = true;
+      }
+    }
+
+    if (needsUpdate) {
+      sheet.getRange(rowNum, 3).setValue(tgl);
+      sheet.getRange(rowNum, 4).setValue(tpk);
+      fixedCount++;
+    }
+  }
+
+  return {
+    status: 'success',
+    message: 'Tab Kehadiran berhasil diperiksa. ' + fixedCount + ' baris dengan tanggal/topik kosong berhasil diperbaiki!',
+    fixedCount: fixedCount
+  };
+}
+
+/**
+ * FUNGSI DOKTER SPREADSHEET: Perbaiki dan Sinkronkan Tab 'Peserta'
+ * Membersihkan error #REF!, menyusun ulang header 9 kolom, dan mengisi seluruh data dari tab Pendaftaran
+ */
+function perbaikiDanSinkronkanSheetPeserta() {
+  const ss = getSpreadsheet();
+  const sheetPendaftaran = ss.getSheetByName(SHEET_PENDAFTARAN);
+  if (!sheetPendaftaran) {
+    return { status: 'error', message: 'Sheet Pendaftaran tidak ditemukan.' };
+  }
+
+  let sheetPeserta = ss.getSheetByName(SHEET_PESERTA);
+  if (!sheetPeserta) {
+    sheetPeserta = ss.insertSheet(SHEET_PESERTA);
+  }
+
+  // 1. Simpan catatan/status kurasi yang ada sebelumnya agar tidak hilang
+  const kurasiMap = {};
+  try {
+    const existingData = sheetPeserta.getDataRange().getValues();
+    for (let i = 1; i < existingData.length; i++) {
+      const u = String(existingData[i][1] || existingData[i][0] || '').toLowerCase().trim();
+      if (u && !u.includes('#ref') && u !== 'timestamp') {
+        const st = String(existingData[i][6] || existingData[i][4] || '').trim();
+        const ct = String(existingData[i][7] || existingData[i][5] || '').trim();
+        if (/lolos|review|menunggu|tolak|diterima/i.test(st)) {
+          kurasiMap[u] = { status: st, catatan: ct };
+        }
+      }
+    }
+  } catch (err) {}
+
+  // 2. Baca seluruh data pendaftaran resmi
+  const pRows = sheetPendaftaran.getDataRange().getValues();
+  if (pRows.length <= 1) {
+    return { status: 'error', message: 'Sheet Pendaftaran masih kosong.' };
+  }
+
+  function extractWaRow(row) {
+    const candidates = [row[9], row[4], row[5], row[3]];
+    for (var k = 0; k < candidates.length; k++) {
+      var c = String(candidates[k] || '');
+      var clean = c.replace(/[\s\-()+]/g, '');
+      if (/^(08|628|8)\d{7,13}$/.test(clean)) return clean;
+    }
+    for (var i = 0; i < row.length; i++) {
+      var c = String(row[i] || '');
+      var clean = c.replace(/[\s\-()+]/g, '');
+      if (/^(08|628|8)\d{7,13}$/.test(clean)) return clean;
+    }
+    return '-';
+  }
+
+  function extractEmailRow(row) {
+    const candidates = [row[10], row[5], row[9]];
+    for (var k = 0; k < candidates.length; k++) {
+      var c = String(candidates[k] || '').trim();
+      if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c)) return c;
+    }
+    for (var i = 0; i < row.length; i++) {
+      var c = String(row[i] || '').trim();
+      if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c)) return c;
+    }
+    return '-';
+  }
+
+  function extractSubsektorRow(row) {
+    const subsektors = [
+      'Kuliner', 'Fashion', 'Kriya / Kerajinan', 'Desain Produk',
+      'Desain Grafis / Komunikasi Visual', 'Fotografi', 'Film, Animasi & Video',
+      'Musik', 'Seni Rupa', 'Lainnya'
+    ];
+    for (var k = 0; k < subsektors.length; k++) {
+      var s = subsektors[k];
+      for (var col = 1; col <= 6; col++) {
+        if (String(row[col] || '').toLowerCase().trim() === s.toLowerCase()) return s;
+      }
+    }
+    return String(row[3] || 'Lainnya').trim();
+  }
+
+  function extractSesiRow(row) {
+    for (var i = 0; i < row.length; i++) {
+      var c = String(row[i] || '');
+      if (/sesi\s*[12]/i.test(c)) return c.trim();
+    }
+    return 'Sesi 2';
+  }
+
+  // 3. Susun data baru yang bersih tanpa rumus yang rentan #REF!
+  const headers = [
+    'Timestamp',
+    'Nama Usaha',
+    'Nama Pemilik',
+    'Subsektor',
+    'Nomor WhatsApp',
+    'Email',
+    'Status Kurasi',
+    'Catatan Kurator',
+    'Sesi PartnerUp'
+  ];
+
+  const newValues = [headers];
+  let count = 0;
+
+  for (let i = 1; i < pRows.length; i++) {
+    const r = pRows[i];
+    const usaha = String(r[1] || '').trim();
+    if (!usaha) continue;
+
+    const key = usaha.toLowerCase();
+    const kurasi = kurasiMap[key];
+    const wa = extractWaRow(r);
+    const email = extractEmailRow(r);
+    const subsektor = extractSubsektorRow(r);
+    const sesi = extractSesiRow(r);
+    const pemilik = String(r[2] || '-').trim();
+
+    let ts = r[0];
+    if (ts instanceof Date) {
+      ts = Utilities.formatDate(ts, 'Asia/Jakarta', 'dd/MM/yyyy HH:mm:ss');
+    } else {
+      ts = String(ts || Utilities.formatDate(new Date(), 'Asia/Jakarta', 'dd/MM/yyyy HH:mm:ss'));
+    }
+
+    newValues.push([
+      ts,
+      usaha,
+      pemilik,
+      subsektor,
+      wa,
+      email,
+      kurasi ? kurasi.status : 'Lolos Kurasi',
+      kurasi ? kurasi.catatan : '',
+      sesi
+    ]);
+    count++;
+  }
+
+  // 4. Bersihkan sheet Peserta dan cetak data murni
+  sheetPeserta.clear();
+  sheetPeserta.clearFormats();
+  sheetPeserta.getRange(1, 1, newValues.length, headers.length).setValues(newValues);
+
+  // Format Header Bersih
+  const headerRange = sheetPeserta.getRange(1, 1, 1, headers.length);
+  headerRange.setFontWeight('bold');
+  headerRange.setBackground('#001c3c');
+  headerRange.setFontColor('#ffffff');
+  sheetPeserta.setFrozenRows(1);
+
+  return {
+    status: 'success',
+    message: 'Tab Peserta berhasil diperbaiki dan disinkronkan dari tab Pendaftaran (' + count + ' peserta)! Error #REF! telah bersih total.',
+    count: count
+  };
 }
 
 function deleteTaskRow(id) {
@@ -496,9 +728,19 @@ function checkinKehadiran(idSesi, namaUsaha, whatsapp) {
     }
   }
 
-  // Dapatkan topik & tanggal sesi dari sheet Jadwal
+  // Dapatkan topik & tanggal sesi dari sheet Jadwal dengan nilai default yang dijamin terisi
   let topikSesi = 'Sesi Pelatihan';
   let tanggalSesi = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd');
+
+  // Hardcode fallback pasti jika ID sesi cocok
+  if (cleanIdSesi === '8f75e785') {
+    topikSesi = 'MINDSET BISNIS DAN PENYELARASAN TUJUAN KEGIATAN';
+    tanggalSesi = '2026-10-03';
+  } else if (cleanIdSesi === '7a0f968c') {
+    topikSesi = 'MINDSET KEUANGAN';
+    tanggalSesi = '2026-10-10';
+  }
+
   try {
     const jadwalSheet = getSpreadsheet().getSheetByName(SHEET_JADWAL);
     if (jadwalSheet) {
@@ -516,8 +758,8 @@ function checkinKehadiran(idSesi, namaUsaha, whatsapp) {
             tpk = pmt;
           }
 
-          tanggalSesi = tgl || tanggalSesi;
-          topikSesi = tpk || topikSesi;
+          if (tgl) tanggalSesi = tgl;
+          if (tpk) topikSesi = tpk;
           break;
         }
       }
@@ -754,26 +996,46 @@ function deleteJadwalItem(row) {
 // ============================================================
 
 function getPesertaList(filterSesi) {
-  const sheet = getSpreadsheet().getSheetByName(SHEET_PESERTA);
-  if (!sheet) return [];
-  const rows = sheet.getDataRange().getValues();
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_PESERTA);
+  let rows = sheet ? sheet.getDataRange().getValues() : [];
+
+  // Validasi ketahanan: Cek apakah sheet Peserta rusak (#REF! atau baris kosong melompat)
+  const hasValidData = rows.length > 2 && rows.some(function(r, idx) {
+    return idx > 0 && r[1] && !String(r[1]).includes('#REF') && String(r[1]).trim().length > 0;
+  });
+
+  // Jika rusak/kosong, otomatis panggil dokter perbaikan sheet peserta
+  if (!hasValidData) {
+    try {
+      perbaikiDanSinkronkanSheetPeserta();
+      sheet = ss.getSheetByName(SHEET_PESERTA);
+      rows = sheet ? sheet.getDataRange().getValues() : [];
+    } catch(err) {
+      Logger.log('Gagal auto-repair sheet peserta: ' + err);
+    }
+  }
+
   const list = [];
   const cleanFilter = filterSesi ? String(filterSesi).toLowerCase().trim() : '';
 
   for (let i = 1; i < rows.length; i++) {
-    const sesi = String(rows[i][8] || rows[i][9] || '').trim();
+    const namaUsaha = String(rows[i][1] || '').trim();
+    if (!namaUsaha || namaUsaha.includes('#REF')) continue;
+
+    const sesi = String(rows[i][8] || 'Sesi 2').trim();
     if (!cleanFilter || sesi.toLowerCase() === cleanFilter) {
       list.push({
         row: i + 1,
-        timestamp: rows[i][0],
-        namaUsaha: rows[i][1],
-        namaPemilik: rows[i][2],
-        subsektor: rows[i][3],
-        whatsapp: String(rows[i][4]),
-        email: rows[i][5],
-        statusKurasi: rows[i][6] || 'Belum Direview',
-        catatanKurator: rows[i][7] || '',
-        sesi: sesi || 'Sesi 2'
+        timestamp: rows[i][0] ? (rows[i][0] instanceof Date ? Utilities.formatDate(rows[i][0], 'Asia/Jakarta', 'dd/MM/yyyy HH:mm:ss') : String(rows[i][0])) : '',
+        namaUsaha: namaUsaha,
+        namaPemilik: String(rows[i][2] || '-').trim(),
+        subsektor: String(rows[i][3] || 'Lainnya').trim(),
+        whatsapp: String(rows[i][4] || '-').trim(),
+        email: String(rows[i][5] || '-').trim(),
+        statusKurasi: String(rows[i][6] || 'Lolos Kurasi').trim(),
+        catatanKurator: String(rows[i][7] || '').trim(),
+        sesi: sesi
       });
     }
   }
@@ -781,45 +1043,54 @@ function getPesertaList(filterSesi) {
 }
 
 function getRegisteredBusinessNames() {
-  const sheet = getSpreadsheet().getSheetByName(SHEET_PESERTA);
-  if (!sheet) return [];
-  const rows = sheet.getDataRange().getValues();
-  const names = [];
-  for (let i = 1; i < rows.length; i++) {
-    if (rows[i][1]) names.push(String(rows[i][1]).trim());
-  }
-  return names;
+  const list = getPesertaList();
+  return list.map(function(p) { return p.namaUsaha; });
 }
 
 function verifyPesertaIdentity(namaUsaha, cred) {
-  const sheet = getSpreadsheet().getSheetByName(SHEET_PESERTA);
-  if (!sheet) return { verified: false, message: 'Sheet peserta belum tersedia.' };
-
-  const rows = sheet.getDataRange().getValues();
+  const list = getPesertaList();
   const cleanNama = String(namaUsaha).toLowerCase().trim();
   const cleanCred = String(cred).replace(/[^0-9]/g, '');
 
-  for (let i = 1; i < rows.length; i++) {
-    const rowNama = String(rows[i][1]).toLowerCase().trim();
-    const rowWa = String(rows[i][4]).replace(/[^0-9]/g, '');
+  for (let i = 0; i < list.length; i++) {
+    const p = list[i];
+    const rowNama = String(p.namaUsaha).toLowerCase().trim();
+    const rowWa = String(p.whatsapp).replace(/[^0-9]/g, '');
 
     if (rowNama === cleanNama) {
       if (cleanCred && (rowWa.endsWith(cleanCred) || cleanCred.endsWith(rowWa))) {
-        return { verified: true, namaUsaha: rows[i][1], namaPemilik: rows[i][2] };
+        return { verified: true, namaUsaha: p.namaUsaha, namaPemilik: p.namaPemilik };
       }
     }
   }
   return { verified: false, message: 'Identitas nomor WhatsApp tidak cocok dengan pendaftaran.' };
 }
 
-function updateStatusKurasi(row, status, catatan) {
+function updateStatusKurasi(row, status, catatan, namaUsaha) {
   const sheet = getSpreadsheet().getSheetByName(SHEET_PESERTA);
-  if (!sheet || row < 2 || row > sheet.getLastRow()) {
+  if (!sheet) return { status: 'error', message: 'Sheet peserta belum tersedia.' };
+
+  let targetRow = row;
+  // Cari baris aktual berdasarkan namaUsaha agar presisi dari pergeseran baris
+  if (namaUsaha) {
+    const cleanU = String(namaUsaha).toLowerCase().trim();
+    const rows = sheet.getDataRange().getValues();
+    for (let i = 1; i < rows.length; i++) {
+      if (String(rows[i][1] || '').toLowerCase().trim() === cleanU) {
+        targetRow = i + 1;
+        break;
+      }
+    }
+  }
+
+  if (targetRow < 2 || targetRow > sheet.getLastRow()) {
     return { status: 'error', message: 'Baris peserta tidak ditemukan.' };
   }
-  sheet.getRange(row, 8).setValue(status);
+
+  // Kolom 7: Status Kurasi, Kolom 8: Catatan Kurator
+  sheet.getRange(targetRow, 7).setValue(status);
   if (catatan !== undefined) {
-    sheet.getRange(row, 9).setValue(catatan);
+    sheet.getRange(targetRow, 8).setValue(catatan);
   }
   return { status: 'success', message: 'Status kurasi berhasil diperbarui di spreadsheet.' };
 }
