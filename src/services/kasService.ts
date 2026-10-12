@@ -91,7 +91,19 @@ export interface KasMasterRecapSummary {
   topIncomeUmkms: UmkmKasRecapItem[];
 }
 
+export interface DeveloperVoucher {
+  code: string;
+  targetNamaUsaha?: string;
+  generatedAt: string;
+  generatedBy: string;
+  isUsed: boolean;
+  usedAt?: string;
+  usedByNamaUsaha?: string;
+  notes?: string;
+}
+
 const STORAGE_PREFIX = 'gkf_untungin_kas_data_v1_';
+const STORAGE_DEV_VOUCHERS = 'gkf_untungin_dev_vouchers_v1';
 
 export const REF_INCOME_CATEGORIES = [
   'Penjualan Produk',
@@ -141,7 +153,7 @@ export interface KasPremiumAccess {
   tier: 'free' | 'trial' | 'premium';
   unlockedAt?: string;
   grantedBy?: string;
-  method?: 'kurator' | 'payment' | 'system' | 'trial' | 'none';
+  method?: 'developer' | 'kurator' | 'payment' | 'system' | 'trial' | 'none';
   transactionLimit?: number;
   usedTransactions?: number;
   remainingTransactions?: number;
@@ -863,12 +875,12 @@ class KasService {
   }
 
   /**
-   * Memberikan akses Untungin Pro (oleh Kurator/Admin atau sistem)
+   * Memberikan akses Untungin Pro (Eksklusif oleh Lead Developer / Sistem Lisensi)
    */
   public grantPremiumAccess(
     namaUsaha: string, 
-    grantedBy: string = 'Kurator PartnerUp', 
-    method: 'kurator' | 'payment' | 'system' = 'kurator'
+    grantedBy: string = 'Lead Developer (obeetools@gmail.com)', 
+    method: 'developer' | 'kurator' | 'payment' | 'system' = 'developer'
   ): KasPremiumAccess {
     if (!namaUsaha) return { namaUsaha: '', isPremium: false, tier: 'free' };
 
@@ -898,7 +910,7 @@ class KasService {
   }
 
   /**
-   * Mencabut hak akses Untungin Pro kembali ke Standar Free / Trial
+   * Mencabut hak akses Untungin Pro kembali ke Standar Free / Trial (Eksklusif Developer)
    */
   public revokePremiumAccess(namaUsaha: string): KasPremiumAccess {
     if (!namaUsaha) return { namaUsaha: '', isPremium: false, tier: 'free' };
@@ -928,13 +940,120 @@ class KasService {
   }
 
   /**
-   * Aktivasi kode lisensi / verifikasi pembayaran
+   * Mendapatkan daftar voucher resmi yang diterbitkan oleh Developer
+   */
+  public getDeveloperVouchers(): DeveloperVoucher[] {
+    try {
+      const raw = localStorage.getItem(STORAGE_DEV_VOUCHERS);
+      if (!raw) return [];
+      const list = JSON.parse(raw);
+      return Array.isArray(list) ? list : [];
+    } catch (e) {
+      console.error('[kasService] Error reading developer vouchers', e);
+      return [];
+    }
+  }
+
+  /**
+   * Menerbitkan voucher lisensi resmi baru (Eksklusif Developer)
+   */
+  public generateDeveloperVoucher(
+    targetNamaUsaha?: string,
+    actor: string = 'Lead Developer (obeetools@gmail.com)',
+    notes?: string
+  ): DeveloperVoucher {
+    const list = this.getDeveloperVouchers();
+    const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const code = `DEV-PRO-${randomSuffix}`;
+
+    const newVoucher: DeveloperVoucher = {
+      code,
+      targetNamaUsaha: targetNamaUsaha?.trim() || undefined,
+      generatedAt: new Date().toISOString(),
+      generatedBy: actor,
+      isUsed: false,
+      notes: notes || (targetNamaUsaha ? `Voucher resmi untuk ${targetNamaUsaha}` : 'Voucher lisensi Untungin Pro')
+    };
+
+    const updated = [newVoucher, ...list];
+    try {
+      localStorage.setItem(STORAGE_DEV_VOUCHERS, JSON.stringify(updated));
+    } catch (e) {
+      console.error('[kasService] Error saving new voucher', e);
+    }
+
+    return newVoucher;
+  }
+
+  /**
+   * Menghapus voucher lisensi (Eksklusif Developer)
+   */
+  public deleteDeveloperVoucher(code: string): boolean {
+    const list = this.getDeveloperVouchers();
+    const filtered = list.filter(v => v.code.toUpperCase() !== code.toUpperCase());
+    try {
+      localStorage.setItem(STORAGE_DEV_VOUCHERS, JSON.stringify(filtered));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Aktivasi kode lisensi / verifikasi voucher pembayaran
    */
   public activateLicenseCode(namaUsaha: string, code: string): { success: boolean; message: string; access?: KasPremiumAccess } {
     if (!namaUsaha) return { success: false, message: 'Nama usaha tidak valid.' };
     const cleanCode = (code || '').toUpperCase().trim();
 
-    // Kode lisensi resmi / voucher yang didukung
+    if (!cleanCode) {
+      return { success: false, message: 'Masukkan kode lisensi atau voucher Anda.' };
+    }
+
+    // 1. Periksa apakah cocok dengan Voucher yang diterbitkan Developer
+    const vouchers = this.getDeveloperVouchers();
+    const matchedVoucherIndex = vouchers.findIndex(v => v.code.toUpperCase() === cleanCode);
+
+    if (matchedVoucherIndex !== -1) {
+      const voucher = vouchers[matchedVoucherIndex];
+
+      if (voucher.isUsed) {
+        return {
+          success: false,
+          message: `Kode voucher ${cleanCode} sudah pernah digunakan oleh usaha "${voucher.usedByNamaUsaha || 'lain'}" pada ${new Date(voucher.usedAt || '').toLocaleDateString('id-ID')}.`
+        };
+      }
+
+      if (voucher.targetNamaUsaha && voucher.targetNamaUsaha.toLowerCase().trim() !== namaUsaha.toLowerCase().trim()) {
+        return {
+          success: false,
+          message: `Kode voucher ini khusus diterbitkan untuk usaha "${voucher.targetNamaUsaha}". Silakan gunakan kode voucher yang sesuai dengan nama usaha Anda.`
+        };
+      }
+
+      // Tandai voucher telah digunakan
+      vouchers[matchedVoucherIndex] = {
+        ...voucher,
+        isUsed: true,
+        usedAt: new Date().toISOString(),
+        usedByNamaUsaha: namaUsaha
+      };
+
+      try {
+        localStorage.setItem(STORAGE_DEV_VOUCHERS, JSON.stringify(vouchers));
+      } catch (e) {
+        console.error('[kasService] Error updating voucher status', e);
+      }
+
+      const access = this.grantPremiumAccess(namaUsaha, `Voucher Resmi Developer (${cleanCode})`, 'payment');
+      return {
+        success: true,
+        message: `Selamat! Lisensi Untungin Pro untuk "${namaUsaha}" berhasil diaktifkan dengan Voucher Resmi Developer (${cleanCode}). Akses terbuka penuh selamanya.`,
+        access
+      };
+    }
+
+    // 2. Kode lisensi sistem / master yang didukung
     const validCodes = [
       'UNTUNGINPRO2026',
       'GEKRAFS-PRO-BATU',
@@ -943,12 +1062,8 @@ class KasService {
       'BATCH2-JUARA'
     ];
 
-    if (!cleanCode) {
-      return { success: false, message: 'Masukkan kode lisensi atau bukti transaksi Anda.' };
-    }
-
     if (validCodes.includes(cleanCode) || cleanCode.startsWith('VIP-') || cleanCode.startsWith('PRO-')) {
-      const access = this.grantPremiumAccess(namaUsaha, `Aktivasi Lisensi (${cleanCode})`, 'payment');
+      const access = this.grantPremiumAccess(namaUsaha, `Aktivasi Lisensi Resmi (${cleanCode})`, 'payment');
       return {
         success: true,
         message: `Selamat! Lisensi Untungin Pro untuk "${namaUsaha}" berhasil diaktifkan. Semua fitur kas terbuka penuh.`,
@@ -958,7 +1073,7 @@ class KasService {
 
     return {
       success: false,
-      message: 'Kode lisensi tidak valid atau belum terdaftar. Hubungi Kurator atau Panitia PartnerUp untuk mendapatkan kode lisensi resmi.'
+      message: 'Kode lisensi atau voucher tidak valid. Lisensi Pro resmi hanya diterbitkan oleh Lead Developer. Hubungi developer untuk mendapatkan kode voucher resmi.'
     };
   }
 

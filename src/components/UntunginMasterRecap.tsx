@@ -717,12 +717,16 @@ export const UntunginMasterRecap: React.FC<UntunginMasterRecapProps> = ({
                       {/* Lisensi Untungin */}
                       <td className="py-3.5 px-4 text-center">
                         {item.proStatus.isPremium ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-100 text-purple-800 border border-purple-200" title="Untungin Pro Aktif">
-                            <span>💎 Pro</span>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-100 text-purple-900 border border-purple-300" title={`Untungin Pro Aktif (${item.proStatus.grantedBy || 'Lead Developer'})`}>
+                            <span>👑 Pro (Dev)</span>
+                          </span>
+                        ) : item.proStatus.isTrialActive ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200" title={`Trial Aktif (${item.proStatus.remainingTransactions} tx tersisa)`}>
+                            <span>⏱️ Trial ({item.proStatus.remainingTransactions || 0}tx)</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200" title="Trial / Free">
-                            <span>⏱️ Trial</span>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-500 border border-slate-200" title="Trial Kedaluwarsa">
+                            <span>🔒 Habis</span>
                           </span>
                         )}
                       </td>

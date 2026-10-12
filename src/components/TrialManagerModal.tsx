@@ -23,6 +23,7 @@ interface TrialManagerModalProps {
   namaPemilik?: string;
   onUpdated: (newAccess: KasPremiumAccess) => void;
   onGrantPro?: () => void;
+  isDeveloper?: boolean;
 }
 
 export const TrialManagerModal: React.FC<TrialManagerModalProps> = ({
@@ -31,7 +32,8 @@ export const TrialManagerModal: React.FC<TrialManagerModalProps> = ({
   namaUsaha,
   namaPemilik,
   onUpdated,
-  onGrantPro
+  onGrantPro,
+  isDeveloper = false
 }) => {
   const [currentStatus, setCurrentStatus] = useState<KasPremiumAccess>(() => 
     kasService.getPremiumStatus(namaUsaha)
@@ -340,14 +342,14 @@ export const TrialManagerModal: React.FC<TrialManagerModalProps> = ({
             </div>
           </form>
 
-          {/* Opsi Pintas: Beri Akses Pro Penuh jika memenuhi syarat */}
-          {onGrantPro && !currentStatus.isPremium && (
-            <div className="p-3 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl flex items-center justify-between gap-2">
+          {/* Opsi Pintas: Beri Akses Pro Penuh (Eksklusif Developer / Site Engineer) */}
+          {isDeveloper && onGrantPro && !currentStatus.isPremium && (
+            <div className="p-3 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-2xl flex items-center justify-between gap-2 shadow-xs">
               <div className="flex items-center gap-2 min-w-0">
                 <Crown className="w-4 h-4 fill-amber-500 text-amber-600 flex-shrink-0" />
                 <div className="text-xs truncate">
-                  <span className="font-bold text-[#001c3c] block">Ingin beri akses tanpa batas?</span>
-                  <span className="text-slate-500 text-[11px]">Buka fitur Pro permanen untuk UMKM ini</span>
+                  <span className="font-bold text-[#001c3c] block">👑 Otoritas Developer</span>
+                  <span className="text-slate-600 text-[11px]">Buka akses Pro Lifetime tanpa batas untuk usaha ini</span>
                 </div>
               </div>
               <button
@@ -358,8 +360,18 @@ export const TrialManagerModal: React.FC<TrialManagerModalProps> = ({
                 }}
                 className="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-[#001c3c] font-black text-xs rounded-xl shadow-xs transition-all cursor-pointer flex-shrink-0"
               >
-                Beri Pro Penuh
+                Beri Pro Lifetime
               </button>
+            </div>
+          )}
+
+          {/* Edukasi Hak Akses untuk Kurator */}
+          {!isDeveloper && (
+            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-start gap-2.5">
+              <Info className="w-4 h-4 text-slate-500 flex-shrink-0 mt-0.5" />
+              <div className="text-[11px] text-slate-600 leading-relaxed">
+                <span className="font-bold text-slate-800">Otoritas Kurator:</span> Anda memiliki wewenang penuh menambah kuota transaksi dan memperpanjang masa trial selama proses pembinaan. Penerbitan lisensi Pro tanpa batas maupun kode voucher resmi dikelola secara eksklusif oleh Lead Developer.
+              </div>
             </div>
           )}
 

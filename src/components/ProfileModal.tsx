@@ -9,11 +9,20 @@ interface ProfileModalProps {
   peserta: PesertaItem | null;
   onClose: () => void;
   onOpenUntungin?: (peserta: PesertaItem) => void;
+  viewerRole?: string;
+  isDeveloper?: boolean;
 }
 
-export const ProfileModal: React.FC<ProfileModalProps> = ({ peserta, onClose, onOpenUntungin }) => {
+export const ProfileModal: React.FC<ProfileModalProps> = ({ 
+  peserta, 
+  onClose, 
+  onOpenUntungin,
+  viewerRole,
+  isDeveloper = false 
+}) => {
   if (!peserta) return null;
 
+  const effectiveIsDeveloper = isDeveloper || viewerRole === 'developer';
   const [premiumAccess, setPremiumAccess] = useState(() =>
     peserta ? kasService.getPremiumStatus(peserta.namaUsaha) : null
   );
@@ -26,12 +35,12 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ peserta, onClose, on
   }, [peserta]);
 
   const handleTogglePro = () => {
-    if (!peserta) return;
+    if (!peserta || !effectiveIsDeveloper) return;
     if (premiumAccess?.isPremium) {
       const revoked = kasService.revokePremiumAccess(peserta.namaUsaha);
       setPremiumAccess(revoked);
     } else {
-      const granted = kasService.grantPremiumAccess(peserta.namaUsaha, 'Kurator PartnerUp', 'kurator');
+      const granted = kasService.grantPremiumAccess(peserta.namaUsaha, 'Lead Developer (obeetools@gmail.com)', 'developer');
       setPremiumAccess(granted);
     }
   };
@@ -170,22 +179,25 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ peserta, onClose, on
                     <button
                       type="button"
                       onClick={() => setIsTrialManagerOpen(true)}
-                      className="px-2 py-1 rounded-lg text-[10px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-all cursor-pointer shadow-2xs"
+                      className="px-2.5 py-1 rounded-lg text-[10px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-all cursor-pointer shadow-2xs"
                       title="Atur kuota kredit transaksi atau perpanjang masa aktif trial"
                     >
-                      ⚙️ Atur Trial
+                      ⚙️ {effectiveIsDeveloper ? 'Atur Trial' : 'Tambah Kredit / Trial'}
                     </button>
-                    <button
-                      type="button"
-                      onClick={handleTogglePro}
-                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer shadow-2xs ${
-                        premiumAccess?.isPremium
-                          ? 'bg-rose-100 text-rose-800 hover:bg-rose-200 border border-rose-200'
-                          : 'bg-amber-400 hover:bg-amber-300 text-[#001c3c]'
-                      }`}
-                    >
-                      {premiumAccess?.isPremium ? 'Cabut Pro' : '✨ Beri Pro'}
-                    </button>
+                    {effectiveIsDeveloper && (
+                      <button
+                        type="button"
+                        onClick={handleTogglePro}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer shadow-2xs ${
+                          premiumAccess?.isPremium
+                            ? 'bg-rose-100 text-rose-800 hover:bg-rose-200 border border-rose-200'
+                            : 'bg-amber-400 hover:bg-amber-300 text-[#001c3c]'
+                        }`}
+                        title="Hak Eksklusif Developer / Site Engineer"
+                      >
+                        {premiumAccess?.isPremium ? 'Cabut Pro' : '👑 Beri Pro'}
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -270,7 +282,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ peserta, onClose, on
         onUpdated={(newAccess) => {
           setPremiumAccess(newAccess);
         }}
-        onGrantPro={handleTogglePro}
+        onGrantPro={effectiveIsDeveloper ? handleTogglePro : undefined}
+        isDeveloper={effectiveIsDeveloper}
       />
     </div>
   );

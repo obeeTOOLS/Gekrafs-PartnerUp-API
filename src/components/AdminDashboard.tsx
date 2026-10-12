@@ -2934,6 +2934,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           peserta={selectedPesertaForModal}
           onClose={() => setSelectedPesertaForModal(null)}
           onOpenUntungin={(p) => setUntunginModalPeserta(p)}
+          viewerRole={userRole === 'developer' || !!engineerSession ? 'developer' : userRole || 'kurator'}
+          isDeveloper={userRole === 'developer' || !!engineerSession}
         />
       )}
 
