@@ -13,6 +13,8 @@
  */
 
 import { gasService } from './gasService';
+import { fetchSheetCsv } from '../utils/csvParser';
+import { PesertaItem } from '../types';
 
 export interface KasAccount {
   id: string;
@@ -49,6 +51,44 @@ export interface KasFinancialSummary {
   pphFinalEstimasi: number;
   negativeAccounts: KasAccount[];
   transactionCount: number;
+}
+
+export interface UmkmKasRecapItem {
+  namaUsaha: string;
+  namaPemilik?: string;
+  subsektor?: string;
+  whatsapp?: string;
+  alamatUsaha?: string;
+  sesi?: string;
+  totalIncome: number;
+  totalExpense: number;
+  netProfit: number;
+  profitMargin: number;
+  txCount: number;
+  incomeCount: number;
+  expenseCount: number;
+  transferCount: number;
+  lastTxDate?: string;
+  hasTransactions: boolean;
+  healthStatus: 'Sehat (Laba Tinggi)' | 'Stabil (Laba Menengah)' | 'Tipis (Laba Rendah)' | 'Impas' | 'Defisit (Rugi)' | 'Belum Ada Transaksi';
+  proStatus: KasPremiumAccess;
+  transactions: KasTransaction[];
+}
+
+export interface KasMasterRecapSummary {
+  totalOmzetGlobal: number;
+  totalExpenseGlobal: number;
+  totalNetProfitGlobal: number;
+  averageMarginGlobal: number;
+  totalTransactionsGlobal: number;
+  activeUmkmCount: number;
+  totalUmkmCount: number;
+  profitableCount: number;
+  deficitCount: number;
+  proCount: number;
+  items: UmkmKasRecapItem[];
+  sectorBreakdown: { subsektor: string; totalOmzet: number; totalExpense: number; netProfit: number; count: number; activeCount: number }[];
+  topIncomeUmkms: UmkmKasRecapItem[];
 }
 
 const STORAGE_PREFIX = 'gkf_untungin_kas_data_v1_';
@@ -919,6 +959,314 @@ class KasService {
     return {
       success: false,
       message: 'Kode lisensi tidak valid atau belum terdaftar. Hubungi Kurator atau Panitia PartnerUp untuk mendapatkan kode lisensi resmi.'
+    };
+  }
+
+  /**
+   * Mengambil seluruh transaksi kas dari Google Spreadsheet (Tab Kas_Transaksi)
+   * Menggunakan endpoint Google Spreadsheet gviz CSV langsung (cepat & non-blocking)
+   * Digabungkan dengan transaksi di local storage
+   */
+  public async fetchAllCloudKasTransactions(): Promise<KasTransaction[]> {
+    const defaultSpreadsheetId = '183uoyYw6opnr3w7T6oljvwuy5Rzs7GZE7fM3vi_pwm4';
+    const txMap = new Map<string, KasTransaction>();
+
+    try {
+      const rows = await fetchSheetCsv(defaultSpreadsheetId, 'Kas_Transaksi');
+      if (rows && rows.length > 1) {
+        const dataRows = rows.slice(1);
+        dataRows.forEach((r) => {
+          if (!r[1] && !r[2]) return;
+          const id = (r[1] || '').trim();
+          const namaUsaha = (r[2] || '').trim();
+          if (!namaUsaha) return;
+
+          let tx: KasTransaction | null = null;
+          if (r[12]) {
+            try {
+              tx = JSON.parse(r[12]);
+            } catch (e) {}
+          }
+
+          if (!tx) {
+            tx = {
+              id: id || `tx_cloud_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+              namaUsaha: namaUsaha,
+              date: r[3] || '',
+              type: (r[4] as any) || 'income',
+              category: r[5] || 'Umum',
+              amount: Number(r[6]) || 0,
+              accountId: r[7] || '',
+              toAccountId: r[8] || undefined,
+              desc: r[9] || '',
+              createdBy: r[10] || 'Peserta',
+              createdAt: r[11] || ''
+            };
+          }
+
+          if (tx && tx.id) {
+            txMap.set(tx.id, tx);
+          }
+        });
+      }
+    } catch (err) {
+      console.warn('[kasService] Error fetching cloud kas transactions via CSV:', err);
+      // Fallback via GAS dispatchRemoteAction
+      try {
+        const response = await gasService.dispatchRemoteAction('getKasTransactions', {});
+        if (response && response.status === 'success' && Array.isArray(response.data)) {
+          response.data.forEach((t: KasTransaction) => {
+            if (t && t.id) txMap.set(t.id, t);
+          });
+        }
+      } catch (gasErr) {
+        console.warn('[kasService] Fallback to GAS action also failed:', gasErr);
+      }
+    }
+
+    // Gabungkan dengan transaksi yang mungkin ada di localStorage browser ini
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(STORAGE_PREFIX)) {
+          const raw = localStorage.getItem(key);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && Array.isArray(parsed.transactions)) {
+              parsed.transactions.forEach((t: KasTransaction) => {
+                if (t && t.id && !txMap.has(t.id)) {
+                  txMap.set(t.id, t);
+                }
+              });
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[kasService] Error merging local transactions:', e);
+    }
+
+    return Array.from(txMap.values()).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  }
+
+  /**
+   * Menghasilkan master rekapitulasi keuangan untuk seluruh pengguna Untungin
+   */
+  public async generateMasterRecap(pesertaList: PesertaItem[]): Promise<KasMasterRecapSummary> {
+    const allTxs = await this.fetchAllCloudKasTransactions();
+
+    // Map transaksi berdasarkan nama usaha (dengan toleransi normalisasi)
+    const txByBusiness = new Map<string, KasTransaction[]>();
+    const normalize = (str: string) => (str || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+
+    allTxs.forEach((tx) => {
+      const norm = normalize(tx.namaUsaha);
+      if (!norm) return;
+      if (!txByBusiness.has(norm)) {
+        txByBusiness.set(norm, []);
+      }
+      txByBusiness.get(norm)!.push(tx);
+    });
+
+    const items: UmkmKasRecapItem[] = [];
+    const matchedNormKeys = new Set<string>();
+
+    // 1. Proses seluruh peserta resmi yang terdaftar
+    pesertaList.forEach((p) => {
+      const normKey = normalize(p.namaUsaha);
+      matchedNormKeys.add(normKey);
+
+      let txList = txByBusiness.get(normKey) || [];
+      // Jika belum ketemu, coba pencarian substring (misal nama di tx disingkat)
+      if (txList.length === 0) {
+        for (const [key, txs] of txByBusiness.entries()) {
+          if (!matchedNormKeys.has(key) && (key.includes(normKey) || normKey.includes(key))) {
+            txList = txs;
+            matchedNormKeys.add(key);
+            break;
+          }
+        }
+      }
+
+      // Hitung metrik
+      let totalIncome = 0;
+      let totalExpense = 0;
+      let incomeCount = 0;
+      let expenseCount = 0;
+      let transferCount = 0;
+      let lastTxDate: string | undefined = undefined;
+
+      txList.forEach((t) => {
+        const amt = Number(t.amount) || 0;
+        if (t.type === 'income') {
+          totalIncome += amt;
+          incomeCount++;
+        } else if (t.type === 'expense') {
+          totalExpense += amt;
+          expenseCount++;
+        } else if (t.type === 'transfer') {
+          transferCount++;
+        }
+        if (t.date && (!lastTxDate || t.date > lastTxDate)) {
+          lastTxDate = t.date;
+        }
+      });
+
+      const netProfit = totalIncome - totalExpense;
+      const profitMargin = totalIncome > 0 ? (netProfit / totalIncome) * 100 : 0;
+      const hasTransactions = txList.length > 0;
+
+      let healthStatus: UmkmKasRecapItem['healthStatus'] = 'Belum Ada Transaksi';
+      if (hasTransactions) {
+        if (netProfit < 0) healthStatus = 'Defisit (Rugi)';
+        else if (netProfit === 0) healthStatus = 'Impas';
+        else if (profitMargin >= 25) healthStatus = 'Sehat (Laba Tinggi)';
+        else if (profitMargin >= 10) healthStatus = 'Stabil (Laba Menengah)';
+        else healthStatus = 'Tipis (Laba Rendah)';
+      }
+
+      const proStatus = this.getPremiumStatus(p.namaUsaha);
+
+      items.push({
+        namaUsaha: p.namaUsaha,
+        namaPemilik: p.namaPemilik,
+        subsektor: p.subsektor || 'Lainnya',
+        whatsapp: p.whatsapp,
+        alamatUsaha: p.alamatUsaha,
+        sesi: p.sesi,
+        totalIncome,
+        totalExpense,
+        netProfit,
+        profitMargin,
+        txCount: txList.length,
+        incomeCount,
+        expenseCount,
+        transferCount,
+        lastTxDate,
+        hasTransactions,
+        healthStatus,
+        proStatus,
+        transactions: txList
+      });
+    });
+
+    // 2. Sertakan transaksi bisnis yang belum terdaftar di daftar peserta (misal obeecreatives, testing, dsb.)
+    for (const [normKey, txs] of txByBusiness.entries()) {
+      if (!matchedNormKeys.has(normKey)) {
+        let totalIncome = 0;
+        let totalExpense = 0;
+        let incomeCount = 0;
+        let expenseCount = 0;
+        let transferCount = 0;
+        let lastTxDate: string | undefined = undefined;
+        const rawNama = txs[0]?.namaUsaha || normKey;
+
+        txs.forEach((t) => {
+          const amt = Number(t.amount) || 0;
+          if (t.type === 'income') {
+            totalIncome += amt;
+            incomeCount++;
+          } else if (t.type === 'expense') {
+            totalExpense += amt;
+            expenseCount++;
+          } else if (t.type === 'transfer') {
+            transferCount++;
+          }
+          if (t.date && (!lastTxDate || t.date > lastTxDate)) {
+            lastTxDate = t.date;
+          }
+        });
+
+        const netProfit = totalIncome - totalExpense;
+        const profitMargin = totalIncome > 0 ? (netProfit / totalIncome) * 100 : 0;
+        const hasTransactions = txs.length > 0;
+        let healthStatus: UmkmKasRecapItem['healthStatus'] = 'Belum Ada Transaksi';
+        if (hasTransactions) {
+          if (netProfit < 0) healthStatus = 'Defisit (Rugi)';
+          else if (netProfit === 0) healthStatus = 'Impas';
+          else if (profitMargin >= 25) healthStatus = 'Sehat (Laba Tinggi)';
+          else if (profitMargin >= 10) healthStatus = 'Stabil (Laba Menengah)';
+          else healthStatus = 'Tipis (Laba Rendah)';
+        }
+
+        const proStatus = this.getPremiumStatus(rawNama);
+
+        items.push({
+          namaUsaha: rawNama,
+          namaPemilik: 'Eksternal / Tenant',
+          subsektor: 'Lainnya',
+          whatsapp: '-',
+          alamatUsaha: '-',
+          totalIncome,
+          totalExpense,
+          netProfit,
+          profitMargin,
+          txCount: txs.length,
+          incomeCount,
+          expenseCount,
+          transferCount,
+          lastTxDate,
+          hasTransactions,
+          healthStatus,
+          proStatus,
+          transactions: txs
+        });
+      }
+    }
+
+    // Urutkan default: yang memiliki omzet tertinggi di atas, lalu yang punya transaksi
+    items.sort((a, b) => {
+      if (b.totalIncome !== a.totalIncome) return b.totalIncome - a.totalIncome;
+      if (b.txCount !== a.txCount) return b.txCount - a.txCount;
+      return a.namaUsaha.localeCompare(b.namaUsaha);
+    });
+
+    // 3. Hitung ringkasan makro global
+    const totalOmzetGlobal = items.reduce((s, it) => s + it.totalIncome, 0);
+    const totalExpenseGlobal = items.reduce((s, it) => s + it.totalExpense, 0);
+    const totalNetProfitGlobal = totalOmzetGlobal - totalExpenseGlobal;
+    const averageMarginGlobal = totalOmzetGlobal > 0 ? (totalNetProfitGlobal / totalOmzetGlobal) * 100 : 0;
+    const totalTransactionsGlobal = items.reduce((s, it) => s + it.txCount, 0);
+    const activeUmkmCount = items.filter((it) => it.hasTransactions).length;
+    const profitableCount = items.filter((it) => it.hasTransactions && it.netProfit > 0).length;
+    const deficitCount = items.filter((it) => it.hasTransactions && it.netProfit < 0).length;
+    const proCount = items.filter((it) => it.proStatus.isPremium).length;
+
+    // Breakdown per subsektor
+    const sectorMap = new Map<string, { totalOmzet: number; totalExpense: number; netProfit: number; count: number; activeCount: number }>();
+    items.forEach((it) => {
+      const sec = it.subsektor || 'Lainnya';
+      if (!sectorMap.has(sec)) {
+        sectorMap.set(sec, { totalOmzet: 0, totalExpense: 0, netProfit: 0, count: 0, activeCount: 0 });
+      }
+      const val = sectorMap.get(sec)!;
+      val.count++;
+      if (it.hasTransactions) val.activeCount++;
+      val.totalOmzet += it.totalIncome;
+      val.totalExpense += it.totalExpense;
+      val.netProfit += it.netProfit;
+    });
+
+    const sectorBreakdown = Array.from(sectorMap.entries())
+      .map(([subsektor, data]) => ({ subsektor, ...data }))
+      .sort((a, b) => b.totalOmzet - a.totalOmzet);
+
+    const topIncomeUmkms = items.filter((it) => it.totalIncome > 0).slice(0, 5);
+
+    return {
+      totalOmzetGlobal,
+      totalExpenseGlobal,
+      totalNetProfitGlobal,
+      averageMarginGlobal,
+      totalTransactionsGlobal,
+      activeUmkmCount,
+      totalUmkmCount: items.length,
+      profitableCount,
+      deficitCount,
+      proCount,
+      items,
+      sectorBreakdown,
+      topIncomeUmkms
     };
   }
 }

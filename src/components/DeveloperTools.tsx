@@ -168,6 +168,17 @@ export const DeveloperTools: React.FC = () => {
   const [repairResult, setRepairResult] = useState<{ success: boolean; message: string } | null>(null);
   const [copiedAsesmenScript, setCopiedAsesmenScript] = useState(false);
 
+  const handleRepairPendaftaran = async () => {
+    setIsRepairingSheet('pendaftaran');
+    setRepairResult(null);
+    try {
+      const res = await gasService.repairPendaftaranSheet();
+      setRepairResult(res);
+    } finally {
+      setIsRepairingSheet(null);
+    }
+  };
+
   const handleRepairPeserta = async () => {
     setIsRepairingSheet('peserta');
     setRepairResult(null);
@@ -1578,16 +1589,16 @@ export const DeveloperTools: React.FC = () => {
         </div>
       </div>
 
-      {/* Section: Dokter Database Spreadsheet (Repair Tab Peserta, Kehadiran & Asesmen) */}
+      {/* Section: Dokter Database Spreadsheet (Repair Tab Pendaftaran, Peserta, Kehadiran & Asesmen) */}
       <div className="bg-white rounded-2xl p-6 border-2 border-[#004c80]/40 shadow-sm space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <div>
             <h2 className="text-sm font-extrabold text-[#001c3c] uppercase flex items-center gap-2">
               <Wrench className="w-4 h-4 text-[#004c80]" />
-              <span>Dokter Spreadsheet: Perbaikan Tab Peserta, Kehadiran & Asesmen</span>
+              <span>Dokter Spreadsheet: Perbaikan Pendaftaran, Peserta, Kehadiran & Asesmen</span>
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Menambal baris kosong tab Kehadiran, membersihkan formula #REF! tab Peserta, serta menyelaraskan 47 kolom header tab Asesmen.
+              Menyelaraskan isian kolom tab Pendaftaran (mulai baris 62), menambal baris kosong Kehadiran, membersihkan #REF! tab Peserta, dan menata 47 kolom Asesmen.
             </p>
           </div>
           <span className="px-2.5 py-1 bg-blue-50 text-[#004c80] text-[11px] font-bold rounded-lg border border-blue-200 self-start sm:self-auto">
@@ -1595,15 +1606,38 @@ export const DeveloperTools: React.FC = () => {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          {/* Card 1: Tab Pendaftaran */}
+          <div className="p-3.5 bg-amber-50/60 rounded-xl border border-amber-200 flex flex-col justify-between space-y-3">
+            <div>
+              <div className="text-xs font-bold text-amber-950 flex items-center gap-1.5 mb-1">
+                <FileSpreadsheet className="w-4 h-4 text-amber-700" />
+                <span>Tab Pendaftaran</span>
+              </div>
+              <p className="text-[11px] text-slate-600 leading-relaxed">
+                Menyelaraskan kolom baris 62 dst yang isiannya tertukar (WA, Email, Subsektor, Alamat, NIB).
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleRepairPendaftaran}
+              disabled={!!isRepairingSheet}
+              className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRepairingSheet === 'pendaftaran' ? 'animate-spin' : ''}`} />
+              <span>{isRepairingSheet === 'pendaftaran' ? 'Memperbaiki...' : 'Perbaiki Pendaftaran'}</span>
+            </button>
+          </div>
+
+          {/* Card 2: Tab Peserta */}
+          <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
             <div>
               <div className="text-xs font-bold text-[#001c3c] flex items-center gap-1.5 mb-1">
                 <Users className="w-4 h-4 text-[#004c80]" />
-                <span>Tab Peserta (#REF! Fix)</span>
+                <span>Tab Peserta</span>
               </div>
               <p className="text-[11px] text-slate-600 leading-relaxed">
-                Membersihkan formula #REF! dan menata ulang 9 kolom header bersih serta mengisi 67 peserta resmi dari tab Pendaftaran.
+                Membersihkan formula #REF! dan menyinkronkan seluruh peserta resmi dari tab Pendaftaran.
               </p>
             </div>
             <button
@@ -1613,15 +1647,16 @@ export const DeveloperTools: React.FC = () => {
               className="w-full py-2 bg-[#001c3c] hover:bg-[#004c80] text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isRepairingSheet === 'peserta' ? 'animate-spin' : ''}`} />
-              <span>{isRepairingSheet === 'peserta' ? 'Memperbaiki...' : 'Perbaiki Tab Peserta'}</span>
+              <span>{isRepairingSheet === 'peserta' ? 'Memperbaiki...' : 'Perbaiki Peserta'}</span>
             </button>
           </div>
 
-          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
+          {/* Card 3: Tab Kehadiran */}
+          <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
             <div>
               <div className="text-xs font-bold text-[#001c3c] flex items-center gap-1.5 mb-1">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span>Tab Kehadiran (Baris Kosong)</span>
+                <span>Tab Kehadiran</span>
               </div>
               <p className="text-[11px] text-slate-600 leading-relaxed">
                 Menambal baris 38 & 39 yang kehilangan Tanggal Sesi & Topik Sesi di datasheet Google Sheets.
@@ -1634,18 +1669,19 @@ export const DeveloperTools: React.FC = () => {
               className="w-full py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isRepairingSheet === 'kehadiran' ? 'animate-spin' : ''}`} />
-              <span>{isRepairingSheet === 'kehadiran' ? 'Memperbaiki...' : 'Perbaiki Tab Kehadiran'}</span>
+              <span>{isRepairingSheet === 'kehadiran' ? 'Memperbaiki...' : 'Perbaiki Kehadiran'}</span>
             </button>
           </div>
 
-          <div className="p-4 bg-purple-50/60 rounded-xl border border-purple-200 flex flex-col justify-between space-y-3">
+          {/* Card 4: Tab Asesmen */}
+          <div className="p-3.5 bg-purple-50/60 rounded-xl border border-purple-200 flex flex-col justify-between space-y-3">
             <div>
               <div className="text-xs font-bold text-purple-950 flex items-center gap-1.5 mb-1">
                 <ClipboardCheck className="w-4 h-4 text-purple-700" />
                 <span>Tab Asesmen (47 Kolom)</span>
               </div>
               <p className="text-[11px] text-slate-600 leading-relaxed">
-                Merapikan seluruh 47 kolom header tab Asesmen agar skor 15 kriteria, Total Skor (kolom AH), dan 8 rata-rata Bagian 3 presisi.
+                Merapikan 47 header agar skor 15 kriteria, Total Skor (kolom AH), dan 8 rata-rata Bagian 3 presisi.
               </p>
             </div>
             <button
@@ -1655,18 +1691,19 @@ export const DeveloperTools: React.FC = () => {
               className="w-full py-2 bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isRepairingSheet === 'asesmen' ? 'animate-spin' : ''}`} />
-              <span>{isRepairingSheet === 'asesmen' ? 'Memperbaiki...' : 'Perbaiki Header Asesmen'}</span>
+              <span>{isRepairingSheet === 'asesmen' ? 'Memperbaiki...' : 'Perbaiki Asesmen'}</span>
             </button>
           </div>
 
-          <div className="p-4 bg-[#eaf2fb] rounded-xl border border-blue-200 flex flex-col justify-between space-y-3">
+          {/* Card 5: Semua Tab Sekaligus */}
+          <div className="p-3.5 bg-[#eaf2fb] rounded-xl border border-blue-200 flex flex-col justify-between space-y-3">
             <div>
               <div className="text-xs font-bold text-[#004c80] flex items-center gap-1.5 mb-1">
                 <Database className="w-4 h-4 text-[#004c80]" />
                 <span>Semua Tab Sekaligus</span>
               </div>
               <p className="text-[11px] text-slate-600 leading-relaxed">
-                Eksekusi perbaikan menyeluruh pada Tab Peserta, Kehadiran, Asesmen, Tugas, dan Buku Kas secara paralel.
+                Eksekusi perbaikan menyeluruh pada Pendaftaran, Peserta, Kehadiran, Asesmen, Tugas & Buku Kas.
               </p>
             </div>
             <button
@@ -1702,7 +1739,7 @@ export const DeveloperTools: React.FC = () => {
           <div className="flex items-start gap-2">
             <Terminal className="w-4 h-4 text-slate-500 flex-shrink-0 mt-0.5" />
             <div className="text-[11px] leading-relaxed">
-              <strong>Opsi Eksekusi Langsung di Apps Script Editor:</strong> Buka <code>script.google.com</code> &rarr; pilih fungsi <code className="bg-slate-200 text-slate-900 px-1 py-0.5 rounded font-mono font-bold">perbaikiHeaderTabAsesmen</code> atau <code className="bg-slate-200 text-slate-900 px-1 py-0.5 rounded font-mono font-bold">inisialisasiSemuaTab</code> pada menu toolbar atas editor Apps Script &rarr; klik <strong>Run (▶️)</strong>.
+              <strong>Opsi Eksekusi Langsung di Apps Script Editor:</strong> Buka <code>script.google.com</code> &rarr; pilih fungsi <code className="bg-slate-200 text-slate-900 px-1 py-0.5 rounded font-mono font-bold">perbaikiSheetPendaftaran</code>, <code className="bg-slate-200 text-slate-900 px-1 py-0.5 rounded font-mono font-bold">perbaikiHeaderTabAsesmen</code>, atau <code className="bg-slate-200 text-slate-900 px-1 py-0.5 rounded font-mono font-bold">inisialisasiSemuaTab</code> pada menu toolbar atas editor Apps Script &rarr; klik <strong>Run (▶️)</strong>.
             </div>
           </div>
           <button
@@ -1711,7 +1748,7 @@ export const DeveloperTools: React.FC = () => {
             className="flex-shrink-0 px-3 py-1.5 bg-white border border-purple-300 text-purple-900 hover:bg-purple-50 text-[11px] font-bold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
           >
             {copiedAsesmenScript ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-purple-600" />}
-            <span>{copiedAsesmenScript ? 'Script Asesmen Tersalin!' : 'Salin Script perbaikiHeaderTabAsesmen'}</span>
+            <span>{copiedAsesmenScript ? 'Script Dokter Tersalin!' : 'Salin Script DokterPerbaikan.gs'}</span>
           </button>
         </div>
       </div>

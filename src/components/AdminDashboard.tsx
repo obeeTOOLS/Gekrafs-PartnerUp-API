@@ -82,6 +82,7 @@ import {
 import { StrategicRoadmapReview } from './StrategicRoadmapReview';
 import { TaskQuestionEditor } from './TaskQuestionEditor';
 import { UntunginKasModal } from './UntunginKasModal';
+import { UntunginMasterRecap } from './UntunginMasterRecap';
 import { taskService } from '../services/taskService';
 import { kasService } from '../services/kasService';
 import { HEADLESS_GAS_CODE } from '../services/headlessGasCode';
@@ -100,7 +101,7 @@ import {
 interface AdminDashboardProps {
   userRole?: UserRole;
   engineerSession?: EngineerSession | null;
-  initialTab?: 'timeline' | 'jadwal' | 'kehadiran' | 'peserta' | 'statistik' | 'pengaturan' | 'asesmen' | 'kolaborasi' | 'mentoring' | 'legalitas' | 'katalog' | 'tugas' | 'kelola_soal';
+  initialTab?: 'timeline' | 'jadwal' | 'kehadiran' | 'peserta' | 'statistik' | 'pengaturan' | 'asesmen' | 'kolaborasi' | 'mentoring' | 'legalitas' | 'katalog' | 'tugas' | 'kelola_soal' | 'rekap_kas';
   onLogout?: () => void;
   onLoginSuccess?: () => void;
   onNavigateToPublic?: () => void;
@@ -117,7 +118,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onEngineerLogin
 }) => {
   const [activeTab, setActiveTab] = useState<
-    'timeline' | 'jadwal' | 'kehadiran' | 'peserta' | 'statistik' | 'pengaturan' | 'asesmen' | 'kolaborasi' | 'mentoring' | 'legalitas' | 'katalog' | 'tugas' | 'kelola_soal'
+    'timeline' | 'jadwal' | 'kehadiran' | 'peserta' | 'statistik' | 'pengaturan' | 'asesmen' | 'kolaborasi' | 'mentoring' | 'legalitas' | 'katalog' | 'tugas' | 'kelola_soal' | 'rekap_kas'
   >(() => initialTab || 'peserta');
 
   const [sertifikatModalPeserta, setSertifikatModalPeserta] = useState<PesertaItem | null>(null);
@@ -966,6 +967,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       <div className="flex p-1 bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto scrollbar-none gap-1">
         {[
           { id: 'peserta', label: `Peserta (${pesertaList.length})`, icon: Users },
+          { id: 'rekap_kas', label: '💰 Rekap Kas Untungin', icon: Wallet },
           { id: 'tugas', label: `Lembar Aksi (${taskCount})`, icon: Compass },
           { id: 'kelola_soal', label: '📝 Kelola Soal Tugas', icon: FileEdit },
           { id: 'asesmen', label: `Asesmen (${asesmenList.length})`, icon: ClipboardList },
@@ -1839,6 +1841,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* TAB: DIREKTORI & KATALOG EKRAF */}
       {activeTab === 'katalog' && (
         <KatalogDirektori pesertaList={pesertaList} />
+      )}
+
+      {/* TAB: REKAPITULASI LAPORAN KEUANGAN BUKU KAS SELURUH PENGGUNA UNTUNGIN */}
+      {activeTab === 'rekap_kas' && (
+        <UntunginMasterRecap
+          pesertaList={pesertaList}
+          onOpenKas={(peserta) => setUntunginModalPeserta(peserta)}
+        />
       )}
 
       {/* TAB 5: PRESENSI KEHADIRAN (QR & MANUAL) */}

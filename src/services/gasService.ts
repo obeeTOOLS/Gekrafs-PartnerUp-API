@@ -697,6 +697,19 @@ class GasService {
     }
   }
 
+  public async repairPendaftaranSheet(): Promise<{ success: boolean; message: string }> {
+    try {
+      const res = await this.dispatchRemoteAction('repairPendaftaranSheet');
+      if (res && res.status === 'success') {
+        await this.syncFromLiveSpreadsheet(undefined, true);
+        return { success: true, message: res.message || 'Tab Pendaftaran berhasil diperbaiki & diselaraskan!' };
+      }
+      return { success: false, message: res?.message || 'Gagal memperbaiki Tab Pendaftaran di Apps Script.' };
+    } catch (e: any) {
+      return { success: false, message: e.message || 'Error koneksi saat perbaikan Tab Pendaftaran.' };
+    }
+  }
+
   public async repairAllSheets(): Promise<{ success: boolean; message: string }> {
     try {
       const res = await this.dispatchRemoteAction('repairAllSheets');

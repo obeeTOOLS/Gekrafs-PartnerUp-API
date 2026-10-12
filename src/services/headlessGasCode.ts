@@ -118,6 +118,9 @@ function doGet(e) {
       case 'repairAsesmenHeaderSheet':
         return createJsonResponse(perbaikiHeaderTabAsesmen());
 
+      case 'repairPendaftaranSheet':
+        return createJsonResponse(perbaikiSheetPendaftaran());
+
       case 'repairAllSheets':
         return createJsonResponse(perbaikiSemuaTab());
 
@@ -212,6 +215,9 @@ function doPost(e) {
 
       case 'repairAsesmenHeaderSheet':
         return createJsonResponse(perbaikiHeaderTabAsesmen());
+
+      case 'repairPendaftaranSheet':
+        return createJsonResponse(perbaikiSheetPendaftaran());
 
       case 'repairAllSheets':
         return createJsonResponse(perbaikiSemuaTab());
@@ -463,22 +469,24 @@ function inisialisasiSheetKas() {
 }
 
 /**
- * Inisialisasi Seluruh Tab Sekaligus (Peserta, Kehadiran, Asesmen, Tugas & Buku Kas)
+ * Inisialisasi Seluruh Tab Sekaligus (Pendaftaran, Peserta, Kehadiran, Asesmen, Tugas & Buku Kas)
  */
 function inisialisasiSemuaTab() {
+  perbaikiSheetPendaftaran();
   perbaikiDanSinkronkanSheetPeserta();
   perbaikiSheetKehadiran();
   perbaikiHeaderTabAsesmen();
   inisialisasiSheetKehadiran();
   inisialisasiSheetTugas();
   inisialisasiSheetKas();
-  return '✅ Seluruh tab database (Peserta, Kehadiran, Asesmen, Tugas, Kas_Transaksi & Kas_Profil) berhasil disiapkan, diperbaiki, dan diformat rapi!';
+  return '✅ Seluruh tab database (Pendaftaran, Peserta, Kehadiran, Asesmen, Tugas, Kas_Transaksi & Kas_Profil) berhasil disiapkan, diperbaiki, dan diformat rapi!';
 }
 
 /**
  * FUNGSI DOKTER SPREADSHEET: Perbaiki Seluruh Tab Database Sekaligus
  */
 function perbaikiSemuaTab() {
+  const resPendaftaran = perbaikiSheetPendaftaran();
   const resPeserta = perbaikiDanSinkronkanSheetPeserta();
   const resKehadiran = perbaikiSheetKehadiran();
   const resAsesmen = perbaikiHeaderTabAsesmen();
@@ -487,8 +495,9 @@ function perbaikiSemuaTab() {
   inisialisasiSheetKas();
   return {
     status: 'success',
-    message: 'Seluruh tab database (Peserta, Kehadiran, Asesmen, Tugas & Buku Kas) berhasil diperbaiki dan disinkronkan!',
+    message: 'Seluruh tab database (Pendaftaran, Peserta, Kehadiran, Asesmen, Tugas & Buku Kas) berhasil diperbaiki dan disinkronkan!',
     details: {
+      pendaftaran: resPendaftaran,
       peserta: resPeserta,
       kehadiran: resKehadiran,
       asesmen: resAsesmen
@@ -632,6 +641,161 @@ function perbaikiSheetKehadiran() {
   return {
     status: 'success',
     message: 'Tab Kehadiran berhasil diperiksa. ' + fixedCount + ' baris dengan tanggal/topik kosong berhasil diperbaiki!',
+    fixedCount: fixedCount
+  };
+}
+
+/**
+ * FUNGSI DOKTER SPREADSHEET: Perbaiki Tata Letak Kolom Tab 'Pendaftaran'
+ * Menyelaraskan baris-baris (mulai baris 62 dst) yang kolomnya melompat atau tertukar posisi
+ * agar WhatsApp, Email, Subsektor, Alamat, dsb masuk tepat di bawah nama kolom headernya.
+ */
+function perbaikiSheetPendaftaran() {
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_PENDAFTARAN);
+  if (!sheet) {
+    return { status: 'error', message: 'Sheet Pendaftaran belum dibuat.' };
+  }
+
+  const rows = sheet.getDataRange().getValues();
+  if (rows.length <= 1) {
+    return { status: 'success', message: 'Sheet Pendaftaran kosong.', fixedCount: 0 };
+  }
+
+  let fixedCount = 0;
+
+  for (let i = 1; i < rows.length; i++) {
+    const rowNum = i + 1;
+    const r = rows[i];
+    const usaha = String(r[1] || '').trim();
+    if (!usaha) continue;
+
+    const col4Str = String(r[4] || '').replace(/[\s\-()+]/g, '');
+    const col5Str = String(r[5] || '').trim();
+    const isCol4Wa = /^(08|628|8)\d{7,13}$/.test(col4Str);
+    const isCol5Email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(col5Str);
+
+    if (isCol4Wa || isCol5Email) {
+      let ts = r[0];
+      if (ts instanceof Date) {
+        ts = Utilities.formatDate(ts, 'Asia/Jakarta', 'dd/MM/yyyy HH:mm:ss');
+      }
+
+      let namaUsaha = r[1];
+      let namaPemilik = r[2];
+      let subsektor = String(r[3] || '').trim();
+      let tahunBerdiri = '-';
+      let nib = '';
+      let alamat = '';
+      let kota = 'Kota Batu';
+      let omzet = 'Di bawah Rp50 juta';
+      let wa = '';
+      let email = '';
+      let instagram = '';
+      let tiktok = '';
+      let marketplace = '';
+      let ktpUrl = '-';
+      let nibUrl = '-';
+      let deskripsi = '';
+      let sesi = 'Sesi 2';
+
+      for (let c = 0; c < r.length; c++) {
+        let clean = String(r[c] || '').replace(/[\s\-()+]/g, '');
+        if (/^(08|628|8)\d{7,13}$/.test(clean)) {
+          wa = clean.startsWith('0') ? clean : ('0' + clean);
+          break;
+        }
+      }
+
+      for (let c = 0; c < r.length; c++) {
+        let clean = String(r[c] || '').trim();
+        if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) {
+          email = clean;
+          break;
+        }
+      }
+
+      const uLower = usaha.toLowerCase();
+      if (uLower.includes('goodsigma')) {
+        subsektor = 'Fashion';
+        tahunBerdiri = '2022';
+        alamat = 'Jl Bantaran 1 Nomor 45, Lowokwaru';
+        kota = 'Kota Malang';
+        omzet = 'Di bawah Rp50 juta';
+        deskripsi = 'Pakaian & perlengkapan olahraga';
+        sesi = 'Sesi 2';
+      } else if (uLower.includes('abhin')) {
+        subsektor = 'Lainnya';
+        tahunBerdiri = '2024';
+        alamat = String(r[7] || 'Jl. Utomorejo No 54').trim();
+        kota = 'Kota Batu';
+        omzet = String(r[8] || 'Di bawah Rp50 juta').trim();
+        instagram = String(r[10] || '@abhinsewa').trim();
+        deskripsi = String(r[13] || '').trim();
+        sesi = 'Sesi 2';
+      } else if (uLower.includes('dewi nurjan')) {
+        subsektor = 'Kuliner';
+        tahunBerdiri = '2023';
+        nib = String(r[9] || '2506250090976').trim();
+        alamat = String(r[7] || 'torongrejo krajan rt 05 rw 06').trim();
+        kota = 'Kota Batu';
+        omzet = String(r[8] || 'Rp50 juta – Rp300 juta').trim();
+        deskripsi = String(r[13] || '').trim();
+        sesi = 'Sesi 2';
+      } else if (uLower.includes('iben')) {
+        subsektor = 'Kuliner';
+        tahunBerdiri = '2024';
+        alamat = String(r[7] || 'Jl patimura gg 1 no 51A rt 02 rw08 Temas Batu').trim();
+        kota = 'Kota Batu';
+        omzet = String(r[8] || 'Di bawah Rp50 juta').trim();
+        deskripsi = String(r[13] || '').trim();
+        sesi = 'Sesi 2';
+      } else {
+        subsektor = subsektor || 'Kuliner';
+        alamat = String(r[7] || r[6] || '').trim();
+        kota = String(r[6] || 'Kota Batu').trim();
+        omzet = String(r[8] || 'Di bawah Rp50 juta').trim();
+        deskripsi = String(r[13] || '').trim();
+      }
+
+      const correctedRow = [
+        ts,
+        namaUsaha,
+        namaPemilik,
+        subsektor,
+        tahunBerdiri,
+        nib,
+        alamat,
+        kota,
+        omzet,
+        wa,
+        email,
+        instagram,
+        tiktok,
+        marketplace,
+        ktpUrl,
+        nibUrl,
+        deskripsi,
+        'Ya',
+        'Ya',
+        'Ya',
+        'Ya',
+        namaPemilik,
+        'Ya',
+        'Tidak',
+        'Ya',
+        sesi
+      ];
+
+      sheet.getRange(rowNum, 1, 1, 29).clearContent();
+      sheet.getRange(rowNum, 1, 1, correctedRow.length).setValues([correctedRow]);
+      fixedCount++;
+    }
+  }
+
+  return {
+    status: 'success',
+    message: 'Tab Pendaftaran berhasil diperbaiki! ' + fixedCount + ' baris (mulai baris 62) telah ditata ulang sesuai header.',
     fixedCount: fixedCount
   };
 }
@@ -1283,16 +1447,28 @@ function submitForm(formData) {
     formData.namaUsaha || '',
     formData.namaPemilik || '',
     formData.subsektor || '',
+    formData.tahunBerdiri || '-',
+    formData.nib || '-',
+    formData.alamatUsaha || '',
+    formData.kotaKabupaten || 'Kota Batu',
+    formData.omzet || 'Di bawah Rp50 juta',
     formData.whatsapp || '',
     formData.email || '',
-    formData.kotaKabupaten || '',
-    formData.alamatUsaha || '',
-    formData.omzet || '',
-    formData.nib || '',
     formData.instagram || '',
     formData.tiktok || '',
     formData.marketplace || '',
-    formData.deskripsi || ''
+    formData.ktpUrl || '-',
+    formData.nibUrl || '-',
+    formData.deskripsi || '',
+    formData.kesediaanLaporanKeuangan || 'Ya',
+    formData.kesediaanKolaborasi || 'Ya',
+    formData.kesediaanPelatihan || 'Ya',
+    formData.kesediaanAuditMedsos || 'Ya',
+    formData.namaPic || (formData.namaPemilik || ''),
+    formData.kesediaanStudiKasus || 'Ya',
+    formData.pernahIkutProgram || 'Tidak',
+    formData.persetujuanPakta || 'Ya',
+    formData.sesi || 'Sesi 2'
   ]);
   return { status: 'success', message: 'Pendaftaran berhasil dikirim ke Google Sheets.' };
 }
@@ -1759,33 +1935,198 @@ function getKasAccounts(namaUsaha) {
 
 export const DOKTER_ASESMEN_GS_CODE = `/**
  * ==============================================================================
- * DOKTER SPREADSHEET: FUNGSI PERBAIKAN HEADER TAB ASESMEN (47 KOLOM)
+ * DOKTER PERBAIKAN SPREADSHEET (DokterPerbaikan.gs) - KODE LENGKAP & UTUH
+ * Organisasi: GEKRAFS Kota Batu - PartnerUp 2026
  * ==============================================================================
  * Petunjuk Penggunaan:
  * 1. Buka Google Apps Script (script.google.com)
- * 2. Anda dapat menempelkan fungsi ini ke Kode.gs atau DokterPerbaikan.gs
- * 3. Pada menu dropdown toolbar atas, pilih: perbaikiHeaderTabAsesmen
- * 4. Klik tombol Run (Jalankan ▶️)
- * 5. Tab Asesmen akan langsung memiliki 47 kolom header yang pas dan rapi!
+ * 2. Anda dapat menempelkan seluruh kode ini ke file 'DokterPerbaikan.gs'
+ * 3. Pilih fungsi di toolbar atas dan klik Run (Jalankan ▶️):
+ *    - perbaikiSheetPendaftaran         (Perbaiki kolom melompat baris 62 dst)
+ *    - perbaikiDanSinkronkanSheetPeserta(Isi 67 peserta & bersihkan #REF!)
+ *    - perbaikiHeaderTabAsesmen         (Tata 47 kolom header tab Asesmen)
+ *    - perbaikiSheetKehadiran           (Tambal baris 38 & 39 kehadiran)
+ *    - inisialisasiSemuaTab             (Eksekusi perbaikan semua tab sekaligus)
  * ==============================================================================
  */
 
-function perbaikiHeaderTabAsesmen() {
-  var ss;
+function getDokterSpreadsheet() {
   if (typeof SPREADSHEET_ID !== 'undefined' && SPREADSHEET_ID) {
     try {
-      ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    } catch (e) {
-      ss = SpreadsheetApp.getActiveSpreadsheet();
-    }
-  } else {
-    ss = SpreadsheetApp.getActiveSpreadsheet();
+      return SpreadsheetApp.openById(SPREADSHEET_ID);
+    } catch (e) {}
+  }
+  try {
+    return SpreadsheetApp.openById('183uoyYw6opnr3w7T6oljvwuy5Rzs7GZE7fM3vi_pwm4');
+  } catch (e) {}
+  return SpreadsheetApp.getActiveSpreadsheet();
+}
+
+/**
+ * 1. FUNGSI PERBAIKI TATA LETAK KOLOM TAB 'PENDAFTARAN' (BARIS 62 DST)
+ */
+function perbaikiSheetPendaftaran() {
+  var ss = getDokterSpreadsheet();
+  var sheet = ss.getSheetByName('Pendaftaran');
+  if (!sheet) {
+    return { status: 'error', message: 'Sheet Pendaftaran belum dibuat.' };
   }
 
+  var rows = sheet.getDataRange().getValues();
+  if (rows.length <= 1) {
+    return { status: 'success', message: 'Sheet Pendaftaran kosong.', fixedCount: 0 };
+  }
+
+  var fixedCount = 0;
+
+  for (var i = 1; i < rows.length; i++) {
+    var rowNum = i + 1;
+    var r = rows[i];
+    var usaha = String(r[1] || '').trim();
+    if (!usaha) continue;
+
+    var col4Str = String(r[4] || '').replace(/[\s\-()+]/g, '');
+    var col5Str = String(r[5] || '').trim();
+    var isCol4Wa = /^(08|628|8)\d{7,13}$/.test(col4Str);
+    var isCol5Email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(col5Str);
+
+    if (isCol4Wa || isCol5Email) {
+      var ts = r[0];
+      if (ts instanceof Date) {
+        ts = Utilities.formatDate(ts, 'Asia/Jakarta', 'dd/MM/yyyy HH:mm:ss');
+      }
+
+      var namaUsaha = r[1];
+      var namaPemilik = r[2];
+      var subsektor = String(r[3] || '').trim();
+      var tahunBerdiri = '-';
+      var nib = '';
+      var alamat = '';
+      var kota = 'Kota Batu';
+      var omzet = 'Di bawah Rp50 juta';
+      var wa = '';
+      var email = '';
+      var instagram = '';
+      var tiktok = '';
+      var marketplace = '';
+      var ktpUrl = '-';
+      var nibUrl = '-';
+      var deskripsi = '';
+      var sesi = 'Sesi 2';
+
+      for (var c = 0; c < r.length; c++) {
+        var clean = String(r[c] || '').replace(/[\s\-()+]/g, '');
+        if (/^(08|628|8)\d{7,13}$/.test(clean)) {
+          wa = clean.startsWith('0') ? clean : ('0' + clean);
+          break;
+        }
+      }
+
+      for (var c = 0; c < r.length; c++) {
+        var clean = String(r[c] || '').trim();
+        if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) {
+          email = clean;
+          break;
+        }
+      }
+
+      var uLower = usaha.toLowerCase();
+      if (uLower.includes('goodsigma')) {
+        subsektor = 'Fashion';
+        tahunBerdiri = '2022';
+        alamat = 'Jl Bantaran 1 Nomor 45, Lowokwaru';
+        kota = 'Kota Malang';
+        omzet = 'Di bawah Rp50 juta';
+        deskripsi = 'Pakaian & perlengkapan olahraga';
+        sesi = 'Sesi 2';
+      } else if (uLower.includes('abhin')) {
+        subsektor = 'Lainnya';
+        tahunBerdiri = '2024';
+        alamat = String(r[7] || 'Jl. Utomorejo No 54').trim();
+        kota = 'Kota Batu';
+        omzet = String(r[8] || 'Di bawah Rp50 juta').trim();
+        instagram = String(r[10] || '@abhinsewa').trim();
+        deskripsi = String(r[13] || '').trim();
+        sesi = 'Sesi 2';
+      } else if (uLower.includes('dewi nurjan')) {
+        subsektor = 'Kuliner';
+        tahunBerdiri = '2023';
+        nib = String(r[9] || '2506250090976').trim();
+        alamat = String(r[7] || 'torongrejo krajan rt 05 rw 06').trim();
+        kota = 'Kota Batu';
+        omzet = String(r[8] || 'Rp50 juta – Rp300 juta').trim();
+        deskripsi = String(r[13] || '').trim();
+        sesi = 'Sesi 2';
+      } else if (uLower.includes('iben')) {
+        subsektor = 'Kuliner';
+        tahunBerdiri = '2024';
+        alamat = String(r[7] || 'Jl patimura gg 1 no 51A rt 02 rw08 Temas Batu').trim();
+        kota = 'Kota Batu';
+        omzet = String(r[8] || 'Di bawah Rp50 juta').trim();
+        deskripsi = String(r[13] || '').trim();
+        sesi = 'Sesi 2';
+      } else {
+        subsektor = subsektor || 'Kuliner';
+        alamat = String(r[7] || r[6] || '').trim();
+        kota = String(r[6] || 'Kota Batu').trim();
+        omzet = String(r[8] || 'Di bawah Rp50 juta').trim();
+        deskripsi = String(r[13] || '').trim();
+      }
+
+      var correctedRow = [
+        ts,
+        namaUsaha,
+        namaPemilik,
+        subsektor,
+        tahunBerdiri,
+        nib,
+        alamat,
+        kota,
+        omzet,
+        wa,
+        email,
+        instagram,
+        tiktok,
+        marketplace,
+        ktpUrl,
+        nibUrl,
+        deskripsi,
+        'Ya',
+        'Ya',
+        'Ya',
+        'Ya',
+        namaPemilik,
+        'Ya',
+        'Tidak',
+        'Ya',
+        sesi
+      ];
+
+      sheet.getRange(rowNum, 1, 1, 29).clearContent();
+      sheet.getRange(rowNum, 1, 1, correctedRow.length).setValues([correctedRow]);
+      fixedCount++;
+    }
+  }
+
+  // Sinkronkan juga tab Peserta
+  perbaikiDanSinkronkanSheetPeserta();
+
+  Logger.log('✅ SUKSES: ' + fixedCount + ' baris tab Pendaftaran berhasil dirapikan.');
+  return {
+    status: 'success',
+    message: 'Tab Pendaftaran berhasil diperbaiki! ' + fixedCount + ' baris (mulai baris 62) telah ditata ulang sesuai header, dan tab Peserta langsung disinkronkan.',
+    fixedCount: fixedCount
+  };
+}
+
+/**
+ * 2. FUNGSI PERBAIKAN HEADER TAB ASESMEN (47 KOLOM)
+ */
+function perbaikiHeaderTabAsesmen() {
+  var ss = getDokterSpreadsheet();
   var sheet = ss.getSheetByName('Asesmen');
   if (!sheet) {
     sheet = ss.insertSheet('Asesmen');
-    Logger.log('Tab Asesmen baru dibuat.');
   }
 
   var headers = [
@@ -1854,11 +2195,230 @@ function perbaikiHeaderTabAsesmen() {
   sheet.setRowHeight(1, 38);
   sheet.setFrozenRows(1);
 
-  Logger.log('✅ SUKSES: Header tab Asesmen (47 kolom) telah berhasil diperbaiki!');
+  Logger.log('✅ SUKSES: 47 Kolom Header Tab Asesmen telah berhasil diperbaiki!');
   return {
     status: 'success',
     message: 'Header tab Asesmen (47 kolom) berhasil diperbaiki dan ditata rapi!',
     columnCount: headers.length
   };
+}
+
+/**
+ * 3. FUNGSI PERBAIKAN TAB KEHADIRAN (TAMBAL BARIS KOSONG)
+ */
+function perbaikiSheetKehadiran() {
+  var ss = getDokterSpreadsheet();
+  var sheet = ss.getSheetByName('Kehadiran');
+  if (!sheet) {
+    return { status: 'error', message: 'Sheet Kehadiran belum dibuat.' };
+  }
+
+  var rows = sheet.getDataRange().getValues();
+  if (rows.length <= 1) {
+    return { status: 'success', message: 'Sheet Kehadiran kosong.', fixedCount: 0 };
+  }
+
+  var fixedCount = 0;
+  for (var i = 1; i < rows.length; i++) {
+    var rowNum = i + 1;
+    var idSesi = String(rows[i][1] || '').trim();
+    var tgl = String(rows[i][2] || '').trim();
+    var tpk = String(rows[i][3] || '').trim();
+
+    var needsUpdate = false;
+    if (!tgl || !tpk) {
+      if (idSesi === '8f75e785') {
+        if (!tgl) tgl = '2026-10-03';
+        if (!tpk) tpk = 'MINDSET BISNIS DAN PENYELARASAN TUJUAN KEGIATAN';
+        needsUpdate = true;
+      } else if (idSesi === '7a0f968c') {
+        if (!tgl) tgl = '2026-10-10';
+        if (!tpk) tpk = 'MINDSET KEUANGAN';
+        needsUpdate = true;
+      } else {
+        if (!tgl) tgl = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd');
+        if (!tpk) tpk = 'Pelatihan UMKM Kota Batu';
+        needsUpdate = true;
+      }
+    }
+
+    if (needsUpdate) {
+      sheet.getRange(rowNum, 3).setValue(tgl);
+      sheet.getRange(rowNum, 4).setValue(tpk);
+      fixedCount++;
+    }
+  }
+
+  Logger.log('✅ SUKSES: ' + fixedCount + ' baris Kehadiran berhasil ditambal.');
+  return {
+    status: 'success',
+    message: 'Tab Kehadiran berhasil diperiksa. ' + fixedCount + ' baris berhasil diperbaiki!',
+    fixedCount: fixedCount
+  };
+}
+
+/**
+ * 4. FUNGSI PERBAIKAN & SINKRONISASI TAB PESERTA (BERSIHKAN #REF!)
+ */
+function perbaikiDanSinkronkanSheetPeserta() {
+  var ss = getDokterSpreadsheet();
+  var sheetPendaftaran = ss.getSheetByName('Pendaftaran');
+  if (!sheetPendaftaran) {
+    return { status: 'error', message: 'Sheet Pendaftaran tidak ditemukan.' };
+  }
+
+  var sheetPeserta = ss.getSheetByName('Peserta');
+  if (!sheetPeserta) {
+    sheetPeserta = ss.insertSheet('Peserta');
+  }
+
+  var kurasiMap = {};
+  try {
+    var existingData = sheetPeserta.getDataRange().getValues();
+    for (var i = 1; i < existingData.length; i++) {
+      var u = String(existingData[i][1] || existingData[i][0] || '').toLowerCase().trim();
+      if (u && !u.includes('#ref') && u !== 'timestamp') {
+        var st = String(existingData[i][6] || existingData[i][4] || '').trim();
+        var ct = String(existingData[i][7] || existingData[i][5] || '').trim();
+        if (/lolos|review|menunggu|tolak|diterima/i.test(st)) {
+          kurasiMap[u] = { status: st, catatan: ct };
+        }
+      }
+    }
+  } catch (err) {}
+
+  var pRows = sheetPendaftaran.getDataRange().getValues();
+  if (pRows.length <= 1) {
+    return { status: 'error', message: 'Sheet Pendaftaran masih kosong.' };
+  }
+
+  function extractWaRow(row) {
+    var candidates = [row[9], row[4], row[5], row[3]];
+    for (var k = 0; k < candidates.length; k++) {
+      var c = String(candidates[k] || '');
+      var clean = c.replace(/[\s\-()+]/g, '');
+      if (/^(08|628|8)\d{7,13}$/.test(clean)) return clean;
+    }
+    for (var j = 0; j < row.length; j++) {
+      var c2 = String(row[j] || '');
+      var clean2 = c2.replace(/[\s\-()+]/g, '');
+      if (/^(08|628|8)\d{7,13}$/.test(clean2)) return clean2;
+    }
+    return '-';
+  }
+
+  function extractEmailRow(row) {
+    var candidates = [row[10], row[5], row[9]];
+    for (var k = 0; k < candidates.length; k++) {
+      var c = String(candidates[k] || '').trim();
+      if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c)) return c;
+    }
+    for (var j = 0; j < row.length; j++) {
+      var c2 = String(row[j] || '').trim();
+      if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c2)) return c2;
+    }
+    return '-';
+  }
+
+  function extractSubsektorRow(row) {
+    var subsektors = [
+      'Kuliner', 'Fashion', 'Kriya / Kerajinan', 'Desain Produk',
+      'Desain Grafis / Komunikasi Visual', 'Fotografi', 'Film, Animasi & Video',
+      'Musik', 'Seni Rupa', 'Lainnya'
+    ];
+    for (var k = 0; k < subsektors.length; k++) {
+      var s = subsektors[k];
+      for (var col = 1; col <= 6; col++) {
+        if (String(row[col] || '').toLowerCase().trim() === s.toLowerCase()) return s;
+      }
+    }
+    return String(row[3] || 'Lainnya').trim();
+  }
+
+  function extractSesiRow(row) {
+    for (var j = 0; j < row.length; j++) {
+      var c = String(row[j] || '');
+      if (/sesi\s*[12]/i.test(c)) return c.trim();
+    }
+    return 'Sesi 2';
+  }
+
+  var headers = [
+    'Timestamp',
+    'Nama Usaha',
+    'Nama Pemilik',
+    'Subsektor',
+    'Nomor WhatsApp',
+    'Email',
+    'Status Kurasi',
+    'Catatan Kurator',
+    'Sesi PartnerUp'
+  ];
+
+  var newValues = [headers];
+  var count = 0;
+
+  for (var i = 1; i < pRows.length; i++) {
+    var r = pRows[i];
+    var usaha = String(r[1] || '').trim();
+    if (!usaha) continue;
+
+    var key = usaha.toLowerCase();
+    var kurasi = kurasiMap[key];
+    var wa = extractWaRow(r);
+    var email = extractEmailRow(r);
+    var subsektor = extractSubsektorRow(r);
+    var sesi = extractSesiRow(r);
+    var pemilik = String(r[2] || '-').trim();
+
+    var ts = r[0];
+    if (ts instanceof Date) {
+      ts = Utilities.formatDate(ts, 'Asia/Jakarta', 'dd/MM/yyyy HH:mm:ss');
+    } else {
+      ts = String(ts || Utilities.formatDate(new Date(), 'Asia/Jakarta', 'dd/MM/yyyy HH:mm:ss'));
+    }
+
+    newValues.push([
+      ts,
+      usaha,
+      pemilik,
+      subsektor,
+      wa,
+      email,
+      kurasi ? kurasi.status : 'Lolos Kurasi',
+      kurasi ? kurasi.catatan : '',
+      sesi
+    ]);
+    count++;
+  }
+
+  sheetPeserta.clear();
+  sheetPeserta.clearFormats();
+  sheetPeserta.getRange(1, 1, newValues.length, headers.length).setValues(newValues);
+
+  var headerRange = sheetPeserta.getRange(1, 1, 1, headers.length);
+  headerRange.setFontWeight('bold');
+  headerRange.setBackground('#001c3c');
+  headerRange.setFontColor('#ffffff');
+  sheetPeserta.setFrozenRows(1);
+
+  Logger.log('✅ SUKSES: ' + count + ' peserta berhasil disinkronkan ke tab Peserta.');
+  return {
+    status: 'success',
+    message: 'Tab Peserta berhasil disinkronkan (' + count + ' peserta). Error #REF! bersih total!',
+    count: count
+  };
+}
+
+/**
+ * 5. FUNGSI PERBAIKI SEMUA TAB SEKALIGUS
+ */
+function inisialisasiSemuaTab() {
+  perbaikiSheetPendaftaran();
+  perbaikiDanSinkronkanSheetPeserta();
+  perbaikiSheetKehadiran();
+  perbaikiHeaderTabAsesmen();
+  Logger.log('✅ SUKSES: Seluruh tab database berhasil diperbaiki!');
+  return '✅ Seluruh tab database (Pendaftaran, Peserta, Kehadiran, dan Asesmen) berhasil diperbaiki dan diformat rapi!';
 }
 `;
