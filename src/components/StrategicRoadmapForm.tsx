@@ -1253,7 +1253,7 @@ Salam hangat,
         <UntunginKasModal
           isOpen={isUntunginKasOpen}
           onClose={() => setIsUntunginKasOpen(false)}
-          namaUsaha={selectedNamaUsaha || pesertaSession?.namaUsaha || 'obeecreatives'}
+          namaUsaha={selectedNamaUsaha || pesertaSession?.namaUsaha || ''}
           namaPemilik={namaPemilik || pesertaSession?.namaPemilik}
           whatsapp={whatsapp || pesertaSession?.whatsapp}
           readOnly={false}

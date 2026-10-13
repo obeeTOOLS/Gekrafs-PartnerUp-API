@@ -536,7 +536,7 @@ export default function App() {
           namaPemilik={untunginGlobalModalData.namaPemilik}
           whatsapp={untunginGlobalModalData.whatsapp}
           readOnly={untunginGlobalModalData.readOnly ?? false}
-          viewerRole={untunginGlobalModalData.viewerRole ?? 'developer'}
+          viewerRole={untunginGlobalModalData.viewerRole ?? 'peserta'}
         />
       )}
     </div>

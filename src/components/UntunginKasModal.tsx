@@ -82,8 +82,12 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
 
   // obeecreatives adalah unit bisnis pengembang yang selalu memiliki hak akses penuh input data
   const isObeeCreatives = (namaUsaha || '').toLowerCase().trim() === 'obeecreatives';
-  const isDeveloperUser = viewerRole === 'developer' || isObeeCreatives;
-  const isCuratorUser = viewerRole === 'kurator' || viewerRole === 'curator' || viewerRole === 'admin';
+
+  // Keamanan Akses Mutlak:
+  // Peserta UMKM (viewerRole === 'peserta') MUTLAK tidak boleh melihat bilah developer ataupun kurator.
+  const isPesertaUser = viewerRole === 'peserta';
+  const isDeveloperUser = !isPesertaUser && (viewerRole === 'developer' || (isObeeCreatives && !viewerRole));
+  const isCuratorUser = !isPesertaUser && !isDeveloperUser && (viewerRole === 'kurator' || viewerRole === 'curator' || viewerRole === 'admin');
   const isPrivileged = isDeveloperUser;
   const [isSimulasiMode, setIsSimulasiMode] = useState(false);
   const [isTrialReadOnlyView, setIsTrialReadOnlyView] = useState(false);
