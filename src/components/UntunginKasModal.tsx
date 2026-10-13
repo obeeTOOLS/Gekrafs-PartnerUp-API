@@ -35,7 +35,8 @@ import {
   ExternalLink,
   Award,
   Copy,
-  Ticket
+  Ticket,
+  BookOpen
 } from 'lucide-react';
 import {
   kasService,
@@ -52,6 +53,7 @@ import {
 } from '../services/kasService';
 import { gasService } from '../services/gasService';
 import { TrialManagerModal } from './TrialManagerModal';
+import { PanduanAksesKasPinPdfModal } from './PanduanAksesKasPinPdfModal';
 
 interface UntunginKasModalProps {
   isOpen: boolean;
@@ -228,6 +230,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
   const effectiveReadOnly = isDeveloperUser ? false : ((readOnly && !isSimulasiMode) || (isTrialExpired && isTrialReadOnlyView));
   const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
   const [isTrialManagerOpen, setIsTrialManagerOpen] = useState(false);
+  const [isPanduanKasPdfOpen, setIsPanduanKasPdfOpen] = useState(false);
   const [licenseCodeInput, setLicenseCodeInput] = useState('');
   const [licenseFeedback, setLicenseFeedback] = useState<{ success: boolean; message: string } | null>(null);
   const [isActivatingLicense, setIsActivatingLicense] = useState(false);
@@ -819,6 +822,17 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                   <span className="hidden sm:inline">UPGRADE</span>
                 </>
               )}
+            </button>
+
+            {/* Tombol Panduan Kas & SOP */}
+            <button
+              type="button"
+              onClick={() => setIsPanduanKasPdfOpen(true)}
+              title="Buku Panduan Untungin, Pengelolaan PIN, SOP Kuota & Keamanan Data"
+              className="px-2.5 py-1.5 rounded-xl border border-white/20 bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-amber-300" />
+              <span className="hidden sm:inline">Panduan</span>
             </button>
 
             <button
@@ -2606,6 +2620,12 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
           </div>
         </div>
       )}
+
+      {/* 9. MODAL BUKU PANDUAN AKSES KAS, PIN & INTEGRITAS DATA */}
+      <PanduanAksesKasPinPdfModal
+        isOpen={isPanduanKasPdfOpen}
+        onClose={() => setIsPanduanKasPdfOpen(false)}
+      />
     </div>
   );
 };

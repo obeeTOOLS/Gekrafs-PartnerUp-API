@@ -18,7 +18,12 @@ import {
   Users,
   Terminal,
   Shield,
-  Download
+  Download,
+  Database,
+  Cloud,
+  Sparkles,
+  RefreshCw,
+  Layers
 } from 'lucide-react';
 import { DEFAULT_KAS_PIN, DEFAULT_ENGINEER_PIN } from '../services/kasService';
 import { generateKasPinPdf } from '../utils/generateKasPinPdf';
@@ -409,7 +414,107 @@ export const PanduanAksesKasPinPdfModal: React.FC<PanduanAksesKasPinPdfModalProp
             </div>
           </div>
 
-          {/* 8. LEMBAR TANDA TANGAN PENGESAHAN DOKUMEN */}
+          {/* 9. BAB VII: JAMINAN KEAMANAN DATA, INTEGRITAS TRANSAKSI & SOP SINKRONISASI CLOUD */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm font-extrabold text-[#001c3c] border-b border-slate-200 pb-1.5">
+              <Database className="w-4 h-4 text-emerald-600" />
+              <span>BAB VII: JAMINAN KEAMANAN DATA, INTEGRITAS TRANSAKSI & SOP SINKRONISASI CLOUD</span>
+            </div>
+
+            <p className="text-xs text-slate-700 leading-relaxed">
+              Sistem Buku Kas Untungin dibangun dengan prinsip <strong>Zero Data Loss & Multi-Tenant Isolated Architecture</strong>. Seluruh riwayat transaksi keuangan peserta dijamin aman, utuh, dan terlindungi dari manipulasi atau ketidaksengajaan operasional.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Poin 1: Jaminan Keutuhan Transaksi */}
+              <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/60 space-y-2">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-700 flex-shrink-0" />
+                  <h4 className="text-xs font-black text-emerald-950">
+                    1. Jaminan Keutuhan Riwayat Transaksi Finansial
+                  </h4>
+                </div>
+                <p className="text-[11px] text-slate-700 leading-relaxed">
+                  Data transaksi pemasukan, pengeluaran, maupun transfer kas yang telah dicatat peserta <strong>TIDAK AKAN PERNAH HILANG</strong> atau terhapus akibat:
+                </p>
+                <ul className="text-[11px] text-slate-600 space-y-1 list-disc list-inside">
+                  <li>Penambahan kuota kredit transaksi oleh Kurator/Admin.</li>
+                  <li>Perpanjangan hari masa aktif trial selama periode inkubasi.</li>
+                  <li>Pergantian atau reset PIN pengaman kas peserta.</li>
+                  <li>Upgrade lisensi Pro Lifetime maupun penggunaan kode voucher.</li>
+                </ul>
+              </div>
+
+              {/* Poin 2: Multi-Tenant Isolated Storage */}
+              <div className="p-3.5 rounded-xl border border-blue-200 bg-blue-50/60 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-blue-700 flex-shrink-0" />
+                  <h4 className="text-xs font-black text-blue-950">
+                    2. Arsitektur Terisolasi (Isolated Storage)
+                  </h4>
+                </div>
+                <p className="text-[11px] text-slate-700 leading-relaxed">
+                  Setiap unit usaha memiliki partisi wadah penyimpanan mandiri yang terpisah secara modular:
+                </p>
+                <ul className="text-[11px] text-slate-600 space-y-1 font-mono text-[10px]">
+                  <li>• Transaksi: <code className="bg-white px-1.5 py-0.5 rounded border border-blue-200">kas_txs_[namaUsaha]</code></li>
+                  <li>• Akun Kas: <code className="bg-white px-1.5 py-0.5 rounded border border-blue-200">kas_accounts_[namaUsaha]</code></li>
+                  <li>• Kuota Trial: <code className="bg-white px-1.5 py-0.5 rounded border border-blue-200">kas_premium_[namaUsaha]</code></li>
+                  <li>• PIN Kas: <code className="bg-white px-1.5 py-0.5 rounded border border-blue-200">kas_pin_[namaUsaha]</code></li>
+                </ul>
+                <p className="text-[10px] text-slate-500 italic">
+                  *Modifikasi pada kuota trial tidak menyentuh partisi transaksi sama sekali.
+                </p>
+              </div>
+            </div>
+
+            {/* Poin 3: Mekanisme Sinkronisasi Cloud & Local Storage */}
+            <div className="p-4 rounded-xl border border-purple-200 bg-purple-50/60 space-y-2.5">
+              <div className="flex items-center gap-2">
+                <Cloud className="w-4 h-4 text-purple-700 flex-shrink-0" />
+                <h4 className="text-xs font-black text-purple-950">
+                  3. Mekanisme Sinkronisasi Cloud (Google Sheets) & Cache Offline
+                </h4>
+              </div>
+              <p className="text-xs text-slate-700 leading-relaxed">
+                Untungin menerapkan model <strong>Hybrid Offline-First</strong>: transaksi disimpan secara instan di peramban pengguna (tanpa jeda buffering) dan disinkronkan ke Cloud Database (Google Sheets) secara otomatis saat terhubung internet.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+                <div className="p-2.5 bg-white rounded-lg border border-purple-100 shadow-2xs">
+                  <span className="font-bold text-[#001c3c] block mb-0.5">Append-Only UUID</span>
+                  <span className="text-slate-600">Setiap transaksi memiliki ID unik global. Sistem tidak pernah menimpa (overwrite) transaksi lama saat sinkron.</span>
+                </div>
+                <div className="p-2.5 bg-white rounded-lg border border-purple-100 shadow-2xs">
+                  <span className="font-bold text-[#001c3c] block mb-0.5">Sinkron Otomatis</span>
+                  <span className="text-slate-600">Terpicu otomatis saat modal kas dibuka atau tombol "Sinkron Cloud" ditekan.</span>
+                </div>
+                <div className="p-2.5 bg-white rounded-lg border border-purple-100 shadow-2xs">
+                  <span className="font-bold text-[#001c3c] block mb-0.5">Audit Trail Kurator</span>
+                  <span className="text-slate-600">Setiap perpanjangan kuota mencatat identitas kurator dan alasan perpanjangan.</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Poin 4: Pemisahan Otoritas Otorisasi */}
+            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-2">
+              <div className="flex items-center gap-2 text-[#001c3c] font-black">
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                <span>4. SOP Pemisahan Hak Otoritas Operasional</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                <div className="p-2 bg-white rounded-lg border border-slate-200">
+                  <strong className="text-indigo-900 block">Peran Admin Kurator:</strong>
+                  <span className="text-slate-600">Berwenang menambah kuota transaksi (+15, +30) dan memperpanjang hari trial selama masa pendampingan. Tidak memiliki hak menerbitkan voucher atau lisensi Pro penuh.</span>
+                </div>
+                <div className="p-2 bg-white rounded-lg border border-slate-200">
+                  <strong className="text-purple-900 block">Peran Developer / Site Engineer:</strong>
+                  <span className="text-slate-600">Memegang hak eksklusif aktivasi Pro Lifetime, penerbitan voucher diskon/gratis, bypass kunci PIN kas saat darurat, dan audit integritas data.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 10. LEMBAR TANDA TANGAN PENGESAHAN DOKUMEN */}
           <div className="pt-6 border-t-2 border-slate-200 text-xs">
             <div className="grid grid-cols-2 gap-8 text-center">
               <div className="space-y-12">

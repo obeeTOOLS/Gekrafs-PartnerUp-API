@@ -296,6 +296,58 @@ export function generateKasPinPdf(): void {
 
   currentY += 4;
 
+  // --- BAB VI: JAMINAN KEAMANAN DATA, INTEGRITAS TRANSAKSI & SINKRONISASI CLOUD ---
+  checkPageOverflow(55);
+  doc.setFillColor(0, 28, 60);
+  doc.rect(margin, currentY, contentWidth, 6, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text('BAB VI: JAMINAN KEAMANAN DATA, INTEGRITAS TRANSAKSI & SINKRONISASI CLOUD', margin + 4, currentY + 4.5);
+  currentY += 9;
+
+  doc.setTextColor(30, 41, 59);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  const bab6Intro = 'Buku Kas Untungin mengusung arsitektur Multi-Tenant Isolated Storage & Zero Data Loss. Riwayat transaksi keuangan UMKM dijamin 100% utuh dan terlindungi:';
+  const splitBab6 = doc.splitTextToSize(bab6Intro, contentWidth);
+  doc.text(splitBab6, margin, currentY);
+  currentY += splitBab6.length * 4.2 + 2;
+
+  const dataGuarantees = [
+    {
+      title: 'A. Jaminan Keutuhan Riwayat Transaksi (Zero Data Loss):',
+      desc: 'Data transaksi kas peserta TIDAK AKAN PERNAH HILANG akibat: (1) Penambahan kuota transaksi oleh kurator, (2) Perpanjangan hari masa aktif trial, (3) Pengubahan atau reset PIN keamanan kas, maupun (4) Aktivasi lisensi Pro Lifetime / Voucher.'
+    },
+    {
+      title: 'B. Partisi Penyimpanan Terisolasi (Multi-Tenant Container):',
+      desc: 'Setiap entitas data dipisahkan wadah modular per nama usaha: "kas_txs_" untuk transaksi, "kas_accounts_" untuk rekening kas, "kas_premium_" untuk kuota trial, dan "kas_pin_" untuk kredensial keamanan. Pembaruan kuota tidak menyentuh partisi transaksi.'
+    },
+    {
+      title: 'C. Sinkronisasi Cloud (Google Sheets) & Cache Offline Lokal:',
+      desc: 'Menerapkan model Hybrid Offline-First: transaksi disimpan instan di peramban lokal dan otomatis disinkronkan ke Cloud Google Sheets. Setiap transaksi memiliki UUID unik (Append-Only) sehingga tidak ada risiko tumpang tindih data.'
+    },
+    {
+      title: 'D. Pemisahan Hak Otoritas Operasional:',
+      desc: 'Kurator berwenang menambah kuota transaksi (+15, +30 tx) dan memperpanjang masa aktif trial pendampingan. Sedangkan Developer / Site Engineer memegang hak eksklusif aktivasi Pro Lifetime, kode voucher resmi, bypass darurat, dan audit data.'
+    }
+  ];
+
+  dataGuarantees.forEach((dg) => {
+    checkPageOverflow(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(5, 150, 105);
+    doc.text(dg.title, margin + 2, currentY);
+    currentY += 4;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    const splitDg = doc.splitTextToSize(dg.desc, contentWidth - 4);
+    doc.text(splitDg, margin + 4, currentY);
+    currentY += splitDg.length * 4 + 2;
+  });
+
+  currentY += 4;
+
   // --- LEMBAR PENGESAHAN DOKUMEN ---
   checkPageOverflow(30);
   doc.setDrawColor(203, 213, 225);
