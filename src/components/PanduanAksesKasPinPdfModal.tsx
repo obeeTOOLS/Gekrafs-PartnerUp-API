@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   X, 
   Printer, 
@@ -7,8 +7,6 @@ import {
   KeyRound, 
   ShieldCheck, 
   Lock, 
-  Unlock, 
-  RotateCcw, 
   Smartphone, 
   FileText, 
   CheckCircle2, 
@@ -22,25 +20,37 @@ import {
   Database,
   Cloud,
   Sparkles,
-  RefreshCw,
-  Layers
+  Layers,
+  ArrowRight,
+  Eye,
+  HelpCircle as QuestionIcon
 } from 'lucide-react';
 import { DEFAULT_KAS_PIN, DEFAULT_ENGINEER_PIN } from '../services/kasService';
+import { DEFAULT_ADMIN_PASSWORD } from '../services/authService';
 import { generateKasPinPdf } from '../utils/generateKasPinPdf';
 
 interface PanduanAksesKasPinPdfModalProps {
   isOpen: boolean;
   onClose: () => void;
+  isDeveloper?: boolean;
 }
 
 export const PanduanAksesKasPinPdfModal: React.FC<PanduanAksesKasPinPdfModalProps> = ({
   isOpen,
-  onClose
+  onClose,
+  isDeveloper = false
 }) => {
+  // Jika dibuka oleh Developer, sediakan mode toggle: 'peserta' (apa yang dilihat peserta) vs 'developer' (SOP internal rahasia)
+  const [activeTab, setActiveTab] = useState<'peserta' | 'developer'>(isDeveloper ? 'developer' : 'peserta');
+
   if (!isOpen) return null;
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadPdf = () => {
+    generateKasPinPdf({ isDeveloper: isDeveloper && activeTab === 'developer' });
   };
 
   const todayStr = new Date().toLocaleDateString('id-ID', {
@@ -48,6 +58,8 @@ export const PanduanAksesKasPinPdfModal: React.FC<PanduanAksesKasPinPdfModalProp
     month: 'long',
     year: 'numeric'
   });
+
+  const isShowingDeveloperSop = isDeveloper && activeTab === 'developer';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in print:p-0 print:bg-white">
@@ -58,39 +70,73 @@ export const PanduanAksesKasPinPdfModal: React.FC<PanduanAksesKasPinPdfModalProp
       <div className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[92vh] overflow-y-auto border border-slate-200 z-10 flex flex-col print:max-h-none print:shadow-none print:border-none print:rounded-none">
         
         {/* Sticky Top Header Controls (Hidden during print) */}
-        <div className="sticky top-0 bg-[#001c3c] text-white p-4 px-6 rounded-t-2xl flex items-center justify-between z-20 print:hidden shadow-md">
+        <div className="sticky top-0 bg-[#001c3c] text-white p-4 px-6 rounded-t-2xl flex flex-wrap items-center justify-between gap-3 z-20 print:hidden shadow-md">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300">
               <FileText className="w-4 h-4" />
             </div>
             <div>
               <div className="text-[10px] text-[#ffc72c] font-black uppercase tracking-wider">
-                Dokumen Resmi Panduan Operasional & Keamanan
+                {isShowingDeveloperSop
+                  ? 'SOP Internal & Keamanan Sistem (Developer Only)'
+                  : 'Buku Panduan Pengguna Resmi UMKM'}
               </div>
               <h3 className="font-extrabold text-sm sm:text-base">
-                Buku Panduan Akses Buku Kas, Pengelolaan PIN & SOP Reset Developer
+                {isShowingDeveloperSop
+                  ? 'SOP Akses Kas, PIN Terkunci & Pemulihan Developer Hub'
+                  : 'Buku Panduan Penggunaan Buku Kas Untungin & PIN Peserta'}
               </h3>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Toggle Mode Khusus Lead Developer */}
+            {isDeveloper && (
+              <div className="flex items-center bg-white/10 rounded-xl p-1 border border-white/20 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('peserta')}
+                  className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                    activeTab === 'peserta'
+                      ? 'bg-amber-400 text-slate-900 shadow'
+                      : 'text-slate-300 hover:text-white'
+                  }`}
+                  title="Lihat dokumen persis seperti yang dibaca oleh Peserta UMKM"
+                >
+                  📘 Edisi Peserta
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('developer')}
+                  className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                    activeTab === 'developer'
+                      ? 'bg-purple-600 text-white shadow'
+                      : 'text-slate-300 hover:text-white'
+                  }`}
+                  title="Lihat dokumen SOP Rahasia Teknis & Kredensial Developer"
+                >
+                  🛡️ SOP Developer
+                </button>
+              </div>
+            )}
+
             <button
               type="button"
-              onClick={generateKasPinPdf}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 text-xs font-black text-white shadow transition-all cursor-pointer"
+              onClick={handleDownloadPdf}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 text-xs font-black text-white shadow transition-all cursor-pointer"
               title="Unduh File PDF Dokumen Ini"
             >
               <Download className="w-4 h-4 text-amber-300" />
-              <span>Unduh File .PDF</span>
+              <span className="hidden sm:inline">Unduh</span> .PDF
             </button>
             <button
               type="button"
               onClick={handlePrint}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-xs font-black text-white shadow transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-xs font-black text-white shadow transition-all cursor-pointer"
               title="Cetak atau Simpan sebagai PDF via Browser Print"
             >
               <Printer className="w-4 h-4" />
-              <span>Cetak / Cetak PDF</span>
+              <span className="hidden sm:inline">Cetak</span>
             </button>
             <button
               type="button"
@@ -103,6 +149,19 @@ export const PanduanAksesKasPinPdfModal: React.FC<PanduanAksesKasPinPdfModalProp
           </div>
         </div>
 
+        {/* Banner Peringatan Developer jika sedang mode SOP internal */}
+        {isShowingDeveloperSop && (
+          <div className="bg-purple-950 text-purple-200 px-6 py-2 text-xs flex items-center justify-between border-b border-purple-800 print:hidden">
+            <span className="flex items-center gap-1.5 font-semibold">
+              <Shield className="w-4 h-4 text-amber-300" />
+              <span>Dokumen ini memuat kredensial internal developer &amp; SOP bypass darurat. Jangan disebarkan ke publik.</span>
+            </span>
+            <span className="text-[10px] bg-purple-900 px-2 py-0.5 rounded text-amber-300 font-bold">
+              CONFIDENTIAL / DEVELOPER ONLY
+            </span>
+          </div>
+        )}
+
         {/* Printable Paper Canvas (A4 Styled Layout) */}
         <div className="p-6 sm:p-10 bg-white space-y-7 text-slate-800 leading-relaxed print:p-4">
           
@@ -111,7 +170,7 @@ export const PanduanAksesKasPinPdfModal: React.FC<PanduanAksesKasPinPdfModalProp
             <div className="flex items-center gap-3.5">
               <div className="w-16 h-16 rounded-full bg-[#001c3c] text-white flex items-center justify-center p-2 shadow-sm flex-shrink-0">
                 <svg viewBox="0 0 100 100" className="w-full h-full" fill="currentColor">
-                  <polygon points="50,5 95,25 95,75 50,95 5,75 5,25" fill="#ffffff" />
+                  <polygon points="50,5 95,25 95,75 50,95 5,25" fill="#ffffff" />
                   <polygon points="50,15 85,32 85,68 50,85 15,68 15,32" fill="#ffc72c" />
                   <text x="50" y="60" fontSize="22" fontWeight="bold" textAnchor="middle" fill="#001c3c">GK</text>
                 </svg>
@@ -129,25 +188,77 @@ export const PanduanAksesKasPinPdfModal: React.FC<PanduanAksesKasPinPdfModalProp
               </div>
             </div>
             <div className="text-right text-[10px] text-slate-500 font-mono">
-              <div className="font-bold text-[#001c3c]">DOKUMEN PANDUAN PENGGUNA & SOP</div>
-              <div>No: SOP-UNTUNGIN/KAS-PIN/2026/01</div>
+              <div className="font-bold text-[#001c3c]">
+                {isShowingDeveloperSop ? 'DOKUMEN SOP INTERNAL DEVELOPER' : 'DOKUMEN PANDUAN PENGGUNA RESMI'}
+              </div>
+              <div>
+                {isShowingDeveloperSop ? 'No: SOP-UNTUNGIN/DEV-PIN/2026/01' : 'No: PANDUAN-UNTUNGIN/UMKM/2026/01'}
+              </div>
               <div>Tanggal Rilis: {todayStr}</div>
-              <div className="text-amber-700 font-bold uppercase">Klasifikasi: Panduan Peserta & Developer</div>
+              <div className={isShowingDeveloperSop ? 'text-purple-700 font-bold uppercase' : 'text-emerald-700 font-bold uppercase'}>
+                {isShowingDeveloperSop ? 'Klasifikasi: Terbatas (Developer Only)' : 'Klasifikasi: Peserta UMKM & Publik'}
+              </div>
             </div>
           </div>
 
           {/* 2. JUDUL DOKUMEN */}
           <div className="text-center py-2 space-y-1 bg-gradient-to-r from-purple-50 via-slate-50 to-amber-50 rounded-xl p-4 border border-purple-100">
             <span className="text-[10px] font-black uppercase tracking-widest text-purple-700 bg-purple-100 px-3 py-0.5 rounded-full inline-block">
-              MODUL KEUANGAN UNTUNGIN v1.3 &middot; PROTOKOL KEAMANAN DATA
+              MODUL KEUANGAN UNTUNGIN v1.3 &middot; EKOSISTEM PARTNERUP
             </span>
             <h2 className="text-lg sm:text-xl font-black text-[#001c3c] tracking-tight">
-              PANDUAN AKSES BUKU KAS, PENGELOLAAN PIN PESERTA & PROSEDUR RESET DEVELOPER
+              {isShowingDeveloperSop
+                ? 'SOP OTORITAS DEVELOPER, PENGELOLAAN PIN & PROSEDUR PEMULIHAN SISTEM KAS'
+                : 'PANDUAN PENGGUNA BUKU KAS UNTUNGIN, PENGELOLAAN PIN & FITUR KEUANGAN'}
             </h2>
             <p className="text-xs text-slate-600 max-w-2xl mx-auto">
-              Dokumen petunjuk teknis resmi bagi Pelaku Usaha UMKM untuk mengakses dan mengamankan catatan buku kas, serta panduan operasional bagi Lead Developer / Core Engineer untuk memulihkan PIN peserta yang lupa.
+              {isShowingDeveloperSop
+                ? 'Dokumen petunjuk teknis internal bagi Lead Developer & Core Engineer untuk mengelola kredensial, pemulihan lupa PIN peserta, pemberian lisensi, dan audit sistem kas.'
+                : 'Dokumen petunjuk resmi bagi Pelaku Usaha UMKM binaan Gekrafs Kota Batu untuk mengelola pembukuan keuangan mandiri, menjaga privasi finansial, dan mengamankan PIN kas.'}
             </p>
           </div>
+
+          {/* KREDENSIAL HIGHLIGHT BOX */}
+          {!isShowingDeveloperSop ? (
+            /* Box Bersih untuk Peserta UMKM (Tidak membocorkan rahasia apapun) */
+            <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/70 space-y-2">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-amber-700 flex-shrink-0" />
+                <h4 className="text-xs font-black text-amber-950">
+                  PIN Bawaan Standar Awal Pembukaan Buku Kas: <code className="bg-amber-200/90 px-2.5 py-0.5 rounded text-amber-950 font-mono text-sm tracking-wider font-black">{DEFAULT_KAS_PIN}</code>
+                </h4>
+              </div>
+              <ul className="text-xs text-slate-700 space-y-1 list-disc list-inside leading-relaxed pl-1">
+                <li>Saat pertama kali membuka modul Buku Kas, silakan gunakan kombinasi PIN standar awal: <strong>123456</strong>.</li>
+                <li>Setelah masuk, Anda disarankan untuk segera mengubah PIN ini melalui tombol <strong>"🔑 Ganti PIN"</strong> di pojok kanan atas agar catatan keuangan usaha Anda bersifat privat dan terjaga kerahasiaannya.</li>
+                <li>PIN Anda melindungi seluruh data omzet, keuntungan, serta saldo rekening kas tunai, bank, dan QRIS usaha Anda.</li>
+              </ul>
+            </div>
+          ) : (
+            /* Box Khusus Developer (Hanya tampil saat dibuka oleh Developer dalam SOP mode) */
+            <div className="p-4 rounded-xl border border-purple-200 bg-purple-50/70 space-y-2">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-purple-700 flex-shrink-0" />
+                <h4 className="text-xs font-black text-purple-950">
+                  Kredensial Developer &amp; Bypass Master Key (Internal Only)
+                </h4>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs pt-1">
+                <div className="p-2.5 bg-white rounded-lg border border-purple-200">
+                  <div className="text-[10px] text-slate-500 font-semibold">PIN Default Peserta:</div>
+                  <div className="font-mono font-black text-slate-800 text-sm">{DEFAULT_KAS_PIN}</div>
+                </div>
+                <div className="p-2.5 bg-white rounded-lg border border-purple-200">
+                  <div className="text-[10px] text-slate-500 font-semibold">PIN Default Developer:</div>
+                  <div className="font-mono font-black text-purple-800 text-sm">{DEFAULT_ENGINEER_PIN}</div>
+                </div>
+                <div className="p-2.5 bg-white rounded-lg border border-purple-200">
+                  <div className="text-[10px] text-slate-500 font-semibold">Password Kurator:</div>
+                  <div className="font-mono font-black text-indigo-800 text-sm">{DEFAULT_ADMIN_PASSWORD}</div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* 3. BAB I: CARA AKSES BUKU KAS (UNTUNGIN) */}
           <div className="space-y-3">
@@ -157,7 +268,7 @@ export const PanduanAksesKasPinPdfModal: React.FC<PanduanAksesKasPinPdfModalProp
             </div>
 
             <p className="text-xs text-slate-700 leading-relaxed">
-              Modul <strong>Untungin</strong> adalah sistem pencatatan keuangan dan laporan laba/rugi mandiri yang dirancang khusus untuk mendampingi UMKM dampingan Gekrafs Kota Batu. Seluruh data keuangan disimpan dalam ruang penyimpanan terisolasi (<em>multi-tenant isolated storage</em>) per unit usaha.
+              Modul <strong>Untungin</strong> adalah sistem pencatatan keuangan dan laporan laba/rugi mandiri yang dirancang khusus untuk mendampingi UMKM dampingan Gekrafs Kota Batu. Peserta dapat mengakses Buku Kas usahanya melalui 3 jalur cepat:
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
@@ -203,29 +314,24 @@ export const PanduanAksesKasPinPdfModal: React.FC<PanduanAksesKasPinPdfModalProp
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm font-extrabold text-[#001c3c] border-b border-slate-200 pb-1.5">
               <Lock className="w-4 h-4 text-amber-600" />
-              <span>BAB II: SISTEM KEAMANAN & PIN PENGAMAN BUKU KAS</span>
+              <span>BAB II: SISTEM KEAMANAN &amp; PIN PENGAMAN BUKU KAS</span>
             </div>
 
             <p className="text-xs text-slate-700 leading-relaxed">
               Catatan pendapatan, pengeluaran, saldo rekening, dan laba kotor UMKM merupakan data privat yang sensitif. Untuk mencegah orang lain mengintip catatan uang usaha saat meminjam ponsel peserta, sistem menerapkan <strong>Layar Kunci PIN (PIN Lock Gate)</strong>:
             </p>
 
-            <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/70 space-y-2">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-amber-700 flex-shrink-0" />
-                <h4 className="text-xs font-extrabold text-amber-900">
-                  PIN Bawaan Standar Awal Peserta: <code className="bg-amber-200/80 px-2 py-0.5 rounded text-amber-950 font-mono text-sm tracking-wider font-black">{DEFAULT_KAS_PIN}</code>
-                </h4>
-              </div>
-              <ul className="text-xs text-slate-700 space-y-1 list-disc list-inside leading-relaxed pl-1">
+            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
+              <ul className="text-xs text-slate-700 space-y-1.5 list-disc list-inside leading-relaxed pl-1">
                 <li>Setiap peserta UMKM yang baru pertama kali membuka buku kas akan diminta memasukkan PIN awal standar: <strong>123456</strong>.</li>
-                <li>Setelah PIN benar dimasukkan, buku kas langsung terbuka dan menampilkan seluruh fitur keuangan.</li>
+                <li>Setelah PIN benar dimasukkan, buku kas langsung terbuka dan menampilkan seluruh fitur keuangan secara komprehensif.</li>
                 <li>Sesi buku kas akan tetap terbuka selama modal aktif. Apabila modal ditutup dan dibuka kembali, keamanan PIN akan kembali melindungi data.</li>
+                <li>Tersedia tombol privasi (ikon mata) di sudut kanan atas untuk menyamarkan nominal uang saat mencatat kas di depan pelanggan.</li>
               </ul>
             </div>
           </div>
 
-          {/* 5. BAB III: CARA PESERTA MENGUBAH PIN KAS */}
+          {/* 5. BAB III: CARA PESERTA MENGUBAH PIN KAS SECARA MANDIRI */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm font-extrabold text-[#001c3c] border-b border-slate-200 pb-1.5">
               <KeyRound className="w-4 h-4 text-emerald-600" />
@@ -233,7 +339,7 @@ export const PanduanAksesKasPinPdfModal: React.FC<PanduanAksesKasPinPdfModalProp
             </div>
 
             <p className="text-xs text-slate-700 leading-relaxed">
-              Peserta UMKM berhak dan dianjurkan untuk mengganti PIN kas bawaan menjadi PIN unik pribadi agar kerahasiaan semakin terjamin. Langkah-langkahnya sebagai berikut:
+              Peserta UMKM dianjurkan untuk mengganti PIN kas bawaan menjadi PIN unik pribadi agar kerahasiaan semakin terjamin. Langkah-langkahnya sebagai berikut:
             </p>
 
             <div className="space-y-2 text-xs">
@@ -275,154 +381,195 @@ export const PanduanAksesKasPinPdfModal: React.FC<PanduanAksesKasPinPdfModalProp
             </div>
           </div>
 
-          {/* 6. BAB IV: PIN DEFAULT TERKUNCI DEVELOPER & ENGINEER */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sm font-extrabold text-[#001c3c] border-b border-slate-200 pb-1.5">
-              <Key className="w-4 h-4 text-purple-700" />
-              <span>BAB IV: PIN TERKUNCI DEFAULT DEVELOPER & ENGINEER (FULL AKSES)</span>
-            </div>
-
-            <p className="text-xs text-slate-700 leading-relaxed">
-              Khusus akun <strong>Lead Developer</strong> (<code>obeetools@gmail.com</code>) dan <strong>Core Engineer</strong> (<code>loehendra@gmail.com</code>), sistem mengunci PIN default dengan kombinasi pengamanan tingkat tinggi:
-            </p>
-
-            <div className="p-4 rounded-xl border border-purple-200 bg-purple-50/70 space-y-2">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-purple-700 flex-shrink-0" />
-                <h4 className="text-xs font-black text-purple-950">
-                  PIN Bawaan Terkunci Developer & Engineer: <code className="bg-purple-200/80 px-2 py-0.5 rounded text-purple-950 font-mono text-sm tracking-wider font-black">{DEFAULT_ENGINEER_PIN}</code>
-                </h4>
-              </div>
-              <ul className="text-xs text-slate-700 space-y-1 list-disc list-inside leading-relaxed pl-1">
-                <li><strong>Terkunci Sebagai Default:</strong> Setiap kali akun Developer / Engineer dibuat atau di-reset, kredensial terkunci pada nilai <code>{DEFAULT_ENGINEER_PIN}</code>.</li>
-                <li><strong>Opsi Ganti PIN Mandiri:</strong> Developer dan Engineer tetap memiliki keleluasaan penuh untuk mengganti PIN ini kapan saja melalui menu <strong>Developer Tools ➔ Akun Developer & PIN ➔ Ganti PIN / Sandi</strong>.</li>
-                <li><strong>Master Key / Super Privilege:</strong> Nilai PIN ini juga berfungsi sebagai kunci induk darurat untuk membuka dan meninjau Buku Kas unit usaha pengembang (<code>obeecreatives</code>).</li>
-                <li><strong>Peran Lainnya:</strong> Kredensial untuk peserta UMKM tetap menggunakan default <code>123456</code>, dan tim kurator tetap menggunakan <code>Gekrafs2026!</code>.</li>
-              </ul>
-            </div>
-          </div>
-
-          {/* 7. BAB V: SOP RESET PIN BAGI DEVELOPER / ENGINEER */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sm font-extrabold text-[#001c3c] border-b border-slate-200 pb-1.5">
-              <Terminal className="w-4 h-4 text-amber-600" />
-              <span>BAB V: SOP RESET PIN BAGI DEVELOPER / ENGINEER (SOLUSI LUPA PIN)</span>
-            </div>
-
-            <p className="text-xs text-slate-700 leading-relaxed">
-              Untuk mengantisipasi peserta yang mengganti PIN lalu lupa di kemudian hari, <strong>Lead Developer</strong> (<code>obeetools@gmail.com</code>) dan <strong>Core Engineer</strong> (<code>loehendra@gmail.com</code>) dilengkapi hak istimewa (*super privilege*) untuk memulihkan PIN peserta dalam hitungan detik.
-            </p>
-
-            <div className="p-4 rounded-xl border border-purple-200 bg-purple-50/70 space-y-3">
-              <h4 className="text-xs font-black text-purple-900 flex items-center gap-2">
-                <Shield className="w-4 h-4 text-purple-700" />
-                <span>Prosedur Melalui Menu Developer Hub (Tab "🔐 Reset PIN Kas Peserta"):</span>
-              </h4>
-
-              <div className="space-y-2 text-xs text-slate-700">
-                <div className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <strong>Langkah 1: Masuk ke Menu Dev Hub</strong> &gt; Pilih sub-tab <strong>"Reset PIN Kas Peserta"</strong>.
-                  </div>
+          {/* KONTEN BERBEDA: PESERTA vs DEVELOPER */}
+          {!isShowingDeveloperSop ? (
+            /* --- KONTEN RAMAH & AMAN BAGI PESERTA UMKM --- */
+            <>
+              {/* BAB IV PESERTA: FITUR BUKU KAS & LAPORAN LABA RUGI */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm font-extrabold text-[#001c3c] border-b border-slate-200 pb-1.5">
+                  <Database className="w-4 h-4 text-blue-600" />
+                  <span>BAB IV: PANDUAN PENCATATAN TRANSAKSI, MULTI-REKENING &amp; LABA RUGI</span>
                 </div>
 
-                <div className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <strong>Langkah 2: Cari Peserta</strong> melalui kolom pencarian (ketikkan Nama Usaha, Pemilik, atau Nomor WhatsApp).
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                  <div className="p-3.5 bg-blue-50/60 border border-blue-200 rounded-xl space-y-1.5">
+                    <h5 className="font-bold text-blue-950 flex items-center gap-1.5">
+                      <Wallet className="w-4 h-4 text-blue-600" />
+                      <span>1. Catat Arus Kas</span>
+                    </h5>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      Catat pemasukan penjualan, penerimaan piutang, dan pengeluaran beban usaha (bahan baku, listrik, sewa, gaji) dengan kategori rapi dan bukti nota.
+                    </p>
                   </div>
-                </div>
 
-                <div className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <strong>Langkah 3: Pantau Status PIN Aktif</strong>:
-                    <ul className="list-disc list-inside text-[11px] text-slate-600 mt-0.5 pl-2">
-                      <li>Badge Kuning (<em>Standar: 123456</em>): Peserta belum pernah mengubah PIN.</li>
-                      <li>Badge Hijau (<em>Diubah Peserta</em>): Menampilkan nilai PIN aktif yang sedang digunakan. Developer bahkan dapat membacakan PIN tersebut kepada peserta tanpa perlu meresetnya jika diinginkan.</li>
-                    </ul>
+                  <div className="p-3.5 bg-purple-50/60 border border-purple-200 rounded-xl space-y-1.5">
+                    <h5 className="font-bold text-purple-950 flex items-center gap-1.5">
+                      <Layers className="w-4 h-4 text-purple-600" />
+                      <span>2. Multi-Rekening Kas</span>
+                    </h5>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      Pisahkan uang usaha secara akurat: Kas Tunai Toko, Tabungan Bank BCA/BRI/Mandiri, dan Rekening QRIS. Fitur transfer saldo mempermudah mutasi antar-rekening.
+                    </p>
                   </div>
-                </div>
 
-                <div className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <strong>Langkah 4: Pilih Metode Pemulihan</strong>:
-                    <ul className="list-disc list-inside text-[11px] text-slate-600 mt-0.5 pl-2">
-                      <li><strong>Tombol "⚡ Reset 123456":</strong> Seketika mengembalikan PIN peserta ke standar bawaan (123456) disertai konfirmasi terpusat <em>PartnerUp Says</em>.</li>
-                      <li><strong>Tombol "✏️ Set Kustom":</strong> Membuka dialog untuk menetapkan PIN baru tertentu sesuai permintaan khusus peserta (misal: <em>202626</em>).</li>
-                    </ul>
+                  <div className="p-3.5 bg-emerald-50/60 border border-emerald-200 rounded-xl space-y-1.5">
+                    <h5 className="font-bold text-emerald-950 flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-emerald-600" />
+                      <span>3. Laba Rugi &amp; Pajak</span>
+                    </h5>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      Laba bersih dihitung otomatis secara *real-time*. Dilengkapi simulasi tarif PPh Final UMKM 0,5% sesuai Peraturan Pemerintah PP 23/2018.
+                    </p>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 space-y-1">
-              <div className="font-bold text-[#001c3c] flex items-center gap-1.5">
-                <RotateCcw className="w-3.5 h-3.5 text-amber-600" />
-                <span>Opsi Reset Cepat dari Modal Buku Kas:</span>
+              {/* BAB V PESERTA: BANTUAN LUPA PIN */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm font-extrabold text-[#001c3c] border-b border-slate-200 pb-1.5">
+                  <QuestionIcon className="w-4 h-4 text-indigo-600" />
+                  <span>BAB V: PANDUAN BANTUAN APABILA PESERTA LUPA PIN KAS</span>
+                </div>
+
+                <div className="p-4 rounded-xl border border-indigo-200 bg-indigo-50/70 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-indigo-700 flex-shrink-0" />
+                    <h4 className="text-xs font-black text-indigo-950">
+                      Jangan Panik — Seluruh Catatan Keuangan Anda Tetap Tersimpan Utuh &amp; Aman
+                    </h4>
+                  </div>
+                  <p className="text-xs text-slate-700 leading-relaxed">
+                    Apabila Anda pernah mengganti PIN kas lalu lupa kombinasi angkanya, data transaksi Anda <strong>tidak akan hilang</strong>. Sistem kami dilengkapi prosedur pemulihan resmi yang aman:
+                  </p>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-start gap-2.5 p-2.5 bg-white rounded-lg border border-indigo-100">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                      <span className="text-slate-700">
+                        <strong>Langkah 1:</strong> Hubungi Tim Kurator Pendamping atau Helpdesk DPC Gekrafs Kota Batu melalui WhatsApp resmi pendampingan.
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-2.5 p-2.5 bg-white rounded-lg border border-indigo-100">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                      <span className="text-slate-700">
+                        <strong>Langkah 2:</strong> Sebutkan Nama Usaha dan Nomor Telepon/WhatsApp Anda yang terdaftar pada program pendampingan.
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-2.5 p-2.5 bg-white rounded-lg border border-indigo-100">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                      <span className="text-slate-700">
+                        <strong>Langkah 3:</strong> Tim kurator teknis akan melakukan verifikasi identitas dan membantu memulihkan PIN kas Anda seketika sehingga Anda dapat kembali mencatat transaksi.
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <p className="text-[11px] leading-relaxed">
-                Saat akun Developer membuka buku kas peserta (dari Portal Kurator atau Profil Modal), tombol emas <strong>"⚡ Reset PIN"</strong> selalu tersedia di header modal untuk perbaikan instan di tempat.
-              </p>
-            </div>
-          </div>
+            </>
+          ) : (
+            /* --- KONTEN KHUSUS LEAD DEVELOPER & CORE ENGINEER (SOP INTERNAL) --- */
+            <>
+              {/* BAB IV DEVELOPER: PIN TERKUNCI DEFAULT */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm font-extrabold text-[#001c3c] border-b border-slate-200 pb-1.5">
+                  <Key className="w-4 h-4 text-purple-700" />
+                  <span>BAB IV: PIN TERKUNCI DEFAULT DEVELOPER &amp; ENGINEER (FULL AKSES)</span>
+                </div>
 
-          {/* 8. BAB VI: MATRIKS HAK AKSES PERAN (CHEAT SHEET) */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sm font-extrabold text-[#001c3c] border-b border-slate-200 pb-1.5">
-              <Users className="w-4 h-4 text-blue-600" />
-              <span>BAB VI: MATRIKS HAK AKSES & OTORISASI BUKU KAS</span>
-            </div>
+                <div className="p-4 rounded-xl border border-purple-200 bg-purple-50/70 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-purple-700 flex-shrink-0" />
+                    <h4 className="text-xs font-black text-purple-950">
+                      PIN Bawaan Terkunci Developer: <code className="bg-purple-200/80 px-2 py-0.5 rounded text-purple-950 font-mono text-sm tracking-wider font-black">{DEFAULT_ENGINEER_PIN}</code>
+                    </h4>
+                  </div>
+                  <ul className="text-xs text-slate-700 space-y-1 list-disc list-inside leading-relaxed pl-1">
+                    <li>Khusus akun Lead Developer (<code>obeetools@gmail.com</code>) dan Core Engineer (<code>loehendra@gmail.com</code>).</li>
+                    <li><strong>Terkunci Sebagai Default:</strong> Setiap akun developer dibuat atau di-reset, kredensial terkunci pada nilai tersebut.</li>
+                    <li><strong>Master Key / Super Privilege:</strong> Nilai PIN ini juga berfungsi sebagai kunci induk darurat untuk membuka dan meninjau Buku Kas unit usaha pengembang.</li>
+                  </ul>
+                </div>
+              </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden">
-                <thead className="bg-[#001c3c] text-white text-[11px] uppercase tracking-wider font-extrabold">
-                  <tr>
-                    <th className="py-2.5 px-3">Peran Pengguna</th>
-                    <th className="py-2.5 px-3">Akses Data Kas</th>
-                    <th className="py-2.5 px-3">Ganti PIN Sendiri</th>
-                    <th className="py-2.5 px-3">Reset PIN Orang Lain</th>
-                    <th className="py-2.5 px-3">Bypass Kunci PIN</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 text-[11px]">
-                  <tr className="bg-white">
-                    <td className="py-2.5 px-3 font-bold text-[#001c3c]">Peserta UMKM</td>
-                    <td className="py-2.5 px-3">Hanya Usaha Sendiri</td>
-                    <td className="py-2.5 px-3 text-emerald-700 font-bold">Ya (Mandiri)</td>
-                    <td className="py-2.5 px-3 text-rose-600 font-semibold">Tidak Diizinkan</td>
-                    <td className="py-2.5 px-3 text-slate-500">Tidak (Wajib PIN)</td>
-                  </tr>
-                  <tr className="bg-slate-50/70">
-                    <td className="py-2.5 px-3 font-bold text-[#001c3c]">Kurator / Panitia</td>
-                    <td className="py-2.5 px-3">Seluruh Peserta (Pantau)</td>
-                    <td className="py-2.5 px-3 text-slate-500">—</td>
-                    <td className="py-2.5 px-3 text-slate-500">Minta ke Developer</td>
-                    <td className="py-2.5 px-3 text-amber-700 font-semibold">Mode Pantau</td>
-                  </tr>
-                  <tr className="bg-purple-50/60 font-semibold text-purple-950">
-                    <td className="py-2.5 px-3 font-black text-purple-900">Lead Developer / Engineer</td>
-                    <td className="py-2.5 px-3">Akses Penuh Seluruh Usaha</td>
-                    <td className="py-2.5 px-3 text-emerald-700 font-black">Ya (Mandiri)</td>
-                    <td className="py-2.5 px-3 text-emerald-700 font-black">Ya (1-Klik / Kustom)</td>
-                    <td className="py-2.5 px-3 text-emerald-700 font-black">Ya (Auto Bypass)</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
+              {/* BAB V DEVELOPER: SOP RESET PIN DEVELOPER HUB */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm font-extrabold text-[#001c3c] border-b border-slate-200 pb-1.5">
+                  <Terminal className="w-4 h-4 text-amber-600" />
+                  <span>BAB V: SOP RESET PIN BAGI DEVELOPER / ENGINEER (SOLUSI LUPA PIN)</span>
+                </div>
 
-          {/* 9. BAB VII: JAMINAN KEAMANAN DATA, INTEGRITAS TRANSAKSI & SOP SINKRONISASI CLOUD */}
+                <div className="p-4 rounded-xl border border-purple-200 bg-purple-50/70 space-y-2 text-xs text-slate-700">
+                  <div className="font-bold text-purple-900 mb-1">Dua Jalur Pemulihan Instan:</div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <div><strong>Jalur 1 (Developer Hub):</strong> Masuk ke Developer Tools &gt; Tab "Reset PIN Kas Peserta" &gt; Cari nama usaha &gt; Klik "Reset 123456" atau "Set Kustom".</div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <div><strong>Jalur 2 (Modal Kas Langsung):</strong> Saat developer membuka buku kas peserta, tombol kuning "⚡ Reset PIN" selalu tersedia di header untuk perbaikan instan 1-klik di tempat.</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* BAB VI DEVELOPER: MATRIKS AKSES */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm font-extrabold text-[#001c3c] border-b border-slate-200 pb-1.5">
+                  <Users className="w-4 h-4 text-blue-600" />
+                  <span>BAB VI: MATRIKS HAK AKSES &amp; OTORISASI BUKU KAS</span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden">
+                    <thead className="bg-[#001c3c] text-white text-[11px] uppercase tracking-wider font-extrabold">
+                      <tr>
+                        <th className="py-2.5 px-3">Peran Pengguna</th>
+                        <th className="py-2.5 px-3">Akses Data Kas</th>
+                        <th className="py-2.5 px-3">Ganti PIN Sendiri</th>
+                        <th className="py-2.5 px-3">Reset PIN Orang Lain</th>
+                        <th className="py-2.5 px-3">Bypass Kunci PIN</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 text-[11px]">
+                      <tr className="bg-white">
+                        <td className="py-2.5 px-3 font-bold text-[#001c3c]">Peserta UMKM</td>
+                        <td className="py-2.5 px-3">Hanya Usaha Sendiri</td>
+                        <td className="py-2.5 px-3 text-emerald-700 font-bold">Ya (Mandiri)</td>
+                        <td className="py-2.5 px-3 text-rose-600 font-semibold">Tidak Diizinkan</td>
+                        <td className="py-2.5 px-3 text-slate-500">Tidak (Wajib PIN)</td>
+                      </tr>
+                      <tr className="bg-slate-50/70">
+                        <td className="py-2.5 px-3 font-bold text-[#001c3c]">Kurator / Panitia</td>
+                        <td className="py-2.5 px-3">Seluruh Peserta (Pantau)</td>
+                        <td className="py-2.5 px-3 text-slate-500">—</td>
+                        <td className="py-2.5 px-3 text-slate-500">Minta ke Developer</td>
+                        <td className="py-2.5 px-3 text-amber-700 font-semibold">Mode Pantau</td>
+                      </tr>
+                      <tr className="bg-purple-50/60 font-semibold text-purple-950">
+                        <td className="py-2.5 px-3 font-black text-purple-900">Lead Developer / Engineer</td>
+                        <td className="py-2.5 px-3">Akses Penuh Seluruh Usaha</td>
+                        <td className="py-2.5 px-3 text-emerald-700 font-black">Ya (Mandiri)</td>
+                        <td className="py-2.5 px-3 text-emerald-700 font-black">Ya (1-Klik / Kustom)</td>
+                        <td className="py-2.5 px-3 text-emerald-700 font-black">Ya (Auto Bypass)</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* JAMINAN KEAMANAN DATA & INTEGRITAS TRANSAKSI (Tampil untuk semua, dengan narasi bersih tanpa kode rahasia) */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm font-extrabold text-[#001c3c] border-b border-slate-200 pb-1.5">
               <Database className="w-4 h-4 text-emerald-600" />
-              <span>BAB VII: JAMINAN KEAMANAN DATA, INTEGRITAS TRANSAKSI & SOP SINKRONISASI CLOUD</span>
+              <span>
+                {isShowingDeveloperSop
+                  ? 'BAB VII: JAMINAN KEAMANAN DATA, INTEGRITAS TRANSAKSI & SINKRONISASI CLOUD'
+                  : 'BAB VI: JAMINAN KEAMANAN DATA & INTEGRITAS TRANSAKSI FINANSIAL'}
+              </span>
             </div>
 
             <p className="text-xs text-slate-700 leading-relaxed">
-              Sistem Buku Kas Untungin dibangun dengan prinsip <strong>Zero Data Loss & Multi-Tenant Isolated Architecture</strong>. Seluruh riwayat transaksi keuangan peserta dijamin aman, utuh, dan terlindungi dari manipulasi atau ketidaksengajaan operasional.
+              Sistem Buku Kas Untungin dibangun dengan prinsip <strong>Zero Data Loss &amp; Multi-Tenant Isolated Architecture</strong>. Seluruh riwayat transaksi keuangan peserta dijamin aman, utuh, dan terlindungi dari kehilangan data:
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -441,7 +588,7 @@ export const PanduanAksesKasPinPdfModal: React.FC<PanduanAksesKasPinPdfModalProp
                   <li>Penambahan kuota kredit transaksi oleh Kurator/Admin.</li>
                   <li>Perpanjangan hari masa aktif trial selama periode inkubasi.</li>
                   <li>Pergantian atau reset PIN pengaman kas peserta.</li>
-                  <li>Upgrade lisensi Pro Lifetime maupun penggunaan kode voucher.</li>
+                  <li>Upgrade lisensi Pro maupun penggunaan kode voucher resmi.</li>
                 </ul>
               </div>
 
@@ -450,20 +597,14 @@ export const PanduanAksesKasPinPdfModal: React.FC<PanduanAksesKasPinPdfModalProp
                 <div className="flex items-center gap-2">
                   <Layers className="w-4 h-4 text-blue-700 flex-shrink-0" />
                   <h4 className="text-xs font-black text-blue-950">
-                    2. Arsitektur Terisolasi (Isolated Storage)
+                    2. Partisi Penyimpanan Terisolasi (Isolated Storage)
                   </h4>
                 </div>
                 <p className="text-[11px] text-slate-700 leading-relaxed">
-                  Setiap unit usaha memiliki partisi wadah penyimpanan mandiri yang terpisah secara modular:
+                  Setiap unit usaha memiliki partisi wadah penyimpanan mandiri yang terpisah secara modular. Pembukuan usaha Anda bersifat privat dan tidak dapat bercampur atau dilihat oleh unit usaha dampingan lainnya.
                 </p>
-                <ul className="text-[11px] text-slate-600 space-y-1 font-mono text-[10px]">
-                  <li>• Transaksi: <code className="bg-white px-1.5 py-0.5 rounded border border-blue-200">kas_txs_[namaUsaha]</code></li>
-                  <li>• Akun Kas: <code className="bg-white px-1.5 py-0.5 rounded border border-blue-200">kas_accounts_[namaUsaha]</code></li>
-                  <li>• Kuota Trial: <code className="bg-white px-1.5 py-0.5 rounded border border-blue-200">kas_premium_[namaUsaha]</code></li>
-                  <li>• PIN Kas: <code className="bg-white px-1.5 py-0.5 rounded border border-blue-200">kas_pin_[namaUsaha]</code></li>
-                </ul>
                 <p className="text-[10px] text-slate-500 italic">
-                  *Modifikasi pada kuota trial tidak menyentuh partisi transaksi sama sekali.
+                  *Modifikasi kuota lisensi atau bantuan teknis tidak akan menyentuh riwayat transaksi kas Anda.
                 </p>
               </div>
             </div>
@@ -473,54 +614,36 @@ export const PanduanAksesKasPinPdfModal: React.FC<PanduanAksesKasPinPdfModalProp
               <div className="flex items-center gap-2">
                 <Cloud className="w-4 h-4 text-purple-700 flex-shrink-0" />
                 <h4 className="text-xs font-black text-purple-950">
-                  3. Mekanisme Sinkronisasi Cloud (Google Sheets) & Cache Offline
+                  3. Mekanisme Sinkronisasi Cloud (Google Sheets) &amp; Cache Offline
                 </h4>
               </div>
               <p className="text-xs text-slate-700 leading-relaxed">
-                Untungin menerapkan model <strong>Hybrid Offline-First</strong>: transaksi disimpan secara instan di peramban pengguna (tanpa jeda buffering) dan disinkronkan ke Cloud Database (Google Sheets) secara otomatis saat terhubung internet.
+                Untungin menerapkan model <strong>Hybrid Offline-First</strong>: transaksi disimpan secara instan di peramban pengguna (tanpa jeda buffering) dan otomatis disinkronkan ke Cloud Database (Google Sheets) saat perangkat terhubung internet.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
                 <div className="p-2.5 bg-white rounded-lg border border-purple-100 shadow-2xs">
                   <span className="font-bold text-[#001c3c] block mb-0.5">Append-Only UUID</span>
-                  <span className="text-slate-600">Setiap transaksi memiliki ID unik global. Sistem tidak pernah menimpa (overwrite) transaksi lama saat sinkron.</span>
+                  <span className="text-slate-600">Setiap transaksi memiliki ID unik global, menjamin tidak ada transaksi yang tertimpa saat sinkronisasi.</span>
                 </div>
                 <div className="p-2.5 bg-white rounded-lg border border-purple-100 shadow-2xs">
                   <span className="font-bold text-[#001c3c] block mb-0.5">Sinkron Otomatis</span>
                   <span className="text-slate-600">Terpicu otomatis saat modal kas dibuka atau tombol "Sinkron Cloud" ditekan.</span>
                 </div>
                 <div className="p-2.5 bg-white rounded-lg border border-purple-100 shadow-2xs">
-                  <span className="font-bold text-[#001c3c] block mb-0.5">Audit Trail Kurator</span>
-                  <span className="text-slate-600">Setiap perpanjangan kuota mencatat identitas kurator dan alasan perpanjangan.</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Poin 4: Pemisahan Otoritas Otorisasi */}
-            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-2">
-              <div className="flex items-center gap-2 text-[#001c3c] font-black">
-                <Sparkles className="w-4 h-4 text-amber-500" />
-                <span>4. SOP Pemisahan Hak Otoritas Operasional</span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
-                <div className="p-2 bg-white rounded-lg border border-slate-200">
-                  <strong className="text-indigo-900 block">Peran Admin Kurator:</strong>
-                  <span className="text-slate-600">Berwenang menambah kuota transaksi (+15, +30) dan memperpanjang hari trial selama masa pendampingan. Tidak memiliki hak menerbitkan voucher atau lisensi Pro penuh.</span>
-                </div>
-                <div className="p-2 bg-white rounded-lg border border-slate-200">
-                  <strong className="text-purple-900 block">Peran Developer / Site Engineer:</strong>
-                  <span className="text-slate-600">Memegang hak eksklusif aktivasi Pro Lifetime, penerbitan voucher diskon/gratis, bypass kunci PIN kas saat darurat, dan audit integritas data.</span>
+                  <span className="font-bold text-[#001c3c] block mb-0.5">Audit Trail Aman</span>
+                  <span className="text-slate-600">Setiap pembaruan sistem tercatat rapi untuk memastikan integritas dan akuntabilitas data.</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* 10. LEMBAR TANDA TANGAN PENGESAHAN DOKUMEN */}
+          {/* LEMBAR TANDA TANGAN PENGESAHAN DOKUMEN */}
           <div className="pt-6 border-t-2 border-slate-200 text-xs">
             <div className="grid grid-cols-2 gap-8 text-center">
               <div className="space-y-12">
                 <div className="text-slate-600">
                   <div>Ditetapkan di: Kota Batu, Jawa Timur</div>
-                  <div className="font-bold text-[#001c3c] mt-0.5">Tim Pengembang Sistem & Arsitektur:</div>
+                  <div className="font-bold text-[#001c3c] mt-0.5">Tim Pengembang Sistem &amp; Arsitektur:</div>
                 </div>
                 <div className="space-y-0.5">
                   <div className="font-extrabold text-[#001c3c] underline text-sm">
@@ -529,13 +652,13 @@ export const PanduanAksesKasPinPdfModal: React.FC<PanduanAksesKasPinPdfModalProp
                   <div className="text-[11px] text-slate-500">
                     Lead Developer &middot; obeecreatives &middot; Gekrafs Batu
                   </div>
-                  <div className="text-[10px] text-purple-700 font-mono">obeetools@gmail.com</div>
+                  <div className="text-[10px] text-purple-700 font-mono">Ekosistem PartnerUp Gekrafs Batu</div>
                 </div>
               </div>
 
               <div className="space-y-12">
                 <div className="text-slate-600">
-                  <div>Mengetahui & Menyetujui:</div>
+                  <div>Mengetahui &amp; Menyetujui:</div>
                   <div className="font-bold text-[#001c3c] mt-0.5">Ketua DPC Gekrafs Kota Batu:</div>
                 </div>
                 <div className="space-y-0.5">

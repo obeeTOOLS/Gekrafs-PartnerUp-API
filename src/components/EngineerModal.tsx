@@ -410,6 +410,7 @@ export const EngineerModal: React.FC<EngineerModalProps> = ({
       <PanduanAksesKasPinPdfModal
         isOpen={isPanduanKasPdfOpen}
         onClose={() => setIsPanduanKasPdfOpen(false)}
+        isDeveloper={true}
       />
     </div>
   );

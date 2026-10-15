@@ -186,7 +186,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
     } else {
       setPinError(
         namaUsaha.toLowerCase() === 'obeecreatives'
-          ? 'PIN salah. PIN default developer adalah obeecreatives2026#*.'
+          ? (isDeveloperUser ? 'PIN salah. Silakan masukkan PIN developer Anda.' : 'PIN salah. Akses ditolak.')
           : 'PIN salah. PIN bawaan awal adalah 123456. Hubungi Developer / Kurator jika Anda lupa PIN.'
       );
     }
@@ -2714,6 +2714,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
       <PanduanAksesKasPinPdfModal
         isOpen={isPanduanKasPdfOpen}
         onClose={() => setIsPanduanKasPdfOpen(false)}
+        isDeveloper={isDeveloperUser}
       />
     </div>
   );

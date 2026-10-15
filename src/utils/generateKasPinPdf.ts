@@ -2,7 +2,18 @@ import { jsPDF } from 'jspdf';
 import { DEFAULT_KAS_PIN, DEFAULT_ENGINEER_PIN } from '../services/kasService';
 import { DEFAULT_ADMIN_PASSWORD } from '../services/authService';
 
-export function generateKasPinPdf(): void {
+export interface GenerateKasPinPdfOptions {
+  isDeveloper?: boolean;
+}
+
+export function generateKasPinPdf(options?: GenerateKasPinPdfOptions | unknown): void {
+  const isDev = Boolean(
+    options &&
+    typeof options === 'object' &&
+    'isDeveloper' in options &&
+    (options as GenerateKasPinPdfOptions).isDeveloper
+  );
+
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -24,7 +35,6 @@ export function generateKasPinPdf(): void {
   };
 
   const drawHeaderFooter = () => {
-    // Header line on subsequent pages
     doc.setDrawColor(0, 28, 60);
     doc.setLineWidth(0.5);
     doc.line(margin, 10, pageWidth - margin, 10);
@@ -32,14 +42,25 @@ export function generateKasPinPdf(): void {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(100, 116, 139);
-    doc.text('GEKRAFS KOTA BATU  •  PANDUAN OPERASIONAL AKSES KAS & SISTEM PIN', margin, 8);
+    doc.text(
+      isDev
+        ? 'GEKRAFS KOTA BATU  •  SOP TEKNIS & KEAMANAN SISTEM KAS (DEVELOPER EDITION)'
+        : 'GEKRAFS KOTA BATU  •  BUKU PANDUAN PENGGUNA BUKU KAS UNTUNGIN (EDISI UMKM)',
+      margin,
+      8
+    );
 
-    // Footer line
     const pageNum = doc.getNumberOfPages();
     doc.setDrawColor(226, 232, 240);
     doc.line(margin, pageHeight - 10, pageWidth - margin, pageHeight - 10);
     doc.text(`Halaman ${pageNum}`, pageWidth - margin - 15, pageHeight - 6);
-    doc.text('Rahasia & Terbatas  •  Ekosistem PartnerUp Gekrafs Batu 2026', margin, pageHeight - 6);
+    doc.text(
+      isDev
+        ? 'Rahasia & Terbatas (Developer Only)  •  PartnerUp Gekrafs Batu 2026'
+        : 'Dokumen Panduan Peserta  •  Ekosistem PartnerUp Gekrafs Batu 2026',
+      margin,
+      pageHeight - 6
+    );
   };
 
   // --- KOP SURAT RESMI (Halaman 1) ---
@@ -55,7 +76,13 @@ export function generateKasPinPdf(): void {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.text('Sistem Pendampingan Usaha Kreatif & Modul Keuangan Untungin v1.3', margin + 6, currentY + 14);
-  doc.text('Dokumen Resmi: SOP-UNTUNGIN/KAS-PIN/2026/01  •  Klasifikasi: Peserta & Developer', margin + 6, currentY + 19);
+  doc.text(
+    isDev
+      ? 'Dokumen SOP: SOP-UNTUNGIN/DEV-PIN/2026/01  •  Klasifikasi: KHUSUS DEVELOPER & ENGINEER'
+      : 'Dokumen Panduan: PANDUAN-UNTUNGIN/UMKM/2026/01  •  Klasifikasi: PESERTA UMKM & PUBLIK',
+    margin + 6,
+    currentY + 19
+  );
 
   currentY += 30;
 
@@ -69,50 +96,85 @@ export function generateKasPinPdf(): void {
   doc.setTextColor(88, 28, 135);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
-  doc.text('PANDUAN AKSES BUKU KAS, PENGELOLAAN PIN & PROSEDUR RESET', margin + 5, currentY + 8);
+  doc.text(
+    isDev
+      ? 'SOP OTORITAS DEVELOPER, PENGELOLAAN PIN & PEMULIHAN SISTEM KAS'
+      : 'BUKU PANDUAN PENGGUNA BUKU KAS UNTUNGIN & PENGELOLAAN PIN',
+    margin + 5,
+    currentY + 8
+  );
 
   doc.setTextColor(71, 85, 105);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
-  doc.text('Petunjuk teknis resmi bagi Peserta UMKM serta Panduan Otoritas Developer & Engineer', margin + 5, currentY + 15);
+  doc.text(
+    isDev
+      ? 'Petunjuk teknis resmi bagi Lead Developer & Core Engineer untuk manajemen kredensial, reset PIN, & lisensi'
+      : 'Petunjuk operasional resmi bagi Pelaku Usaha UMKM binaan Gekrafs Kota Batu untuk pembukuan kas & pengamanan PIN',
+    margin + 5,
+    currentY + 15
+  );
 
   currentY += 28;
 
   // --- KREDENSIAL CEPAT (HIGHLIGHT BOX) ---
-  doc.setFillColor(254, 243, 199);
-  doc.roundedRect(margin, currentY, contentWidth, 26, 2, 2, 'F');
-  doc.setDrawColor(245, 158, 11);
-  doc.setLineWidth(0.4);
-  doc.roundedRect(margin, currentY, contentWidth, 26, 2, 2, 'S');
+  if (!isDev) {
+    // KREDENSIAL PESERTA (BERSIH & AMAN - HANYA PIN AWAL PESERTA)
+    doc.setFillColor(254, 243, 199);
+    doc.roundedRect(margin, currentY, contentWidth, 18, 2, 2, 'F');
+    doc.setDrawColor(245, 158, 11);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(margin, currentY, contentWidth, 18, 2, 2, 'S');
 
-  doc.setTextColor(146, 64, 14);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9.5);
-  doc.text('RINGKASAN PIN & KREDENSIAL BAWAAN STANDAR (DEFAULT KEY):', margin + 5, currentY + 6);
+    doc.setTextColor(146, 64, 14);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.5);
+    doc.text('INFORMASI PENTING KEAMANAN PIN KAS ANDA:', margin + 5, currentY + 6);
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
-  doc.setTextColor(30, 41, 59);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(30, 41, 59);
+    doc.text('• PIN Bawaan Standar Awal Pembukaan Buku Kas:', margin + 5, currentY + 12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${DEFAULT_KAS_PIN}`, margin + 76, currentY + 12);
+    doc.setFont('helvetica', 'normal');
+    doc.text('(Dianjurkan segera diganti melalui tombol "🔑 Ganti PIN")', margin + 92, currentY + 12);
 
-  doc.text(`1. Peserta UMKM (Buku Kas):`, margin + 5, currentY + 12);
-  doc.setFont('helvetica', 'bold');
-  doc.text(`PIN Default: ${DEFAULT_KAS_PIN}`, margin + 50, currentY + 12);
-  doc.setFont('helvetica', 'normal');
-  doc.text('(Dapat diubah mandiri via tombol "Ganti PIN")', margin + 85, currentY + 12);
+    currentY += 24;
+  } else {
+    // KREDENSIAL DEVELOPER (KHUSUS DEVELOPER ONLY)
+    doc.setFillColor(254, 243, 199);
+    doc.roundedRect(margin, currentY, contentWidth, 26, 2, 2, 'F');
+    doc.setDrawColor(245, 158, 11);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(margin, currentY, contentWidth, 26, 2, 2, 'S');
 
-  doc.text(`2. Developer & Engineer:`, margin + 5, currentY + 18);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(180, 83, 9);
-  doc.text(`PIN Default Terkunci: ${DEFAULT_ENGINEER_PIN}`, margin + 50, currentY + 18);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(30, 41, 59);
-  doc.text('(Tetap punya opsi ubah PIN)', margin + 115, currentY + 18);
+    doc.setTextColor(146, 64, 14);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.5);
+    doc.text('RINGKASAN KREDENSIAL DEVELOPER & ENGINEER (INTERNAL ONLY):', margin + 5, currentY + 6);
 
-  doc.text(`3. Kurator & Panitia:`, margin + 5, currentY + 23);
-  doc.setFont('helvetica', 'bold');
-  doc.text(`Password Default: ${DEFAULT_ADMIN_PASSWORD}`, margin + 50, currentY + 23);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(30, 41, 59);
 
-  currentY += 32;
+    doc.text('1. Peserta UMKM (Buku Kas):', margin + 5, currentY + 12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`PIN Default: ${DEFAULT_KAS_PIN}`, margin + 50, currentY + 12);
+
+    doc.text('2. Developer & Engineer:', margin + 5, currentY + 18);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(180, 83, 9);
+    doc.text(`PIN Default Terkunci: ${DEFAULT_ENGINEER_PIN}`, margin + 50, currentY + 18);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(30, 41, 59);
+    doc.text('3. Kurator & Panitia:', margin + 5, currentY + 23);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Password Default: ${DEFAULT_ADMIN_PASSWORD}`, margin + 50, currentY + 23);
+
+    currentY += 32;
+  }
 
   // --- BAB I: CARA AKSES BUKU KAS ---
   checkPageOverflow(40);
@@ -127,15 +189,15 @@ export function generateKasPinPdf(): void {
   doc.setTextColor(30, 41, 59);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
-  const bab1Intro = 'Modul Untungin adalah sistem pencatatan keuangan mandiri bagi UMKM binaan Gekrafs Kota Batu dengan penyimpanan terisolasi (multi-tenant isolated storage). Peserta dapat membuka Buku Kas melalui 3 akses:';
+  const bab1Intro = 'Modul Untungin adalah sistem pencatatan keuangan mandiri bagi UMKM binaan Gekrafs Kota Batu. Peserta dapat membuka Buku Kas melalui 3 jalur akses:';
   const splitBab1Intro = doc.splitTextToSize(bab1Intro, contentWidth);
   doc.text(splitBab1Intro, margin, currentY);
   currentY += splitBab1Intro.length * 4.2 + 2;
 
   const aksesList = [
-    { title: 'A. Bilah Navigasi Bawah Layar Ponsel (Bottom Bar):', desc: 'Pada layar HP, sentuh menu "Kas" (ikon dompet ungu) di bilah bawah. Buku Kas langsung terbuka.' },
+    { title: 'A. Bilah Navigasi Bawah Layar Ponsel (Bottom Bar):', desc: 'Pada layar HP, sentuh menu "Kas" (ikon dompet ungu) di bilah navigasi bawah. Buku Kas langsung terbuka.' },
     { title: 'B. Tombol Header Atas Layar:', desc: 'Pada bagian atas layar (laptop & ponsel), terdapat tombol "Buku Kas" berlatar ungu di samping Direktori.' },
-    { title: 'C. Sidebar Navigasi & Direktori Ekraf:', desc: 'Tersedia tombol "Buku Kas Untungin" pada menu samping serta pada setiap kartu profil usaha di Direktori Ekraf.' }
+    { title: 'C. Direktori Ekraf:', desc: 'Buka kartu profil usaha Anda di Direktori Ekraf, lalu klik tombol "Buka Buku Kas Untungin".' }
   ];
 
   aksesList.forEach((item) => {
@@ -166,15 +228,15 @@ export function generateKasPinPdf(): void {
   doc.setTextColor(30, 41, 59);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
-  const bab2Intro = 'Catatan keuangan, saldo kas, serta omzet UMKM merupakan data privat. Oleh karena itu, modul Untungin dilindungi oleh Layar Kunci PIN (PIN Lock Gate) otomatis:';
+  const bab2Intro = 'Catatan keuangan, saldo kas, serta omzet usaha merupakan data privat. Oleh karena itu, modul Untungin dilindungi oleh Layar Kunci PIN (PIN Lock Gate) otomatis:';
   const splitBab2Intro = doc.splitTextToSize(bab2Intro, contentWidth);
   doc.text(splitBab2Intro, margin, currentY);
   currentY += splitBab2Intro.length * 4.2 + 2;
 
   const poinBab2 = [
-    `• PIN Bawaan Standar Peserta: ${DEFAULT_KAS_PIN} (6 angka). Peserta pertama kali membuka kas cukup memasukkan 123456.`,
+    `• PIN Bawaan Standar Awal Peserta: ${DEFAULT_KAS_PIN} (6 angka). Saat pertama kali membuka kas, masukkan angka 123456.`,
     '• Sesi Aman: Setelah terbuka, kas dapat digunakan selama modal aktif. Menutup modal mengaktifkan kembali proteksi PIN.',
-    '• Hak Otonom: Setiap peserta bebas mengganti PIN mereka kapan saja untuk mencegah pihak lain mengintip catatan uang.'
+    '• Hak Otonom: Setiap peserta bebas mengganti PIN mereka kapan saja untuk mencegah pihak lain mengintip catatan uang usaha.'
   ];
   poinBab2.forEach((pt) => {
     checkPageOverflow(8);
@@ -217,84 +279,147 @@ export function generateKasPinPdf(): void {
 
   currentY += 3;
 
-  // --- BAB IV: PIN DEFAULT DEVELOPER & ENGINEER ---
-  checkPageOverflow(44);
-  doc.setFillColor(0, 28, 60);
-  doc.rect(margin, currentY, contentWidth, 6, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.text('BAB IV: PIN TERKUNCI DEFAULT DEVELOPER & ENGINEER (FULL AKSES)', margin + 4, currentY + 4.5);
-  currentY += 9;
-
-  doc.setFillColor(254, 242, 242);
-  doc.roundedRect(margin, currentY, contentWidth, 14, 1.5, 1.5, 'F');
-  doc.setDrawColor(239, 68, 68);
-  doc.setLineWidth(0.3);
-  doc.roundedRect(margin, currentY, contentWidth, 14, 1.5, 1.5, 'S');
-
-  doc.setTextColor(153, 27, 27);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.text(`PIN DEFAULT TERKUNCI DEVELOPER & ENGINEER:  ${DEFAULT_ENGINEER_PIN}`, margin + 4, currentY + 5.5);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(80, 20, 20);
-  doc.text('Khusus akun Lead Developer (obeetools@gmail.com) dan Core Engineer (loehendra@gmail.com).', margin + 4, currentY + 10.5);
-
-  currentY += 17;
-
-  const devPoin = [
-    '• Terkunci Sebagai Default: Saat akun engineer di-reset atau pertama kali aktif, PIN wajib menggunakan obeecreatives2026#*.',
-    '• Opsi Ubah PIN: Developer tetap memiliki opsi penuh mengganti PIN melalui menu "Akun Developer & PIN" di Developer Tools.',
-    '• Master Passcode Kas: PIN ini juga berfungsi sebagai kunci induk pembuka kas unit usaha uji coba dan bypass darurat.'
-  ];
-  devPoin.forEach((dp) => {
-    checkPageOverflow(8);
-    const splitDp = doc.splitTextToSize(dp, contentWidth - 4);
-    doc.text(splitDp, margin + 2, currentY);
-    currentY += splitDp.length * 4.2;
-  });
-
-  currentY += 3;
-
-  // --- BAB V: SOP RESET PIN PESERTA OLEH DEVELOPER ---
-  checkPageOverflow(48);
-  doc.setFillColor(0, 28, 60);
-  doc.rect(margin, currentY, contentWidth, 6, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.text('BAB V: SOP DEVELOPER/ENGINEER MERESET PIN PESERTA YANG LUPA', margin + 4, currentY + 4.5);
-  currentY += 9;
-
-  doc.setTextColor(30, 41, 59);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
-  const bab5Intro = 'Apabila ada peserta yang mengubah PIN lalu lupa kata kuncinya, Lead Developer dan Core Engineer dapat memulihkan akses seketika tanpa merusak data keuangan transaksi:';
-  const splitBab5 = doc.splitTextToSize(bab5Intro, contentWidth);
-  doc.text(splitBab5, margin, currentY);
-  currentY += splitBab5.length * 4.2 + 2;
-
-  const resetMethods = [
-    { title: 'Metode 1: Menu DevTools ➔ Tab "Reset PIN Kas Peserta"', desc: 'Buka Developer Tools, pilih tab "Reset PIN Kas Peserta". Cari nama usaha/pemilik/WA. Tersedia tombol "Reset 123456" (1-klik instan) serta tombol "Set Kustom" untuk menetapkan angka khusus.' },
-    { title: 'Metode 2: Tombol Cepat dari Modal Kas ("Reset PIN")', desc: 'Saat Developer membuka modal buku kas peserta manapun, di header atas selalu muncul tombol kuning "Reset PIN". Klik tombol ini untuk langsung mengembalikan PIN peserta ke 123456.' }
-  ];
-
-  resetMethods.forEach((rm) => {
-    checkPageOverflow(14);
+  if (isDev) {
+    // --- KHUSUS DEVELOPER: BAB IV & BAB V ---
+    checkPageOverflow(44);
+    doc.setFillColor(0, 28, 60);
+    doc.rect(margin, currentY, contentWidth, 6, 'F');
+    doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(109, 40, 217);
-    doc.text(rm.title, margin + 2, currentY);
-    currentY += 4;
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(71, 85, 105);
-    const splitRm = doc.splitTextToSize(rm.desc, contentWidth - 4);
-    doc.text(splitRm, margin + 4, currentY);
-    currentY += splitRm.length * 4 + 2;
-  });
+    doc.setFontSize(9);
+    doc.text('BAB IV: PIN TERKUNCI DEFAULT DEVELOPER & ENGINEER (INTERNAL ONLY)', margin + 4, currentY + 4.5);
+    currentY += 9;
 
-  currentY += 4;
+    doc.setFillColor(254, 242, 242);
+    doc.roundedRect(margin, currentY, contentWidth, 14, 1.5, 1.5, 'F');
+    doc.setDrawColor(239, 68, 68);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(margin, currentY, contentWidth, 14, 1.5, 1.5, 'S');
+
+    doc.setTextColor(153, 27, 27);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.text(`PIN DEFAULT TERKUNCI DEVELOPER & ENGINEER:  ${DEFAULT_ENGINEER_PIN}`, margin + 4, currentY + 5.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(80, 20, 20);
+    doc.text('Khusus akun Lead Developer (obeetools@gmail.com) dan Core Engineer (loehendra@gmail.com).', margin + 4, currentY + 10.5);
+
+    currentY += 17;
+
+    const devPoin = [
+      '• Terkunci Sebagai Default: Saat akun engineer di-reset atau pertama kali aktif, kredensial wajib terkunci.',
+      '• Opsi Ubah PIN: Developer tetap memiliki opsi penuh mengganti PIN melalui menu "Akun Developer & PIN" di Developer Tools.',
+      '• Master Passcode Kas: PIN ini juga berfungsi sebagai kunci induk pembuka kas unit usaha uji coba dan bypass darurat.'
+    ];
+    devPoin.forEach((dp) => {
+      checkPageOverflow(8);
+      const splitDp = doc.splitTextToSize(dp, contentWidth - 4);
+      doc.text(splitDp, margin + 2, currentY);
+      currentY += splitDp.length * 4.2;
+    });
+
+    currentY += 3;
+
+    // BAB V: SOP RESET PIN PESERTA OLEH DEVELOPER
+    checkPageOverflow(48);
+    doc.setFillColor(0, 28, 60);
+    doc.rect(margin, currentY, contentWidth, 6, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.text('BAB V: SOP DEVELOPER/ENGINEER MERESET PIN PESERTA YANG LUPA', margin + 4, currentY + 4.5);
+    currentY += 9;
+
+    doc.setTextColor(30, 41, 59);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    const bab5Intro = 'Apabila ada peserta yang mengubah PIN lalu lupa kata kuncinya, Lead Developer dan Core Engineer dapat memulihkan akses seketika tanpa merusak data keuangan:';
+    const splitBab5 = doc.splitTextToSize(bab5Intro, contentWidth);
+    doc.text(splitBab5, margin, currentY);
+    currentY += splitBab5.length * 4.2 + 2;
+
+    const resetMethods = [
+      { title: 'Metode 1: Menu DevTools ➔ Tab "Reset PIN Kas Peserta"', desc: 'Buka Developer Tools, pilih tab "Reset PIN Kas Peserta". Cari nama usaha/pemilik. Tersedia tombol "Reset 123456" (1-klik instan) serta tombol "Set Kustom".' },
+      { title: 'Metode 2: Tombol Cepat dari Modal Kas ("Reset PIN")', desc: 'Saat Developer membuka modal buku kas peserta, di header atas selalu muncul tombol "Reset PIN" untuk pemulihan langsung di tempat.' }
+    ];
+
+    resetMethods.forEach((rm) => {
+      checkPageOverflow(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(109, 40, 217);
+      doc.text(rm.title, margin + 2, currentY);
+      currentY += 4;
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(71, 85, 105);
+      const splitRm = doc.splitTextToSize(rm.desc, contentWidth - 4);
+      doc.text(splitRm, margin + 4, currentY);
+      currentY += splitRm.length * 4 + 2;
+    });
+
+    currentY += 4;
+  } else {
+    // --- EDISI PESERTA UMKM: BAB IV (FITUR KEUANGAN) & BAB V (BANTUAN LUPA PIN) ---
+    checkPageOverflow(44);
+    doc.setFillColor(0, 28, 60);
+    doc.rect(margin, currentY, contentWidth, 6, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.text('BAB IV: FITUR UTAMA BUKU KAS & LAPORAN KEUANGAN MANDIRI', margin + 4, currentY + 4.5);
+    currentY += 9;
+
+    const fiturUmkm = [
+      { title: 'A. Pencatatan Transaksi Pemasukan & Pengeluaran:', desc: 'Catat setiap arus kas keluar dan masuk lengkap dengan tanggal, kategori terstruktur, keterangan nota, dan nominal akurat.' },
+      { title: 'B. Pengelolaan Multi-Rekening (Kas Tunai, Rekening Bank, QRIS):', desc: 'Peserta dapat membuat lebih dari satu rekening keuangan untuk memisahkan uang laci tunai, tabungan bank, dan QRIS.' },
+      { title: 'C. Laporan Laba Rugi & Simulasi PPh Final UMKM 0,5%:', desc: 'Sistem otomatis mengalkulasi laba kotor, beban operasional, laba bersih, serta simulasi kewajiban pajak UMKM berdasarkan PP 23/2018.' }
+    ];
+
+    fiturUmkm.forEach((fu) => {
+      checkPageOverflow(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 76, 128);
+      doc.text(fu.title, margin + 2, currentY);
+      currentY += 4;
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(71, 85, 105);
+      const splitFu = doc.splitTextToSize(fu.desc, contentWidth - 4);
+      doc.text(splitFu, margin + 4, currentY);
+      currentY += splitFu.length * 4 + 2;
+    });
+
+    currentY += 3;
+
+    // BAB V PESERTA: BANTUAN JIKA LUPA PIN
+    checkPageOverflow(36);
+    doc.setFillColor(0, 28, 60);
+    doc.rect(margin, currentY, contentWidth, 6, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.text('BAB V: PANDUAN BANTUAN APABILA PESERTA LUPA PIN KAS', margin + 4, currentY + 4.5);
+    currentY += 9;
+
+    doc.setFillColor(238, 242, 255);
+    doc.roundedRect(margin, currentY, contentWidth, 22, 1.5, 1.5, 'F');
+    doc.setDrawColor(99, 102, 241);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(margin, currentY, contentWidth, 22, 1.5, 1.5, 'S');
+
+    doc.setTextColor(49, 46, 129);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.text('Data Keuangan Anda Tetap 100% Aman & Terlindungi:', margin + 4, currentY + 5);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(51, 65, 85);
+    const lupaPinText = 'Jika Anda mengubah PIN dan lupa kombinasi angkanya, jangan panik. Data transaksi tidak akan terhapus. Silakan hubungi Tim Kurator Pendamping atau Helpdesk Gekrafs Kota Batu melalui WhatsApp resmi dengan menyebutkan Nama Usaha dan Nomor Telepon terdaftar. Tim pendamping akan memvalidasi kepemilikan dan memulihkan akses buku kas Anda.';
+    const splitLupa = doc.splitTextToSize(lupaPinText, contentWidth - 8);
+    doc.text(splitLupa, margin + 4, currentY + 10);
+
+    currentY += 26;
+  }
 
   // --- BAB VI: JAMINAN KEAMANAN DATA, INTEGRITAS TRANSAKSI & SINKRONISASI CLOUD ---
   checkPageOverflow(55);
@@ -309,7 +434,7 @@ export function generateKasPinPdf(): void {
   doc.setTextColor(30, 41, 59);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
-  const bab6Intro = 'Buku Kas Untungin mengusung arsitektur Multi-Tenant Isolated Storage & Zero Data Loss. Riwayat transaksi keuangan UMKM dijamin 100% utuh dan terlindungi:';
+  const bab6Intro = 'Buku Kas Untungin mengusung arsitektur perlindungan data terisolasi dan Zero Data Loss. Riwayat transaksi keuangan UMKM dijamin 100% utuh dan terlindungi:';
   const splitBab6 = doc.splitTextToSize(bab6Intro, contentWidth);
   doc.text(splitBab6, margin, currentY);
   currentY += splitBab6.length * 4.2 + 2;
@@ -317,19 +442,15 @@ export function generateKasPinPdf(): void {
   const dataGuarantees = [
     {
       title: 'A. Jaminan Keutuhan Riwayat Transaksi (Zero Data Loss):',
-      desc: 'Data transaksi kas peserta TIDAK AKAN PERNAH HILANG akibat: (1) Penambahan kuota transaksi oleh kurator, (2) Perpanjangan hari masa aktif trial, (3) Pengubahan atau reset PIN keamanan kas, maupun (4) Aktivasi lisensi Pro Lifetime / Voucher.'
+      desc: 'Data transaksi kas peserta TIDAK AKAN PERNAH HILANG akibat penambahan kuota transaksi, perpanjangan hari masa aktif trial, pergantian PIN, maupun upgrade lisensi Untungin Pro.'
     },
     {
-      title: 'B. Partisi Penyimpanan Terisolasi (Multi-Tenant Container):',
-      desc: 'Setiap entitas data dipisahkan wadah modular per nama usaha: "kas_txs_" untuk transaksi, "kas_accounts_" untuk rekening kas, "kas_premium_" untuk kuota trial, dan "kas_pin_" untuk kredensial keamanan. Pembaruan kuota tidak menyentuh partisi transaksi.'
+      title: 'B. Partisi Penyimpanan Terisolasi (Isolated Storage):',
+      desc: 'Setiap unit usaha memiliki wadah penyimpanan mandiri yang terpisah secara modular. Pembukuan usaha Anda bersifat privat dan tidak dapat diakses atau bercampur dengan unit usaha lain.'
     },
     {
-      title: 'C. Sinkronisasi Cloud (Google Sheets) & Cache Offline Lokal:',
-      desc: 'Menerapkan model Hybrid Offline-First: transaksi disimpan instan di peramban lokal dan otomatis disinkronkan ke Cloud Google Sheets. Setiap transaksi memiliki UUID unik (Append-Only) sehingga tidak ada risiko tumpang tindih data.'
-    },
-    {
-      title: 'D. Pemisahan Hak Otoritas Operasional:',
-      desc: 'Kurator berwenang menambah kuota transaksi (+15, +30 tx) dan memperpanjang masa aktif trial pendampingan. Sedangkan Developer / Site Engineer memegang hak eksklusif aktivasi Pro Lifetime, kode voucher resmi, bypass darurat, dan audit data.'
+      title: 'C. Sinkronisasi Cloud & Ketersediaan Offline:',
+      desc: 'Menerapkan model Hybrid Offline-First: transaksi dapat dicatat seketika tanpa perlu sinyal internet kencang, dan otomatis disinkronkan secara aman ke Cloud saat perangkat Anda kembali online.'
     }
   ];
 
@@ -359,23 +480,31 @@ export function generateKasPinPdf(): void {
   doc.setFontSize(7.5);
   doc.setTextColor(100, 116, 139);
   doc.text('Diterbitkan resmi oleh Tim Arsitektur Sistem Gekrafs Kota Batu — 2026', margin, currentY);
-  doc.text('Penanggung Jawab: Lalu Mahendra Ali Akbar (Lead Developer & System Architect)', margin, currentY + 4);
-  doc.text('Kontak Teknis & Bantuan Kredensial: obeetools@gmail.com / 081335125277', margin, currentY + 8);
+  doc.text('Penanggung Jawab Sistem: Tim Pengembang Untungin & PartnerUp Gekrafs Kota Batu', margin, currentY + 4);
+  doc.text('Sekretariat & Helpdesk: DPC Gekrafs Kota Batu  •  Inkubasi UMKM Kreatif 2026', margin, currentY + 8);
 
   // Draw header-footer on all pages
   const totalPages = doc.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
-    // Draw footer
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(148, 163, 184);
     doc.setDrawColor(226, 232, 240);
     doc.line(margin, pageHeight - 10, pageWidth - margin, pageHeight - 10);
     doc.text(`Halaman ${i} dari ${totalPages}`, pageWidth - margin - 22, pageHeight - 6);
-    doc.text('SOP Operasional Keamanan Data Kas & PIN — Gekrafs PartnerUp 2026', margin, pageHeight - 6);
+    doc.text(
+      isDev
+        ? 'SOP Rahasia Internal Pengelolaan Data & PIN — Gekrafs PartnerUp 2026'
+        : 'Buku Panduan Pengguna UMKM — Gekrafs PartnerUp Untungin 2026',
+      margin,
+      pageHeight - 6
+    );
   }
 
-  // Trigger browser download
-  doc.save('Panduan_Akses_Buku_Kas_dan_PIN_PartnerUp_Gekrafs_Batu.pdf');
+  // Trigger browser download with appropriate filename
+  const fileName = isDev
+    ? 'SOP_Developer_Akses_Kas_dan_PIN_PartnerUp.pdf'
+    : 'Buku_Panduan_Pengguna_Kas_Untungin_UMKM.pdf';
+  doc.save(fileName);
 }

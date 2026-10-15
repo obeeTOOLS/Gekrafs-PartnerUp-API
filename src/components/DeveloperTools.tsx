@@ -453,7 +453,7 @@ export const DeveloperTools: React.FC = () => {
 
           <button
             type="button"
-            onClick={generateKasPinPdf}
+            onClick={() => generateKasPinPdf({ isDeveloper: true })}
             className="flex-shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-700 to-purple-800 hover:from-indigo-600 hover:to-purple-700 text-white font-black text-xs shadow-md transition-all group cursor-pointer"
             title="Langsung Unduh Berkas PDF Panduan Akses Kas & Reset PIN"
           >
@@ -922,7 +922,7 @@ export const DeveloperTools: React.FC = () => {
               <div className="flex flex-wrap items-center gap-2.5">
                 <button
                   type="button"
-                  onClick={generateKasPinPdf}
+                  onClick={() => generateKasPinPdf({ isDeveloper: true })}
                   className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 text-white font-extrabold text-xs shadow-md flex items-center gap-2 cursor-pointer transition-all"
                   title="Unduh langsung dokumen ini dalam format PDF resmi"
                 >
@@ -1838,6 +1838,7 @@ export const DeveloperTools: React.FC = () => {
       <PanduanAksesKasPinPdfModal
         isOpen={isPanduanKasPdfOpen}
         onClose={() => setIsPanduanKasPdfOpen(false)}
+        isDeveloper={true}
       />
 
       {/* Modal Penggantian PIN / Password Khusus Developer */}
