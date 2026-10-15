@@ -660,7 +660,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
         paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 1.25rem)' 
       }}
     >
-      <div className="bg-[#f8fafc] w-full max-w-4xl max-h-[85vh] sm:max-h-[86vh] rounded-3xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden relative">
+      <div className="bg-[#f8fafc] w-full max-w-4xl max-h-[90vh] sm:max-h-[92vh] rounded-3xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden relative">
         
         {/* Toast Notifikasi */}
         {toastMsg && (
@@ -1180,86 +1180,88 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
           </div>
         ) : !isKasUnlocked ? (
           /* TAMPILAN KUNCI PIN BUKU KAS */
-          <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-10 text-center max-w-md mx-auto my-auto space-y-5 animate-in fade-in">
-            <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-blue-600 text-white flex items-center justify-center shadow-xl shadow-purple-500/25">
-              <Lock className="w-8 h-8" />
-            </div>
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 sm:py-8 flex flex-col items-center justify-center">
+            <div className="w-full max-w-md mx-auto space-y-4 my-auto py-2 text-center animate-in fade-in">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-3xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-purple-500/25 mx-auto">
+                <Lock className="w-7 h-7 sm:w-8 sm:h-8" />
+              </div>
 
-            <div className="space-y-1">
-              <h3 className="text-lg sm:text-xl font-black text-[#001c3c]">
-                Buku Kas Terproteksi PIN
-              </h3>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                Data keuangan dan transaksi <strong className="text-[#004c80]">{namaUsaha}</strong> bersifat privat. Masukkan PIN keamanan untuk membuka.
-              </p>
-            </div>
-
-            {/* Banner Informasi PIN Awal */}
-            <div className="w-full bg-purple-50 border border-purple-200/80 rounded-2xl p-3.5 text-xs text-purple-900 flex items-start gap-3 text-left">
-              <ShieldCheck className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-bold">
-                  PIN Bawaan Awal: <code className="bg-purple-200/80 px-2 py-0.5 rounded font-mono font-black text-purple-950 tracking-wider">
-                    {namaUsaha.toLowerCase() === 'obeecreatives' ? 'obeecreatives2026#*' : '123456'}
-                  </code>
-                </p>
-                <p className="text-[11px] text-purple-700 mt-1">
-                  Setelah terbuka, Anda dapat mengganti PIN ini secara mandiri kapan saja.
+              <div className="space-y-1">
+                <h3 className="text-lg sm:text-xl font-black text-[#001c3c]">
+                  Buku Kas Terproteksi PIN
+                </h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Data keuangan dan transaksi <strong className="text-[#004c80]">{namaUsaha}</strong> bersifat privat. Masukkan PIN keamanan untuk membuka.
                 </p>
               </div>
-            </div>
 
-            {pinError && (
-              <div className="w-full p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold text-left animate-in fade-in">
-                {pinError}
-              </div>
-            )}
-
-            {/* Form Input PIN */}
-            <form onSubmit={handleUnlockKas} className="w-full space-y-4">
-              <div className="relative">
-                <input
-                  type={showEnteredPin ? 'text' : 'password'}
-                  maxLength={32}
-                  placeholder={namaUsaha.toLowerCase() === 'obeecreatives' ? 'Masukkan PIN (default: obeecreatives2026#*)' : 'Masukkan PIN (default: 123456)'}
-                  value={enteredPin}
-                  onChange={(e) => {
-                    setEnteredPin(e.target.value);
-                    setPinError(null);
-                  }}
-                  className="w-full py-3.5 px-4 text-center text-xl font-mono tracking-widest font-black bg-white border-2 border-slate-300 focus:border-purple-600 focus:ring-4 focus:ring-purple-100 rounded-2xl outline-none transition-all text-slate-800"
-                  autoFocus
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowEnteredPin(!showEnteredPin)}
-                  className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
-                  title={showEnteredPin ? 'Sembunyikan PIN' : 'Lihat PIN'}
-                >
-                  {showEnteredPin ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
+              {/* Banner Informasi PIN Awal */}
+              <div className="w-full bg-purple-50 border border-purple-200/80 rounded-2xl p-3 sm:p-3.5 text-xs text-purple-900 flex items-start gap-2.5 text-left">
+                <ShieldCheck className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold">
+                    PIN Bawaan Awal: <code className="bg-purple-200/80 px-2 py-0.5 rounded font-mono font-black text-purple-950 tracking-wider">
+                      {namaUsaha.toLowerCase() === 'obeecreatives' ? 'obeecreatives2026#*' : '123456'}
+                    </code>
+                  </p>
+                  <p className="text-[11px] text-purple-700 mt-0.5">
+                    Setelah terbuka, Anda dapat mengganti PIN ini secara mandiri kapan saja.
+                  </p>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="w-full py-3 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-100 cursor-pointer"
-                >
-                  Tutup
-                </button>
-                <button
-                  type="submit"
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 active:scale-98 text-white font-black text-xs shadow-md cursor-pointer flex items-center justify-center gap-1.5 transition-all"
-                >
-                  <Unlock className="w-4 h-4" />
-                  <span>Buka Buku Kas</span>
-                </button>
-              </div>
-            </form>
+              {pinError && (
+                <div className="w-full p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold text-left animate-in fade-in">
+                  {pinError}
+                </div>
+              )}
 
-            <div className="pt-2 text-[11px] text-slate-400 border-t border-slate-200 w-full">
-              Lupa PIN? Hubungi Lead Developer / Tim Kurator untuk reset PIN instan.
+              {/* Form Input PIN */}
+              <form onSubmit={handleUnlockKas} className="w-full space-y-3.5">
+                <div className="relative">
+                  <input
+                    type={showEnteredPin ? 'text' : 'password'}
+                    maxLength={32}
+                    placeholder={namaUsaha.toLowerCase() === 'obeecreatives' ? 'Masukkan PIN (default: obeecreatives2026#*)' : 'Masukkan PIN (default: 123456)'}
+                    value={enteredPin}
+                    onChange={(e) => {
+                      setEnteredPin(e.target.value);
+                      setPinError(null);
+                    }}
+                    className="w-full py-3 px-4 text-center text-lg sm:text-xl font-mono tracking-widest font-black bg-white border-2 border-slate-300 focus:border-purple-600 focus:ring-4 focus:ring-purple-100 rounded-2xl outline-none transition-all text-slate-800"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowEnteredPin(!showEnteredPin)}
+                    className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                    title={showEnteredPin ? 'Sembunyikan PIN' : 'Lihat PIN'}
+                  >
+                    {showEnteredPin ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-0.5">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="w-full py-2.5 sm:py-3 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs cursor-pointer transition-colors shadow-2xs"
+                  >
+                    Tutup
+                  </button>
+                  <button
+                    type="submit"
+                    className="w-full py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 active:scale-98 text-white font-black text-xs shadow-md cursor-pointer flex items-center justify-center gap-1.5 transition-all"
+                  >
+                    <Unlock className="w-4 h-4" />
+                    <span>Buka Buku Kas</span>
+                  </button>
+                </div>
+              </form>
+
+              <div className="pt-2 text-[11px] text-slate-400 border-t border-slate-200/80 w-full">
+                Lupa PIN? Hubungi Lead Developer / Tim Kurator untuk reset PIN instan.
+              </div>
             </div>
           </div>
         ) : (
