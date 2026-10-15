@@ -107,6 +107,32 @@ export interface DeveloperVoucher {
 
 const STORAGE_PREFIX = 'gkf_untungin_kas_data_v1_';
 const STORAGE_DEV_VOUCHERS = 'gkf_untungin_dev_vouchers_v1';
+const STORAGE_REDEEMED_VOUCHERS = 'gkf_untungin_redeemed_vouchers_v1';
+const VOUCHER_SECRET_SALT = 'OBEECREATIVES_GEKRAFS_2026_MASTER_SALT';
+
+/**
+ * Menghitung checksum kriptografis deterministik 4 karakter untuk voucher resmi Developer
+ * Memungkinkan voucher diverifikasi secara offline di perangkat pengguna mana pun tanpa celah tebakan
+ */
+export function computeVoucherSignature(prefix: string, token: string, targetNamaUsaha?: string): string {
+  const cleanTarget = targetNamaUsaha ? targetNamaUsaha.toLowerCase().trim().replace(/[^a-z0-9]/g, '') : 'ANY';
+  const payload = `${VOUCHER_SECRET_SALT}|${prefix}|${token}|${cleanTarget}`;
+
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let i = 0; i < payload.length; i++) {
+    const ch = payload.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507);
+  h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507);
+  h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+
+  const combined = Math.abs(h1 ^ h2).toString(36).toUpperCase().padStart(4, '0');
+  return combined.substring(0, 4);
+}
 
 export const REF_INCOME_CATEGORIES = [
   'Penjualan Produk',
@@ -1045,7 +1071,8 @@ class KasService {
     notes?: string
   ): DeveloperVoucher {
     const list = this.getDeveloperVouchers();
-    const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
+    // 4 karakter acak untuk token keunikan
+    const token = Math.random().toString(36).substring(2, 6).toUpperCase();
 
     let prefix = 'PRO-3M';
     let durationLabel = '3 Bulan';
@@ -1067,7 +1094,9 @@ class KasService {
       durationLabel = `${durationMonths} Bulan`;
     }
 
-    const code = `${prefix}-${randomSuffix}`;
+    // Tanda tangan kriptografis berbasis developer salt & target usaha
+    const signature = computeVoucherSignature(prefix, token, targetNamaUsaha);
+    const code = `${prefix}-${token}-${signature}`;
 
     const newVoucher: DeveloperVoucher = {
       code,
@@ -1106,6 +1135,7 @@ class KasService {
 
   /**
    * Aktivasi kode lisensi / verifikasi voucher pembayaran
+   * Dilengkapi proteksi anti-tebakan, dukungan cross-device via tanda tangan digital, dan pencegahan klaim berulang
    */
   public activateLicenseCode(namaUsaha: string, code: string): { success: boolean; message: string; access?: KasPremiumAccess } {
     if (!namaUsaha) return { success: false, message: 'Nama usaha tidak valid.' };
@@ -1115,7 +1145,25 @@ class KasService {
       return { success: false, message: 'Masukkan kode lisensi atau voucher Anda.' };
     }
 
-    // 1. Periksa apakah cocok dengan Voucher yang diterbitkan Developer
+    // Periksa daftar voucher yang sudah pernah di-redeem (mencegah klaim ganda lintas sesi)
+    const redeemedList: { code: string; usedByNamaUsaha: string; usedAt: string }[] = (() => {
+      try {
+        const raw = localStorage.getItem(STORAGE_REDEEMED_VOUCHERS);
+        return raw ? JSON.parse(raw) : [];
+      } catch {
+        return [];
+      }
+    })();
+
+    const alreadyRedeemed = redeemedList.find(r => r.code.toUpperCase() === cleanCode);
+    if (alreadyRedeemed) {
+      return {
+        success: false,
+        message: `Kode voucher ${cleanCode} sudah pernah digunakan oleh usaha "${alreadyRedeemed.usedByNamaUsaha}" pada ${new Date(alreadyRedeemed.usedAt).toLocaleDateString('id-ID')}.`
+      };
+    }
+
+    // 1. Periksa apakah cocok dengan Voucher di database lokal (jika di-generate di browser yang sama)
     const vouchers = this.getDeveloperVouchers();
     const matchedVoucherIndex = vouchers.findIndex(v => v.code.toUpperCase() === cleanCode);
 
@@ -1160,6 +1208,8 @@ class KasService {
 
       try {
         localStorage.setItem(STORAGE_DEV_VOUCHERS, JSON.stringify(vouchers));
+        redeemedList.push({ code: cleanCode, usedByNamaUsaha: namaUsaha, usedAt: new Date().toISOString() });
+        localStorage.setItem(STORAGE_REDEEMED_VOUCHERS, JSON.stringify(redeemedList));
       } catch (e) {
         console.error('[kasService] Error updating voucher status', e);
       }
@@ -1175,20 +1225,93 @@ class KasService {
       };
     }
 
-    // 2. Kode lisensi sistem / master yang didukung
-    const validCodes = [
-      'UNTUNGINPRO2026',
-      'GEKRAFS-PRO-BATU',
-      'PARTNERUP-VIP',
-      'KAS-PREMIUM-LIFETIME',
-      'BATCH2-JUARA'
-    ];
+    // 2. Verifikasi Kriptografis Mandiri (Self-Contained Cross-Device Verification)
+    // Format: PREFIX-TOKEN-SIGNATURE (contoh: PRO-3M-K7X9-B8D2 atau PRO-1Y-M4P9-Q2T8)
+    const codeParts = cleanCode.split('-');
+    if (codeParts.length >= 4 && codeParts[0] === 'PRO') {
+      const prefix = `${codeParts[0]}-${codeParts[1]}`;
+      const token = codeParts[2];
+      const signature = codeParts[3];
 
-    if (validCodes.includes(cleanCode) || cleanCode.startsWith('VIP-') || cleanCode.startsWith('PRO-')) {
-      const access = this.grantPremiumAccess(namaUsaha, `Aktivasi Lisensi Resmi (${cleanCode})`, 'payment');
+      const sigTarget = computeVoucherSignature(prefix, token, namaUsaha);
+      const sigGeneral = computeVoucherSignature(prefix, token, undefined);
+
+      if (signature === sigTarget || signature === sigGeneral) {
+        let durationMonths = 3;
+        let durationLabel = '3 Bulan';
+        if (codeParts[1] === '3M') { durationMonths = 3; durationLabel = '3 Bulan'; }
+        else if (codeParts[1] === '6M') { durationMonths = 6; durationLabel = '6 Bulan'; }
+        else if (codeParts[1] === '9M') { durationMonths = 9; durationLabel = '9 Bulan'; }
+        else if (codeParts[1] === '1Y') { durationMonths = 12; durationLabel = '1 Tahun'; }
+        else if (codeParts[1] === 'LIFE') { durationMonths = 0; durationLabel = 'Lifetime (Permanen)'; }
+
+        const access = this.grantPremiumAccess(
+          namaUsaha, 
+          `Voucher Resmi Developer (${cleanCode} · ${durationLabel})`, 
+          'payment',
+          {
+            durationMonths,
+            durationLabel
+          }
+        );
+
+        redeemedList.push({ code: cleanCode, usedByNamaUsaha: namaUsaha, usedAt: new Date().toISOString() });
+        const localVoucher: DeveloperVoucher = {
+          code: cleanCode,
+          targetNamaUsaha: signature === sigTarget ? namaUsaha : undefined,
+          durationMonths,
+          durationLabel,
+          generatedAt: new Date().toISOString(),
+          generatedBy: 'Lead Developer (obeetools@gmail.com)',
+          isUsed: true,
+          usedAt: new Date().toISOString(),
+          usedByNamaUsaha: namaUsaha,
+          activatedExpiresAt: access.proExpiresAt
+        };
+        const updatedVouchers = [localVoucher, ...vouchers];
+
+        try {
+          localStorage.setItem(STORAGE_REDEEMED_VOUCHERS, JSON.stringify(redeemedList));
+          localStorage.setItem(STORAGE_DEV_VOUCHERS, JSON.stringify(updatedVouchers));
+        } catch (e) {
+          console.error('[kasService] Error saving cross-device redeemed voucher', e);
+        }
+
+        const durasiMsg = durationMonths > 0 && access.proExpiresAt
+          ? `selama ${durationLabel} (aktif s/d ${new Date(access.proExpiresAt).toLocaleDateString('id-ID')})`
+          : 'selamanya (Lifetime)';
+
+        return {
+          success: true,
+          message: `Selamat! Lisensi Untungin Pro untuk "${namaUsaha}" berhasil diaktifkan dengan Voucher Resmi Developer (${cleanCode}). Akses fitur kas terbuka penuh ${durasiMsg}.`,
+          access
+        };
+      }
+    }
+
+    // 3. Kode lisensi sistem / master eksklusif yang didukung
+    const validCodes: Record<string, { durationMonths: number; label: string }> = {
+      'UNTUNGINPRO2026': { durationMonths: 0, label: 'Lifetime Master Developer' },
+      'GEKRAFS-PRO-BATU': { durationMonths: 0, label: 'Lifetime DPC Gekrafs Batu' },
+      'PARTNERUP-VIP': { durationMonths: 0, label: 'Lifetime VIP PartnerUp' },
+      'KAS-PREMIUM-LIFETIME': { durationMonths: 0, label: 'Lifetime Premium' },
+      'BATCH2-JUARA': { durationMonths: 6, label: '6 Bulan (Juara Batch 2)' }
+    };
+
+    if (validCodes[cleanCode]) {
+      const info = validCodes[cleanCode];
+      const access = this.grantPremiumAccess(
+        namaUsaha, 
+        `Lisensi Sistem Resmi (${cleanCode})`, 
+        'payment',
+        {
+          durationMonths: info.durationMonths,
+          durationLabel: info.label
+        }
+      );
       return {
         success: true,
-        message: `Selamat! Lisensi Untungin Pro untuk "${namaUsaha}" berhasil diaktifkan. Semua fitur kas terbuka penuh.`,
+        message: `Selamat! Lisensi Untungin Pro untuk "${namaUsaha}" berhasil diaktifkan (${info.label}). Semua fitur kas terbuka penuh.`,
         access
       };
     }

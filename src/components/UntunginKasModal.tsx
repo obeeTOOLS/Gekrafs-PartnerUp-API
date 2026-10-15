@@ -973,7 +973,13 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
               <div className="space-y-2">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-xs font-extrabold tracking-wide uppercase shadow-2xs">
                   <Crown className="w-3.5 h-3.5 fill-amber-500 text-amber-600" />
-                  <span>{isTrialExpired ? 'Masa Percobaan Trial Selesai · Untungin Pro' : 'Fitur Premium Eksklusif · Untungin Pro'}</span>
+                  <span>
+                    {premiumStatus.isProExpired 
+                      ? 'Masa Langganan Pro Berakhir · Perpanjang Akses' 
+                      : isTrialExpired 
+                      ? 'Masa Percobaan Trial Selesai · Untungin Pro' 
+                      : 'Fitur Premium Eksklusif · Untungin Pro'}
+                  </span>
                 </span>
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-gradient-to-tr from-amber-400 via-amber-500 to-amber-600 text-[#001c3c] flex items-center justify-center shadow-xl shadow-amber-500/25 mx-auto">
                   <Wallet className="w-8 h-8 sm:w-10 sm:h-10" />
@@ -982,7 +988,11 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                   Buku Kas & Manajemen Keuangan UMKM
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-600 max-w-lg mx-auto leading-relaxed">
-                  {isTrialExpired ? (
+                  {premiumStatus.isProExpired ? (
+                    <>
+                      Masa aktif langganan Untungin Pro untuk <strong className="text-[#004c80]">{namaUsaha}</strong> telah berakhir ({premiumStatus.proDurationLabel || 'Langganan'}). <strong className="text-emerald-700">Seluruh riwayat transaksi yang pernah Anda catat tetap 100% aman tersimpan.</strong> Masukkan kode voucher baru di bawah ini untuk memperpanjang akses pencatatan.
+                    </>
+                  ) : isTrialExpired ? (
                     <>
                       Masa trial untuk <strong className="text-[#004c80]">{namaUsaha}</strong> telah berakhir ({premiumStatus.usedTransactions || 0}/10 transaksi atau 7 hari aktif tercapai). <strong className="text-emerald-700">Seluruh data transaksi yang telah Anda catat aman tersimpan di sistem.</strong> Aktifkan lisensi Untungin Pro untuk membuka akses pencatatan penuh tanpa batas.
                     </>
