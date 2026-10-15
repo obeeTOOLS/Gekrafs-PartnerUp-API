@@ -94,11 +94,14 @@ export interface KasMasterRecapSummary {
 export interface DeveloperVoucher {
   code: string;
   targetNamaUsaha?: string;
+  durationMonths: number; // 0 = Lifetime, 3 = 3 Bulan, 6 = 6 Bulan, 9 = 9 Bulan, 12 = 1 Tahun
+  durationLabel: string;
   generatedAt: string;
   generatedBy: string;
   isUsed: boolean;
   usedAt?: string;
   usedByNamaUsaha?: string;
+  activatedExpiresAt?: string;
   notes?: string;
 }
 
@@ -167,6 +170,11 @@ export interface KasPremiumAccess {
   extendedBy?: string;
   lastExtendedAt?: string;
   bonusCredits?: number;
+  proExpiresAt?: string;
+  proDurationMonths?: number;
+  proDurationLabel?: string;
+  remainingProDays?: number;
+  isProExpired?: boolean;
 }
 
 const STORAGE_PIN_PREFIX = 'gkf_untungin_pin_v1_';
@@ -701,20 +709,60 @@ class KasService {
       const raw = localStorage.getItem(key);
       let parsed = raw ? JSON.parse(raw) : null;
 
-      // 1. Jika sudah berstatus Pro Aktif (via kurator atau kode lisensi)
+      // 1. Jika sudah berstatus Pro Aktif (via developer, voucher, kurator, atau lisensi)
       if (parsed && parsed.isPremium === true) {
+        let isProExpired = false;
+        let remainingProDays: number | undefined = undefined;
+
+        if (parsed.proExpiresAt) {
+          const expireMs = new Date(parsed.proExpiresAt).getTime();
+          const diffMs = expireMs - Date.now();
+          if (diffMs <= 0) {
+            isProExpired = true;
+          } else {
+            remainingProDays = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+          }
+        }
+
+        if (isProExpired) {
+          return {
+            namaUsaha,
+            isPremium: false,
+            tier: 'free',
+            unlockedAt: parsed.unlockedAt,
+            grantedBy: parsed.grantedBy,
+            method: parsed.method,
+            transactionLimit: 0,
+            usedTransactions: txCount,
+            remainingTransactions: 0,
+            isTrialActive: false,
+            isTrialExpired: true,
+            isProExpired: true,
+            proExpiresAt: parsed.proExpiresAt,
+            proDurationMonths: parsed.proDurationMonths,
+            proDurationLabel: parsed.proDurationLabel,
+            remainingProDays: 0,
+            notes: `Masa aktif langganan Untungin Pro (${parsed.proDurationLabel || 'Langganan'}) telah berakhir pada ${new Date(parsed.proExpiresAt).toLocaleDateString('id-ID')}. Silakan aktivasi voucher baru untuk melanjutkan.`
+          };
+        }
+
         return {
           namaUsaha,
           isPremium: true,
           tier: 'premium',
           unlockedAt: parsed.unlockedAt,
-          grantedBy: parsed.grantedBy || 'Kurator PartnerUp',
-          method: parsed.method || 'kurator',
+          grantedBy: parsed.grantedBy || 'Lead Developer (obeetools@gmail.com)',
+          method: parsed.method || 'developer',
           transactionLimit: undefined,
           usedTransactions: txCount,
           remainingTransactions: Infinity,
           isTrialActive: false,
-          isTrialExpired: false
+          isTrialExpired: false,
+          isProExpired: false,
+          proExpiresAt: parsed.proExpiresAt,
+          proDurationMonths: parsed.proDurationMonths,
+          proDurationLabel: parsed.proDurationLabel,
+          remainingProDays
         };
       }
 
@@ -880,12 +928,40 @@ class KasService {
   public grantPremiumAccess(
     namaUsaha: string, 
     grantedBy: string = 'Lead Developer (obeetools@gmail.com)', 
-    method: 'developer' | 'kurator' | 'payment' | 'system' = 'developer'
+    method: 'developer' | 'kurator' | 'payment' | 'system' = 'developer',
+    durationOptions?: {
+      durationMonths?: number; // 0 = Lifetime, 3, 6, 9, 12
+      durationLabel?: string;
+      customExpiresAt?: string;
+    }
   ): KasPremiumAccess {
     if (!namaUsaha) return { namaUsaha: '', isPremium: false, tier: 'free' };
 
     const key = this.getPremiumStorageKey(namaUsaha);
     const current = this.getPremiumStatus(namaUsaha);
+
+    // Hitung masa aktif Pro jika berbatas waktu
+    let proExpiresAt: string | undefined = undefined;
+    const durationMonths = durationOptions?.durationMonths !== undefined ? durationOptions.durationMonths : 0;
+    let durationLabel = durationOptions?.durationLabel;
+
+    if (durationOptions?.customExpiresAt) {
+      proExpiresAt = durationOptions.customExpiresAt;
+    } else if (durationMonths > 0) {
+      // Jika saat ini sudah memiliki Pro berbayar yang masih aktif, sambung (stack) dari tanggal kedaluwarsa lama
+      const currentExpireMs = (current.isPremium && current.proExpiresAt) ? new Date(current.proExpiresAt).getTime() : 0;
+      const baseStartMs = currentExpireMs > Date.now() ? currentExpireMs : Date.now();
+      const addDays = durationMonths === 12 ? 365 : durationMonths * 30;
+      proExpiresAt = new Date(baseStartMs + addDays * 86400000).toISOString();
+      if (!durationLabel) {
+        durationLabel = durationMonths === 12 ? '1 Tahun' : `${durationMonths} Bulan`;
+      }
+    } else {
+      // Lifetime (Permanen)
+      durationLabel = 'Lifetime (Permanen)';
+      proExpiresAt = undefined;
+    }
+
     const access: KasPremiumAccess = {
       namaUsaha,
       isPremium: true,
@@ -896,7 +972,11 @@ class KasService {
       usedTransactions: current.usedTransactions,
       remainingTransactions: Infinity,
       isTrialActive: false,
-      isTrialExpired: false
+      isTrialExpired: false,
+      isProExpired: false,
+      proExpiresAt,
+      proDurationMonths: durationMonths,
+      proDurationLabel: durationLabel
     };
 
     try {
@@ -906,7 +986,7 @@ class KasService {
       console.error('[kasService] Error saving premium status', e);
     }
 
-    return access;
+    return this.getPremiumStatus(namaUsaha);
   }
 
   /**
@@ -956,23 +1036,48 @@ class KasService {
 
   /**
    * Menerbitkan voucher lisensi resmi baru (Eksklusif Developer)
+   * Mendukung durasi: 3 Bulan, 6 Bulan, 9 Bulan, 1 Tahun (12 Bulan), atau Lifetime (0)
    */
   public generateDeveloperVoucher(
     targetNamaUsaha?: string,
+    durationMonths: number = 3,
     actor: string = 'Lead Developer (obeetools@gmail.com)',
     notes?: string
   ): DeveloperVoucher {
     const list = this.getDeveloperVouchers();
     const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const code = `DEV-PRO-${randomSuffix}`;
+
+    let prefix = 'PRO-3M';
+    let durationLabel = '3 Bulan';
+
+    if (durationMonths === 6) {
+      prefix = 'PRO-6M';
+      durationLabel = '6 Bulan';
+    } else if (durationMonths === 9) {
+      prefix = 'PRO-9M';
+      durationLabel = '9 Bulan';
+    } else if (durationMonths === 12) {
+      prefix = 'PRO-1Y';
+      durationLabel = '1 Tahun';
+    } else if (durationMonths === 0) {
+      prefix = 'PRO-LIFE';
+      durationLabel = 'Lifetime (Permanen)';
+    } else {
+      prefix = `PRO-${durationMonths}M`;
+      durationLabel = `${durationMonths} Bulan`;
+    }
+
+    const code = `${prefix}-${randomSuffix}`;
 
     const newVoucher: DeveloperVoucher = {
       code,
       targetNamaUsaha: targetNamaUsaha?.trim() || undefined,
+      durationMonths,
+      durationLabel,
       generatedAt: new Date().toISOString(),
       generatedBy: actor,
       isUsed: false,
-      notes: notes || (targetNamaUsaha ? `Voucher resmi untuk ${targetNamaUsaha}` : 'Voucher lisensi Untungin Pro')
+      notes: notes || (targetNamaUsaha ? `Voucher resmi ${durationLabel} untuk ${targetNamaUsaha}` : `Voucher lisensi Untungin Pro ${durationLabel}`)
     };
 
     const updated = [newVoucher, ...list];
@@ -1031,12 +1136,26 @@ class KasService {
         };
       }
 
+      const durationMonths = voucher.durationMonths !== undefined ? Number(voucher.durationMonths) : 3;
+      const durationLabel = voucher.durationLabel || (durationMonths > 0 ? `${durationMonths} Bulan` : 'Lifetime (Permanen)');
+
+      const access = this.grantPremiumAccess(
+        namaUsaha, 
+        `Voucher Resmi Developer (${cleanCode} · ${durationLabel})`, 
+        'payment',
+        {
+          durationMonths,
+          durationLabel
+        }
+      );
+
       // Tandai voucher telah digunakan
       vouchers[matchedVoucherIndex] = {
         ...voucher,
         isUsed: true,
         usedAt: new Date().toISOString(),
-        usedByNamaUsaha: namaUsaha
+        usedByNamaUsaha: namaUsaha,
+        activatedExpiresAt: access.proExpiresAt
       };
 
       try {
@@ -1045,10 +1164,13 @@ class KasService {
         console.error('[kasService] Error updating voucher status', e);
       }
 
-      const access = this.grantPremiumAccess(namaUsaha, `Voucher Resmi Developer (${cleanCode})`, 'payment');
+      const durasiMsg = durationMonths > 0 && access.proExpiresAt
+        ? `selama ${durationLabel} (aktif s/d ${new Date(access.proExpiresAt).toLocaleDateString('id-ID')})`
+        : 'selamanya (Lifetime)';
+
       return {
         success: true,
-        message: `Selamat! Lisensi Untungin Pro untuk "${namaUsaha}" berhasil diaktifkan dengan Voucher Resmi Developer (${cleanCode}). Akses terbuka penuh selamanya.`,
+        message: `Selamat! Lisensi Untungin Pro untuk "${namaUsaha}" berhasil diaktifkan dengan Voucher Resmi Developer (${cleanCode}). Akses fitur kas terbuka penuh ${durasiMsg}.`,
         access
       };
     }

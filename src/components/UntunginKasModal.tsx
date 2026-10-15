@@ -251,12 +251,22 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
 
   const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
   const [activeVoucher, setActiveVoucher] = useState<DeveloperVoucher | null>(null);
+  const [selectedVoucherDuration, setSelectedVoucherDuration] = useState<number>(3);
 
-  const handleGrantProByDeveloper = () => {
+  const handleGrantProByDeveloper = (durMonths: number = 0, label?: string) => {
     if (!isDeveloperUser) return;
-    const access = kasService.grantPremiumAccess(namaUsaha, 'Lead Developer (obeetools@gmail.com)', 'developer');
+    const durLabel = label || (durMonths === 12 ? '1 Tahun' : durMonths > 0 ? `${durMonths} Bulan` : 'Lifetime (Permanen)');
+    const access = kasService.grantPremiumAccess(
+      namaUsaha, 
+      'Lead Developer (obeetools@gmail.com)', 
+      'developer',
+      {
+        durationMonths: durMonths,
+        durationLabel: durLabel
+      }
+    );
     setPremiumStatus(access);
-    showToast(`Hak akses Untungin Pro Lifetime untuk "${namaUsaha}" berhasil diaktifkan oleh Lead Developer!`, 'success');
+    showToast(`Hak akses Untungin Pro ${durLabel} untuk "${namaUsaha}" berhasil diaktifkan oleh Lead Developer!`, 'success');
   };
 
   const handleRevokeProByDeveloper = () => {
@@ -266,16 +276,18 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
     showToast(`Akses Untungin Pro untuk "${namaUsaha}" dikembalikan ke akun Standar oleh Developer.`, 'warning');
   };
 
-  const handleGenerateVoucher = () => {
+  const handleGenerateVoucher = (months: number = selectedVoucherDuration) => {
     if (!isDeveloperUser) return;
     const voucher = kasService.generateDeveloperVoucher(
       namaUsaha,
+      months,
       'Lead Developer (obeetools@gmail.com)',
       `Voucher resmi khusus untuk unit usaha "${namaUsaha}"`
     );
+    setSelectedVoucherDuration(months);
     setActiveVoucher(voucher);
     setIsVoucherModalOpen(true);
-    showToast(`Voucher lisensi ${voucher.code} berhasil diterbitkan khusus untuk "${namaUsaha}"!`, 'success');
+    showToast(`Voucher ${voucher.durationLabel} (${voucher.code}) berhasil diterbitkan untuk "${namaUsaha}"!`, 'success');
   };
 
   const handleCheckKurasiStatus = () => {
@@ -793,9 +805,13 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
               onClick={() => setIsPremiumModalOpen(true)}
               title={
                 hasProAccess
-                  ? 'Lisensi Untungin Pro Aktif (Akses Penuh)'
+                  ? premiumStatus.remainingProDays !== undefined
+                    ? `Lisensi Untungin Pro Aktif (${premiumStatus.proDurationLabel}): Sisa ${premiumStatus.remainingProDays} hari`
+                    : 'Lisensi Untungin Pro Lifetime Aktif (Akses Penuh Selamanya)'
                   : isTrialActive
                   ? `Masa Trial Aktif: Sisa ${premiumStatus.remainingTransactions ?? 0} transaksi (${premiumStatus.remainingDays ?? 0} hari)`
+                  : premiumStatus.isProExpired
+                  ? 'Masa Langganan Pro Berakhir. Masukkan Voucher Baru'
                   : 'Batas Trial Selesai. Upgrade ke Untungin Pro'
               }
               className={`px-2.5 py-1.5 rounded-xl border text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-xs ${
@@ -809,7 +825,11 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
               {hasProAccess ? (
                 <>
                   <Crown className="w-3.5 h-3.5 fill-[#001c3c] text-[#001c3c]" />
-                  <span className="hidden sm:inline">PRO</span>
+                  <span className="hidden sm:inline">
+                    {premiumStatus.remainingProDays !== undefined
+                      ? `PRO (${premiumStatus.remainingProDays} HARI)`
+                      : 'PRO'}
+                  </span>
                 </>
               ) : isTrialActive ? (
                 <>
@@ -819,7 +839,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
               ) : (
                 <>
                   <Lock className="w-3.5 h-3.5 text-amber-300" />
-                  <span className="hidden sm:inline">UPGRADE</span>
+                  <span className="hidden sm:inline">{premiumStatus.isProExpired ? 'PRO EXPIRED' : 'UPGRADE'}</span>
                 </>
               )}
             </button>
@@ -860,7 +880,11 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
               {premiumStatus.isPremium ? (
                 <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-400/40 text-[11px] flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                  <span>👑 Pro Lifetime Aktif ({premiumStatus.grantedBy || 'Lead Developer'})</span>
+                  <span>
+                    👑 {premiumStatus.remainingProDays !== undefined
+                      ? `Pro ${premiumStatus.proDurationLabel || 'Langganan'} (Sisa ${premiumStatus.remainingProDays} Hari)`
+                      : `Pro Lifetime Aktif (${premiumStatus.grantedBy || 'Lead Developer'})`}
+                  </span>
                 </span>
               ) : isTrialActive ? (
                 <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-200 font-bold border border-indigo-400/40 text-[11px] flex items-center gap-1">
@@ -870,7 +894,11 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
               ) : (
                 <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-400/30 text-[11px] flex items-center gap-1">
                   <Lock className="w-3 h-3 text-amber-400" />
-                  <span>🔒 Trial Selesai ({premiumStatus.usedTransactions ?? 0}/10 tx)</span>
+                  <span>
+                    {premiumStatus.isProExpired
+                      ? `🔒 Langganan Pro Berakhir (${premiumStatus.proDurationLabel || 'Selesai'})`
+                      : `🔒 Trial Selesai (${premiumStatus.usedTransactions ?? 0}/10 tx)`}
+                  </span>
                 </span>
               )}
             </div>
@@ -892,7 +920,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                 <>
                   <button
                     type="button"
-                    onClick={handleGenerateVoucher}
+                    onClick={() => handleGenerateVoucher()}
                     className="px-2.5 py-1 rounded-lg bg-purple-500/20 hover:bg-purple-500/35 text-purple-200 hover:text-white border border-purple-400/40 font-bold transition-all cursor-pointer text-[11px] flex items-center gap-1.5 shadow-2xs"
                     title="Terbitkan kode voucher lisensi resmi khusus untuk unit usaha ini"
                   >
@@ -923,7 +951,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                   ) : (
                     <button
                       type="button"
-                      onClick={handleGrantProByDeveloper}
+                      onClick={() => handleGrantProByDeveloper(0, 'Lifetime (Permanen)')}
                       className="px-3 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-[#001c3c] font-black transition-all cursor-pointer text-[11px] flex items-center gap-1.5 shadow-sm"
                     >
                       <Crown className="w-3.5 h-3.5 text-[#001c3c]" />
@@ -2419,8 +2447,16 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                         {premiumStatus.method === 'kurator'
                           ? 'Rekomendasi Kurator (Lolos Seleksi)'
                           : premiumStatus.method === 'payment'
-                          ? 'Aktivasi Lisensi / Pembayaran'
+                          ? 'Aktivasi Lisensi / Voucher'
                           : 'Sistem VIP'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between py-1 border-b border-slate-200/60">
+                      <span className="text-slate-500">Masa Berlaku Pro:</span>
+                      <span className="font-extrabold text-emerald-700">
+                        {premiumStatus.proExpiresAt 
+                          ? `${premiumStatus.proDurationLabel || 'Langganan'} (s/d ${new Date(premiumStatus.proExpiresAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} · sisa ${premiumStatus.remainingProDays ?? 0} hari)`
+                          : '👑 Lifetime (Permanen Tanpa Batas)'}
                       </span>
                     </div>
                     <div className="flex items-center justify-between py-1">
@@ -2457,12 +2493,13 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                 )}
               </div>
 
-              {!hasProAccess && (
+              {/* Form Input Voucher / Lisensi - Tampil bagi yang belum Pro atau ingin memperpanjang masa aktif Pro */}
+              {(!hasProAccess || premiumStatus.proExpiresAt) && (
                 <div className="p-3.5 bg-gradient-to-br from-amber-50 to-orange-50/50 rounded-2xl border border-amber-200 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <span className="font-black text-xs text-[#001c3c] flex items-center gap-1.5">
                       <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                      <span>Upgrade ke Untungin Pro (Unlimited)</span>
+                      <span>{hasProAccess ? 'Perpanjang / Tambah Durasi Pro' : 'Aktivasi Kode Voucher / Lisensi Pro'}</span>
                     </span>
                     <a
                       href={`https://wa.me/6285156557675?text=${encodeURIComponent(
@@ -2479,7 +2516,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                   <form onSubmit={handleActivateLicense} className="flex gap-1.5">
                     <input
                       type="text"
-                      placeholder="Masukkan kode lisensi resmi"
+                      placeholder="Masukkan kode voucher (Contoh: PRO-3M-XXXXXX)"
                       value={licenseCodeInput}
                       onChange={(e) => setLicenseCodeInput(e.target.value.toUpperCase())}
                       className="flex-1 py-1.5 px-3 text-xs font-mono font-bold bg-white border border-amber-300 focus:border-amber-500 rounded-xl outline-none"
@@ -2554,7 +2591,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
           setPremiumStatus(newAccess);
           showToast(`Masa trial untuk "${namaUsaha}" berhasil diperbarui!`, 'success');
         }}
-        onGrantPro={isDeveloperUser ? handleGrantProByDeveloper : undefined}
+        onGrantPro={isDeveloperUser ? () => handleGrantProByDeveloper(0, 'Lifetime (Permanen)') : undefined}
         isDeveloper={isDeveloperUser}
       />
 
@@ -2581,15 +2618,57 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
               </button>
             </div>
 
+            {/* Pilihan Durasi Paket Voucher */}
+            <div className="space-y-1.5 pt-1">
+              <label className="text-[11px] font-bold text-slate-700 block">
+                Pilih Durasi Masa Aktif Voucher:
+              </label>
+              <div className="grid grid-cols-5 gap-1.5">
+                {[
+                  { m: 3, label: '3 Bulan', sub: 'Inkubasi' },
+                  { m: 6, label: '6 Bulan', sub: 'Akselerasi' },
+                  { m: 9, label: '9 Bulan', sub: 'Bisnis' },
+                  { m: 12, label: '1 Tahun', sub: 'Tahunan' },
+                  { m: 0, label: 'Lifetime', sub: 'Permanen' }
+                ].map((item) => {
+                  const isSelected = activeVoucher.durationMonths === item.m;
+                  return (
+                    <button
+                      key={item.m}
+                      type="button"
+                      onClick={() => handleGenerateVoucher(item.m)}
+                      className={`p-1.5 sm:p-2 rounded-xl text-center border transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-purple-700 text-white border-purple-800 shadow-sm ring-2 ring-purple-400/30'
+                          : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <div className="text-[11px] sm:text-xs font-black truncate">
+                        {item.label}
+                      </div>
+                      <div className={`text-[8px] sm:text-[9px] font-semibold ${isSelected ? 'text-purple-200' : 'text-slate-500'}`}>
+                        {item.sub}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="bg-gradient-to-br from-purple-50 via-indigo-50/50 to-purple-50 p-4 rounded-2xl border border-purple-200 text-center space-y-2">
-              <div className="text-xs text-purple-900 font-medium">
-                Khusus Unit Usaha: <span className="font-bold">{activeVoucher.targetNamaUsaha || namaUsaha}</span>
+              <div className="flex items-center justify-between text-xs text-purple-900 font-medium">
+                <span>Unit Usaha: <strong className="text-[#001c3c]">{activeVoucher.targetNamaUsaha || namaUsaha}</strong></span>
+                <span className="px-2 py-0.5 rounded-full bg-purple-200 text-purple-950 font-black text-[10px]">
+                  Paket: {activeVoucher.durationLabel}
+                </span>
               </div>
               <div className="bg-white p-3 rounded-xl border border-purple-300 font-mono font-black text-xl text-purple-900 tracking-wider select-all shadow-2xs">
                 {activeVoucher.code}
               </div>
               <p className="text-[10px] text-slate-500">
-                Kode voucher resmi siap dibagikan kepada UMKM atau diaktivasi langsung di sistem kas.
+                {activeVoucher.durationMonths > 0 
+                  ? `Memberikan akses penuh Untungin Pro selama ${activeVoucher.durationLabel} sejak tanggal aktivasi.`
+                  : 'Memberikan akses Untungin Pro Lifetime tanpa batas waktu selamanya.'}
               </p>
             </div>
 
@@ -2598,7 +2677,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                 type="button"
                 onClick={() => {
                   navigator.clipboard.writeText(activeVoucher.code);
-                  showToast(`Kode voucher ${activeVoucher.code} berhasil disalin ke clipboard!`, 'success');
+                  showToast(`Kode voucher ${activeVoucher.code} (${activeVoucher.durationLabel}) berhasil disalin ke clipboard!`, 'success');
                 }}
                 className="py-2.5 px-3 rounded-xl bg-purple-100 hover:bg-purple-200 text-purple-900 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
@@ -2608,10 +2687,10 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  handleGrantProByDeveloper();
+                  handleGrantProByDeveloper(activeVoucher.durationMonths, activeVoucher.durationLabel);
                   setIsVoucherModalOpen(false);
                 }}
-                className="py-2.5 px-3 rounded-xl bg-[#001c3c] hover:bg-purple-900 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#001c3c] to-purple-900 hover:from-[#002f5e] hover:to-purple-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-sm"
               >
                 <Crown className="w-4 h-4 text-amber-300" />
                 <span>Aktifkan Langsung</span>
