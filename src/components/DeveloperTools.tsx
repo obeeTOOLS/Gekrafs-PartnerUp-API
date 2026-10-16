@@ -15,8 +15,10 @@ import { WhatsAppBroadcastModal } from './WhatsAppBroadcastModal';
 import { ExecutiveDossier } from './ExecutiveDossier';
 import { PanduanHakAksesPdfModal } from './PanduanHakAksesPdfModal';
 import { PanduanAksesKasPinPdfModal } from './PanduanAksesKasPinPdfModal';
+import { BlueprintMigrasiPdfModal } from './BlueprintMigrasiPdfModal';
 import { TaskQuestionEditor } from './TaskQuestionEditor';
 import { generateKasPinPdf } from '../utils/generateKasPinPdf';
+import { generateUntunginMigrationPdf } from '../utils/generateUntunginMigrationPdf';
 import { 
   Terminal, 
   Copy, 
@@ -56,15 +58,21 @@ import {
   Wallet,
   Printer,
   Cloud,
+  Workflow,
+  Cpu,
+  Layers,
+  Sparkles,
+  ArrowRight,
   X
 } from 'lucide-react';
 import { UntunginKasModal } from './UntunginKasModal';
 import { kasService, DEFAULT_KAS_PIN } from '../services/kasService';
 
 export const DeveloperTools: React.FC = () => {
-  const [devView, setDevView] = useState<'accounts' | 'questions' | 'dossier' | 'kas_pin' | 'panduan_kas' | 'tools'>('accounts');
+  const [devView, setDevView] = useState<'accounts' | 'questions' | 'dossier' | 'kas_pin' | 'panduan_kas' | 'tools' | 'migrasi_untungin'>('accounts');
   const [copiedCode, setCopiedCode] = useState(false);
   const [isUntunginDevModalOpen, setIsUntunginDevModalOpen] = useState(false);
+  const [isBlueprintMigrasiOpen, setIsBlueprintMigrasiOpen] = useState(false);
   const [testUrl, setTestUrl] = useState(gasService.getSettings().gasEndpointUrl);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; latency?: number } | null>(null);
   const [isTesting, setIsTesting] = useState(false);
@@ -123,6 +131,53 @@ export const DeveloperTools: React.FC = () => {
   // Inisialisasi Tab Kas ke Google Spreadsheet state
   const [isInitializingKas, setIsInitializingKas] = useState(false);
   const [initKasResult, setInitKasResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  // Dual-Stream Shadow Vault state (Untungin Standalone Engine)
+  const [vaultConfig, setVaultConfigState] = useState(() => kasService.getVaultConfig());
+  const [vaultEndpointInput, setVaultEndpointInput] = useState(vaultConfig.endpoint);
+  const [vaultTestResult, setVaultTestResult] = useState<{ success: boolean; message: string; latency?: number } | null>(null);
+  const [isTestingVault, setIsTestingVault] = useState(false);
+  const [isSeedingVault, setIsSeedingVault] = useState(false);
+  const [seedResult, setSeedResult] = useState<{ success: boolean; count?: number; message: string } | null>(null);
+
+  const handleSaveVaultEndpoint = () => {
+    kasService.setVaultConfig(vaultEndpointInput, vaultConfig.enabled);
+    setVaultConfigState(kasService.getVaultConfig());
+    setVaultTestResult({ success: true, message: '✅ URL Endpoint Vault berhasil disimpan.' });
+    setTimeout(() => setVaultTestResult(null), 3000);
+  };
+
+  const handleToggleVaultSync = () => {
+    const nextState = !vaultConfig.enabled;
+    kasService.setVaultConfig(vaultEndpointInput, nextState);
+    setVaultConfigState(kasService.getVaultConfig());
+  };
+
+  const handleTestVaultPing = async () => {
+    setIsTestingVault(true);
+    setVaultTestResult(null);
+    try {
+      const res = await kasService.testVaultConnection(vaultEndpointInput);
+      setVaultTestResult(res);
+    } catch (e: any) {
+      setVaultTestResult({ success: false, message: e?.message || 'Gagal menghubungi vault' });
+    } finally {
+      setIsTestingVault(false);
+    }
+  };
+
+  const handleSeedParticipantsToVault = async () => {
+    setIsSeedingVault(true);
+    setSeedResult(null);
+    try {
+      const res = await kasService.seedAllParticipantsToVault(vaultEndpointInput);
+      setSeedResult(res);
+    } catch (e: any) {
+      setSeedResult({ success: false, message: e?.message || 'Gagal menyalin data ke vault' });
+    } finally {
+      setIsSeedingVault(false);
+    }
+  };
 
   const handleInitSheetKas = async () => {
     setIsInitializingKas(true);
@@ -461,6 +516,26 @@ export const DeveloperTools: React.FC = () => {
             <span>Unduh File PDF Panduan</span>
           </button>
 
+          <button
+            type="button"
+            onClick={() => setIsBlueprintMigrasiOpen(true)}
+            className="flex-shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white font-black text-xs shadow-md transition-all group cursor-pointer"
+            title="Buka & Pelajari Master Blueprint Migrasi Untungin Standalone (PDF)"
+          >
+            <Workflow className="w-4 h-4 text-amber-300 group-hover:scale-110 transition-transform" />
+            <span>Blueprint Migrasi Untungin</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => generateUntunginMigrationPdf()}
+            className="flex-shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-700 to-indigo-800 hover:from-teal-600 hover:to-indigo-700 text-white font-black text-xs shadow-md transition-all group cursor-pointer"
+            title="Langsung Unduh Berkas PDF Master Blueprint Migrasi Untungin Standalone"
+          >
+            <Download className="w-4 h-4 text-amber-300 group-hover:scale-110 transition-transform" />
+            <span>Unduh PDF Migrasi</span>
+          </button>
+
           <a
             href="/laporan-verifikasi.html"
             target="_blank"
@@ -552,6 +627,19 @@ export const DeveloperTools: React.FC = () => {
         >
           <Wrench className="w-4 h-4 text-emerald-400" />
           <span>Endpoint GAS & Sync</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setDevView('migrasi_untungin')}
+          className={`flex-1 py-3 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            devView === 'migrasi_untungin'
+              ? 'bg-[#001c3c] text-white shadow-md'
+              : 'text-slate-700 hover:bg-white/60'
+          }`}
+        >
+          <Workflow className="w-4 h-4 text-emerald-400" />
+          <span>Blueprint Migrasi Untungin</span>
         </button>
       </div>
 
@@ -1128,6 +1216,278 @@ export const DeveloperTools: React.FC = () => {
                   </table>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {devView === 'migrasi_untungin' && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          {/* HEADER STRATEGIS */}
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-indigo-600/30 shadow-lg space-y-6">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 border-b border-slate-100 pb-6">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-300">
+                    SOP Teknis Developer & Blueprint Arsitektur
+                  </span>
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    Roadmap 2026
+                  </span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-black text-[#001c3c]">
+                  Blueprint Migrasi Kas Untungin ke Versi Standalone
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-500 max-w-3xl leading-relaxed">
+                  Panduan arsitektur komprehensif untuk memisahkan ekosistem Untungin dari program pendampingan PartnerUp melalui metode <strong>Dual-Stream Shadow Sync</strong> agar tidak mengganggu operasional live dan menjamin zero-loss data UMKM.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsBlueprintMigrasiOpen(true)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs shadow-md flex items-center gap-2 cursor-pointer transition-all"
+                >
+                  <BookOpen className="w-4 h-4 text-amber-300" />
+                  <span>Buka Mode Pembaca Penuh</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => generateUntunginMigrationPdf()}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white font-black text-xs shadow-lg shadow-emerald-600/20 flex items-center gap-2 cursor-pointer transition-all"
+                >
+                  <Download className="w-4 h-4 text-amber-300" />
+                  <span>Unduh File PDF Resmi</span>
+                </button>
+              </div>
+            </div>
+
+            {/* HIGHLIGHT METRIC CARDS */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Metode Replikasi</div>
+                <div className="text-base font-black text-[#001c3c] flex items-center gap-1.5">
+                  <Workflow className="w-4 h-4 text-indigo-600" />
+                  <span>Dual-Stream Sync</span>
+                </div>
+                <div className="text-[11px] text-slate-500">Live Sheet + Backup Vault paralel</div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 space-y-1">
+                <div className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Integritas Data</div>
+                <div className="text-base font-black text-emerald-950 flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <span>Zero Data Loss</span>
+                </div>
+                <div className="text-[11px] text-emerald-700">Tidak ada saldo & transaksi hilang</div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200 space-y-1">
+                <div className="text-[11px] font-bold text-amber-800 uppercase tracking-wider">Dampak Live Apps</div>
+                <div className="text-base font-black text-amber-950 flex items-center gap-1.5">
+                  <Cpu className="w-4 h-4 text-amber-600" />
+                  <span>0% Disrupsi</span>
+                </div>
+                <div className="text-[11px] text-amber-700">Non-blocking background push</div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-purple-50/80 border border-purple-200 space-y-1">
+                <div className="text-[11px] font-bold text-purple-800 uppercase tracking-wider">Status Roadmap</div>
+                <div className="text-base font-black text-purple-950 flex items-center gap-1.5">
+                  <Layers className="w-4 h-4 text-purple-600" />
+                  <span>Fase 1: Preparasi</span>
+                </div>
+                <div className="text-[11px] text-purple-700">Skema Vault & Blueprint Final</div>
+              </div>
+            </div>
+
+            {/* RANGKUMAN 6 BAB UTAMA */}
+            <div className="space-y-4 pt-2">
+              <h3 className="font-black text-base text-[#001c3c] flex items-center gap-2">
+                <FileText className="w-5 h-5 text-indigo-600" />
+                <span>Struktur Rencana & Ringkasan Dokumen PDF</span>
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                {/* Bab 1 & 2 */}
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                  <span className="font-extrabold text-indigo-900 block text-sm">
+                    BAB I & II: Latar Belakang & Urgensi Pemisahan Data
+                  </span>
+                  <p className="text-slate-600 leading-relaxed">
+                    Program pendampingan PartnerUp memiliki siklus yang terbatas. Jika program berakhir, keterikatan Untungin pada spreadsheet program akan memutus akses database ratusan UMKM. Pemisahan data ke <strong>Vault Mandiri</strong> adalah langkah wajib untuk melindungi aset UMKM dan hak kekayaan intelektual developer.
+                  </p>
+                </div>
+
+                {/* Bab 3 */}
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                  <span className="font-extrabold text-indigo-900 block text-sm">
+                    BAB III: Arsitektur Dual-Stream Live Data Synchronization
+                  </span>
+                  <p className="text-slate-600 leading-relaxed">
+                    Setiap penambahan atau mutasi kas dikirim ke dua tujuan: Spreadsheet Live PartnerUp (utama) dan Spreadsheet Vault Baru (shadow). Proses berjalan asinkron di belakang layar sehingga kecepatan input kas peserta tetap instan tanpa beban latensi.
+                  </p>
+                </div>
+
+                {/* Bab 4 */}
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                  <span className="font-extrabold text-indigo-900 block text-sm">
+                    BAB IV: Fitur-Fitur Kunci Penunjang Migrasi
+                  </span>
+                  <p className="text-slate-600 leading-relaxed">
+                    Tiga pilar teknis disiapkan: (1) <strong>Data Source Switcher</strong> untuk pengalihan tujuan data 1-klik, (2) <strong>Decoupled PIN Auth</strong> yang tidak bergantung pada email Google login admin, dan (3) <strong>Snapshot Backup</strong> lokal JSON/Excel terenkripsi untuk pengguna.
+                  </p>
+                </div>
+
+                {/* Bab 5 & 6 */}
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                  <span className="font-extrabold text-indigo-900 block text-sm">
+                    BAB V & VI: 4 Fase Eksekusi & Potensi Komersialisasi
+                  </span>
+                  <p className="text-slate-600 leading-relaxed">
+                    Empat tahapan: Fase 1 (Preparasi Sheet Vault), Fase 2 (Decoupling Codebase), Fase 3 (Rekonsiliasi Saldo Dry-Run), dan Fase 4 (Cutover & Go-Live Standalone). Pasca-program, sistem voucher durasi (3, 6, 9 bulan, 1 tahun) dapat dimonetisasi langsung menjadi pendapatan berulang (MRR) pengembang.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* PANEL KENDALI DUAL-STREAM SHADOW SYNC (AUTO BACKUP VAULT) */}
+            <div className="p-6 rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950/70 to-[#001c3c] border-2 border-emerald-500/40 text-white space-y-6 shadow-xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-400 shadow-lg flex-shrink-0">
+                    <Database className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">
+                        Live Shadow Replication
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        vaultConfig.enabled 
+                          ? 'bg-emerald-500 text-slate-950 font-black animate-pulse' 
+                          : 'bg-slate-700 text-slate-300'
+                      }`}>
+                        {vaultConfig.enabled ? '● AKTIF (DUAL-SYNC ON)' : '○ NONAKTIF (NORMAL)'}
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-black text-white mt-1">
+                      Panel Kontrol Dual-Stream Shadow Vault
+                    </h3>
+                  </div>
+                </div>
+
+                {/* Saklar ON/OFF Utama */}
+                <button
+                  type="button"
+                  onClick={handleToggleVaultSync}
+                  className={`px-5 py-2.5 rounded-2xl font-black text-xs flex items-center gap-2.5 shadow-lg transition-all cursor-pointer ${
+                    vaultConfig.enabled
+                      ? 'bg-gradient-to-r from-emerald-400 to-teal-400 text-slate-950 hover:brightness-110 shadow-emerald-500/20'
+                      : 'bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700'
+                  }`}
+                  title="Klik untuk mengaktifkan atau menonaktifkan duplikasi otomatis ke vault"
+                >
+                  <RefreshCw className={`w-4 h-4 ${vaultConfig.enabled ? 'animate-spin' : ''}`} />
+                  <span>
+                    {vaultConfig.enabled ? 'Duplikasi Aktif (Matikan)' : 'Aktifkan Shadow Sync (Nyalakan)'}
+                  </span>
+                </button>
+              </div>
+
+              {/* Endpoint Input & Test */}
+              <div className="space-y-3">
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  Target Web App Endpoint URL (Standalone GAS):
+                </label>
+                <div className="flex flex-col sm:flex-row gap-2.5">
+                  <input
+                    type="text"
+                    value={vaultEndpointInput}
+                    onChange={(e) => setVaultEndpointInput(e.target.value)}
+                    placeholder="https://script.google.com/macros/s/.../exec"
+                    className="flex-1 px-4 py-2.5 text-xs font-mono bg-slate-950/80 border border-slate-700 rounded-xl text-emerald-300 focus:outline-none focus:border-emerald-400"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSaveVaultEndpoint}
+                      className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition-colors cursor-pointer"
+                    >
+                      Simpan URL
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleTestVaultPing}
+                      disabled={isTestingVault}
+                      className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-2 transition-colors cursor-pointer"
+                    >
+                      {isTestingVault ? (
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
+                      )}
+                      <span>Uji Ping Vault</span>
+                    </button>
+                  </div>
+                </div>
+
+                {vaultTestResult && (
+                  <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${
+                    vaultTestResult.success 
+                      ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20' 
+                      : 'bg-rose-500/10 text-rose-300 border border-rose-500/20'
+                  }`}>
+                    {vaultTestResult.success ? <Check className="w-4 h-4 text-emerald-400" /> : <AlertCircle className="w-4 h-4 text-rose-400" />}
+                    <span>{vaultTestResult.message}</span>
+                    {vaultTestResult.latency && (
+                      <span className="ml-auto text-[10px] px-2 py-0.5 rounded bg-black/40 font-mono text-slate-300">
+                        {vaultTestResult.latency}ms
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Seed / Duplikasi Awal Data 34 Peserta */}
+              <div className="p-4 rounded-2xl bg-slate-950/60 border border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="space-y-1 max-w-xl">
+                  <div className="font-extrabold text-sm text-amber-300 flex items-center gap-2">
+                    <Users className="w-4 h-4 text-amber-400" />
+                    <span>Salin Data Awal: Profil 34 UMKM PartnerUp ke Vault</span>
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Menduplikasi nama usaha, nama pemilik, nomor WhatsApp, status lisensi, dan PIN kas dari 34 peserta PartnerUp ke tab <code className="text-emerald-400 font-mono">Untungin_Profil</code> di sheet mandiri Anda dengan 1 kali klik.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSeedParticipantsToVault}
+                  disabled={isSeedingVault}
+                  className="px-5 py-3 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer flex-shrink-0"
+                >
+                  {isSeedingVault ? (
+                    <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <CloudDownload className="w-4 h-4 text-slate-950" />
+                  )}
+                  <span>{isSeedingVault ? 'Sedang Menyalin Data...' : '🚀 Salin Profil 34 Peserta ke Vault'}</span>
+                </button>
+              </div>
+
+              {seedResult && (
+                <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${
+                  seedResult.success 
+                    ? 'bg-emerald-500/20 text-emerald-200 border border-emerald-500/30' 
+                    : 'bg-rose-500/20 text-rose-200 border border-rose-500/30'
+                }`}>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span>{seedResult.message}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1839,6 +2199,12 @@ export const DeveloperTools: React.FC = () => {
         isOpen={isPanduanKasPdfOpen}
         onClose={() => setIsPanduanKasPdfOpen(false)}
         isDeveloper={true}
+      />
+
+      {/* Modal Cetak & Baca Dokumen Master Blueprint Migrasi Untungin Standalone (PDF) */}
+      <BlueprintMigrasiPdfModal
+        isOpen={isBlueprintMigrasiOpen}
+        onClose={() => setIsBlueprintMigrasiOpen(false)}
       />
 
       {/* Modal Penggantian PIN / Password Khusus Developer */}

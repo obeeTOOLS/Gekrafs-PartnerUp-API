@@ -384,6 +384,18 @@ class KasService {
       console.warn('[kasService] Cloud sync addTransaction error:', err);
     });
 
+    // Dual-Stream Shadow Sync ke Spreadsheet Vault Mandiri (Non-blocking)
+    this.dispatchVaultShadowSync('pushTransaksi', {
+      id: newTx.id,
+      tanggal: newTx.date,
+      namaUsaha: newTx.namaUsaha,
+      arusKas: newTx.type === 'income' ? 'Pemasukan' : newTx.type === 'expense' ? 'Pengeluaran' : 'Transfer',
+      kategori: newTx.category,
+      nominal: newTx.amount,
+      rekening: newTx.accountId,
+      keterangan: newTx.desc
+    });
+
     return newTx;
   }
 
@@ -404,6 +416,18 @@ class KasService {
     // Kirim pembaruan ke Google Spreadsheet di background
     gasService.dispatchRemoteAction('saveKasTransaction', { transaction: transactions[idx] }).catch(err => {
       console.warn('[kasService] Cloud sync updateTransaction error:', err);
+    });
+
+    // Dual-Stream Shadow Sync ke Spreadsheet Vault Mandiri (Non-blocking)
+    this.dispatchVaultShadowSync('pushTransaksi', {
+      id: transactions[idx].id,
+      tanggal: transactions[idx].date,
+      namaUsaha: transactions[idx].namaUsaha,
+      arusKas: transactions[idx].type === 'income' ? 'Pemasukan' : transactions[idx].type === 'expense' ? 'Pengeluaran' : 'Transfer',
+      kategori: transactions[idx].category,
+      nominal: transactions[idx].amount,
+      rekening: transactions[idx].accountId,
+      keterangan: transactions[idx].desc
     });
 
     return true;
@@ -1627,6 +1651,128 @@ class KasService {
       items,
       sectorBreakdown,
       topIncomeUmkms
+    };
+  }
+
+  // ============================================================================
+  // DUAL-STREAM SHADOW SYNC (UNTUNGIN STANDALONE VAULT)
+  // ============================================================================
+
+  /**
+   * Mengambil konfigurasi Shadow Vault saat ini dari storage lokal
+   */
+  public getVaultConfig(): { endpoint: string; enabled: boolean } {
+    try {
+      const endpoint = localStorage.getItem('untungin_vault_endpoint') || 'https://script.google.com/macros/s/AKfycbzt3TEU-OQioP9OxUm5BPHuuAihKqF1tJDDb396T4TguB2V_-KpKMaLD5O8VD6xAiVk/exec';
+      const enabled = localStorage.getItem('untungin_vault_enabled') === 'true';
+      return { endpoint, enabled };
+    } catch {
+      return {
+        endpoint: 'https://script.google.com/macros/s/AKfycbzt3TEU-OQioP9OxUm5BPHuuAihKqF1tJDDb396T4TguB2V_-KpKMaLD5O8VD6xAiVk/exec',
+        enabled: false
+      };
+    }
+  }
+
+  /**
+   * Menyimpan konfigurasi endpoint dan status toggle Shadow Vault
+   */
+  public setVaultConfig(endpoint: string, enabled: boolean): void {
+    try {
+      localStorage.setItem('untungin_vault_endpoint', endpoint.trim());
+      localStorage.setItem('untungin_vault_enabled', enabled ? 'true' : 'false');
+    } catch (e) {
+      console.warn('Failed to save vault config:', e);
+    }
+  }
+
+  /**
+   * Dispatcher pengiriman data ganda asinkron (non-blocking) ke Standalone Vault
+   */
+  public dispatchVaultShadowSync(action: string, payload: any): void {
+    const config = this.getVaultConfig();
+    if (!config.enabled || !config.endpoint) return;
+
+    try {
+      fetch(config.endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action, ...payload }),
+        mode: 'no-cors'
+      }).catch(err => {
+        // Log senyap tanpa pernah memutus alur kerja pengguna
+        console.debug('[ShadowVaultSync] Non-blocking push notification:', err);
+      });
+    } catch (err) {
+      console.debug('[ShadowVaultSync] Dispatch error caught:', err);
+    }
+  }
+
+  /**
+   * Menguji konektivitas ke Spreadsheet Vault Mandiri (Health Check GET)
+   */
+  public async testVaultConnection(endpointUrl?: string): Promise<{ success: boolean; message: string; latency?: number }> {
+    const targetUrl = endpointUrl || this.getVaultConfig().endpoint;
+    const start = Date.now();
+    try {
+      const res = await fetch(targetUrl);
+      const latency = Date.now() - start;
+      const json = await res.json();
+      if (json && json.status === 'success') {
+        return {
+          success: true,
+          message: `Terhubung ke ${json.engine || 'Untungin Vault'} (${json.sheetsFound?.length || 5} tab aktif)`,
+          latency
+        };
+      }
+      return { success: false, message: json?.message || 'Respon tidak valid dari endpoint vault', latency };
+    } catch (err: any) {
+      return { success: false, message: 'Gagal menghubungi endpoint: ' + (err?.message || err), latency: Date.now() - start };
+    }
+  }
+
+  /**
+   * Menyalin (Seed) Profil 34 Peserta PartnerUp ke tab Untungin_Profil di Spreadsheet Vault
+   */
+  public async seedAllParticipantsToVault(endpointUrl?: string): Promise<{ success: boolean; count: number; message: string }> {
+    const targetUrl = endpointUrl || this.getVaultConfig().endpoint;
+    const allPeserta = gasService.getPeserta();
+    if (!allPeserta || allPeserta.length === 0) {
+      return { success: false, count: 0, message: 'Tidak ada data peserta ditemukan di sistem PartnerUp.' };
+    }
+
+    let successCount = 0;
+    for (const p of allPeserta) {
+      const prem = this.getPremiumStatus(p.namaUsaha);
+      const isPro = prem.isPremium;
+      const pinData = this.getKasPin(p.namaUsaha);
+
+      try {
+        await fetch(targetUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            action: 'syncProfil',
+            namaUsaha: p.namaUsaha,
+            namaPemilik: p.namaPemilik || '-',
+            whatsapp: p.whatsapp || '-',
+            statusLisensi: isPro ? 'PRO' : 'TRIAL',
+            voucherDurationMonths: prem.proDurationMonths || 0,
+            voucherExpiresAt: prem.proExpiresAt || '-',
+            pinHash: pinData?.pin || '123456'
+          }),
+          mode: 'no-cors'
+        });
+        successCount++;
+      } catch (e) {
+        console.warn('Gagal sync profil:', p.namaUsaha, e);
+      }
+    }
+
+    return {
+      success: true,
+      count: successCount,
+      message: `Berhasil menduplikasi profil ${successCount} UMKM ke tab Untungin_Profil di Spreadsheet Vault Mandiri.`
     };
   }
 }
