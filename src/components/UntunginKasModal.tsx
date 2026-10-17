@@ -424,6 +424,41 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
     return `Rp ${n.toLocaleString('id-ID', { maximumFractionDigits: 0 })}`;
   };
 
+  // Helper Format Angka dengan Separasi Ribuan Titik (Contoh: 15000 -> 15.000)
+  const formatThousandSeparator = (val: string | number): string => {
+    if (val === '' || val === null || val === undefined) return '';
+    const digitsOnly = String(val).replace(/\D/g, '');
+    if (!digitsOnly) return '';
+    const num = Number(digitsOnly);
+    return num.toLocaleString('id-ID');
+  };
+
+  // Helper Parse Angka dari Format Berpemisah ke Number Numerik Murni
+  const parseFormattedNumber = (val: string | number): number => {
+    if (!val) return 0;
+    const digitsOnly = String(val).replace(/\D/g, '');
+    return Number(digitsOnly) || 0;
+  };
+
+  // Helper Terbilang Bahasa Indonesia
+  const angkaTerbilang = (angka: number): string => {
+    if (angka <= 0) return '';
+    const bilangan = ['', 'Satu', 'Dua', 'Tiga', 'Empat', 'Lima', 'Enam', 'Tujuh', 'Delapan', 'Sembilan', 'Sepuluh', 'Sebelas'];
+    const toWords = (n: number): string => {
+      if (n < 12) return bilangan[n];
+      if (n < 20) return toWords(n - 10) + ' Belas';
+      if (n < 100) return toWords(Math.floor(n / 10)) + ' Puluh ' + (n % 10 !== 0 ? toWords(n % 10) : '');
+      if (n < 200) return 'Seratus ' + (n - 100 !== 0 ? toWords(n - 100) : '');
+      if (n < 1000) return toWords(Math.floor(n / 100)) + ' Ratus ' + (n % 100 !== 0 ? toWords(n % 100) : '');
+      if (n < 2000) return 'Seribu ' + (n - 1000 !== 0 ? toWords(n - 1000) : '');
+      if (n < 1000000) return toWords(Math.floor(n / 1000)) + ' Ribu ' + (n % 1000 !== 0 ? toWords(n % 1000) : '');
+      if (n < 1000000000) return toWords(Math.floor(n / 1000000)) + ' Juta ' + (n % 1000000 !== 0 ? toWords(n % 1000000) : '');
+      if (n < 1000000000000) return toWords(Math.floor(n / 1000000000)) + ' Miliar ' + (n % 1000000000 !== 0 ? toWords(n % 1000000000) : '');
+      return toWords(Math.floor(n / 1000000000000)) + ' Triliun ' + (n % 1000000000000 !== 0 ? toWords(n % 1000000000000) : '');
+    };
+    return toWords(angka).replace(/\s+/g, ' ').trim();
+  };
+
   // Daftar Tahun Dinamis (Otomatis mendeteksi tahun dari data aktual + rentang tahun aktif)
   const availableYears = useMemo(() => {
     const yearsSet = new Set<string>();
@@ -512,7 +547,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
       }
     }
 
-    const amt = Number(txAmount);
+    const amt = parseFormattedNumber(txAmount);
     const finalAccountId = txAccountId || (accounts.length > 0 ? accounts[0].id : '');
     const finalCategory = txCategory || (txType === 'income' ? (categories.income[0] || 'Penjualan Produk') : (categories.expense[0] || 'Pengeluaran Lain-lain'));
 
@@ -616,7 +651,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
     if (t.toAccountId) setTxToAccountId(t.toAccountId);
     if (t.category) setTxCategory(t.category);
     setTxDesc(t.desc || '');
-    setTxAmount(String(t.amount));
+    setTxAmount(formatThousandSeparator(t.amount));
     setActiveTab('transaksi');
   };
 
@@ -658,7 +693,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
     e.preventDefault();
     if (effectiveReadOnly || !newAccName.trim()) return;
 
-    kasService.addAccount(namaUsaha, newAccName.trim(), newAccType, Number(newAccBalance) || 0);
+    kasService.addAccount(namaUsaha, newAccName.trim(), newAccType, parseFormattedNumber(newAccBalance));
     showToast(`Akun "${newAccName.trim()}" berhasil ditambahkan.`, 'success');
     setNewAccName('');
     setNewAccBalance('');
@@ -2054,27 +2089,46 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                       />
                     </div>
 
-                    <div className="sm:col-span-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 pt-1">
-                      <div className="flex-1 max-w-sm">
-                        <label className={`font-extrabold text-slate-800 block mb-1 ${
-                          fontSize === 'xlarge' ? 'text-sm' : 'text-xs'
-                        }`}>Nominal (Rp)</label>
-                        <input
-                          type="number"
-                          min="0"
-                          value={txAmount}
-                          onChange={(e) => setTxAmount(e.target.value)}
-                          placeholder="0"
-                          className={`w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-black font-mono focus:ring-2 focus:ring-amber-400 text-slate-900 ${
-                            fontSize === 'xlarge' ? 'text-xl' : fontSize === 'large' ? 'text-lg' : 'text-base'
-                          }`}
-                          required
-                        />
+                    <div className="sm:col-span-3 flex flex-col sm:flex-row sm:items-start justify-between gap-3.5 pt-1">
+                      <div className="flex-1 max-w-sm space-y-1">
+                        <div className="flex items-center justify-between">
+                          <label className={`font-extrabold text-slate-800 ${
+                            fontSize === 'xlarge' ? 'text-sm' : 'text-xs'
+                          }`}>Nominal (Rp)</label>
+                          {parseFormattedNumber(txAmount) > 0 && (
+                            <span className="text-[10px] font-bold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-md border border-amber-300">
+                              Rp {formatThousandSeparator(txAmount)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="relative">
+                          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm pointer-events-none">
+                            Rp
+                          </span>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={txAmount}
+                            onChange={(e) => setTxAmount(formatThousandSeparator(e.target.value))}
+                            placeholder="0"
+                            className={`w-full pl-11 pr-3.5 py-2.5 rounded-xl border border-slate-300 font-black font-mono focus:ring-2 focus:ring-amber-400 text-slate-900 ${
+                              fontSize === 'xlarge' ? 'text-xl' : fontSize === 'large' ? 'text-lg' : 'text-base'
+                            }`}
+                            required
+                          />
+                        </div>
+                        {/* Bantuan Visual Terbilang Real-time */}
+                        {parseFormattedNumber(txAmount) > 0 && (
+                          <div className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200/80 flex items-center gap-1.5 animate-in fade-in duration-150">
+                            <span className="text-emerald-600 font-bold">✨ Terbilang:</span>
+                            <span className="italic font-bold text-emerald-900">{angkaTerbilang(parseFormattedNumber(txAmount))} Rupiah</span>
+                          </div>
+                        )}
                       </div>
 
                       <button
                         type="submit"
-                        className={`self-end px-6 py-3 rounded-xl bg-gradient-to-r from-[#001c3c] to-[#003366] hover:from-[#002855] text-white font-extrabold shadow-md transition-all cursor-pointer ${
+                        className={`self-end sm:mt-6 px-6 py-3 rounded-xl bg-gradient-to-r from-[#001c3c] to-[#003366] hover:from-[#002855] text-white font-extrabold shadow-md transition-all cursor-pointer ${
                           fontSize === 'xlarge' ? 'text-sm sm:text-base' : fontSize === 'large' ? 'text-xs sm:text-sm' : 'text-xs'
                         }`}
                       >
@@ -2286,15 +2340,21 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                       <option value="E-Wallet">E-Wallet / QRIS</option>
                       <option value="Lainnya">Lainnya</option>
                     </select>
-                    <input
-                      type="number"
-                      placeholder="Saldo Awal (Rp)"
-                      value={newAccBalance}
-                      onChange={(e) => setNewAccBalance(e.target.value)}
-                      className={`px-3.5 py-2.5 rounded-xl border border-slate-200 font-mono font-bold text-slate-900 focus:ring-2 focus:ring-amber-400 ${
-                        fontSize === 'xlarge' ? 'text-base' : fontSize === 'large' ? 'text-sm' : 'text-xs'
-                      }`}
-                    />
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs pointer-events-none">
+                        Rp
+                      </span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="0"
+                        value={newAccBalance}
+                        onChange={(e) => setNewAccBalance(formatThousandSeparator(e.target.value))}
+                        className={`w-full pl-8 pr-3.5 py-2.5 rounded-xl border border-slate-200 font-mono font-bold text-slate-900 focus:ring-2 focus:ring-amber-400 ${
+                          fontSize === 'xlarge' ? 'text-base' : fontSize === 'large' ? 'text-sm' : 'text-xs'
+                        }`}
+                      />
+                    </div>
                     <button
                       type="submit"
                       className={`px-5 py-2.5 rounded-xl bg-[#001c3c] hover:bg-[#002f5e] text-white font-extrabold transition-colors cursor-pointer shadow-xs ${

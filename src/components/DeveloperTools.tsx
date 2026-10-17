@@ -1698,7 +1698,7 @@ export const DeveloperTools: React.FC = () => {
         <div className="flex items-center justify-between border-b border-slate-100 pb-2">
           <h2 className="text-sm font-extrabold text-[#001c3c] uppercase flex items-center gap-2">
             <Send className="w-4 h-4 text-[#004c80]" />
-            <span>Koneksi Endpoint GAS (doGet & doPost)</span>
+            <span>Koneksi Endpoint GAS (doGet & doPost) - PartnerUp Inkubasi</span>
           </h2>
         </div>
 
@@ -1762,6 +1762,211 @@ export const DeveloperTools: React.FC = () => {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Section 2.2: UNTUNGIN STANDALONE SHADOW VAULT & KODE ENGINE v1.1 */}
+      <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-6 sm:p-7 border-2 border-emerald-500/40 shadow-xl space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                Untungin Standalone Vault
+              </span>
+              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                vaultConfig.enabled ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-700 text-slate-300'
+              }`}>
+                {vaultConfig.enabled ? '• AKTIF (DUAL-SYNC ON)' : '• NON-AKTIF'}
+              </span>
+            </div>
+            <h2 className="text-lg font-black text-white flex items-center gap-2">
+              <Database className="w-5 h-5 text-emerald-400" />
+              <span>Live Shadow Replication & Salin Kode v1.1</span>
+            </h2>
+            <p className="text-xs text-slate-300">
+              Duplikasi data transaksi dan profil secara asinkron ke spreadsheet mandiri <code className="text-amber-300">[standalone]</code> tanpa mengganggu sistem PartnerUp.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleToggleVaultSync}
+            className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all cursor-pointer flex-shrink-0 ${
+              vaultConfig.enabled
+                ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/20'
+                : 'bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700'
+            }`}
+          >
+            <RefreshCw className={`w-4 h-4 ${vaultConfig.enabled ? 'animate-spin' : ''}`} />
+            <span>{vaultConfig.enabled ? 'Duplikasi Aktif (Matikan)' : 'Aktifkan Shadow Sync (Nyalakan)'}</span>
+          </button>
+        </div>
+
+        {/* Kode Standalone GAS v1.1 - Tombol Salin Cepat */}
+        <div className="p-4 rounded-2xl bg-indigo-950/70 border border-indigo-400/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-xs font-black text-amber-300">
+              <FileCode className="w-4 h-4 text-indigo-400" />
+              <span>Kode Google Apps Script v1.1 Standalone Engine</span>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Kode terbaru dengan dukungan <strong>Smart Update baris</strong> (tanpa baris ganda) dan <strong>Delete Propagation</strong> (sinkron hapus transaksi). Tempel di file Apps Script spreadsheet <code className="text-amber-300">[standalone]</code> Anda.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              navigator.clipboard.writeText(UNTUNGIN_STANDALONE_GAS_CODE);
+              setCopiedCode(true);
+              setTimeout(() => setCopiedCode(false), 3000);
+            }}
+            className="px-5 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-black text-xs shadow-lg shadow-indigo-600/30 flex items-center gap-2 cursor-pointer flex-shrink-0 transition-all"
+          >
+            {copiedCode ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
+            <span>{copiedCode ? '✅ Kode v1.1 Tersalin!' : '📋 Salin Kode v1.1 Standalone'}</span>
+          </button>
+        </div>
+
+        {/* Input Endpoint & Ping */}
+        <div className="space-y-2">
+          <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+            Target Web App Endpoint URL (Standalone GAS):
+          </label>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="text"
+              value={vaultEndpointInput}
+              onChange={(e) => setVaultEndpointInput(e.target.value)}
+              placeholder="https://script.google.com/macros/s/.../exec"
+              className="flex-1 px-4 py-2.5 text-xs font-mono bg-slate-950/80 border border-slate-700 rounded-xl text-emerald-300 focus:outline-none focus:border-emerald-400"
+            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleSaveVaultEndpoint}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition-colors cursor-pointer"
+              >
+                Simpan URL
+              </button>
+              <button
+                type="button"
+                onClick={handleTestVaultPing}
+                disabled={isTestingVault}
+                className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-2 transition-colors cursor-pointer"
+              >
+                {isTestingVault ? (
+                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
+                )}
+                <span>Uji Ping Vault</span>
+              </button>
+            </div>
+          </div>
+
+          {vaultTestResult && (
+            <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${
+              vaultTestResult.success 
+                ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20' 
+                : 'bg-rose-500/10 text-rose-300 border border-rose-500/20'
+            }`}>
+              {vaultTestResult.success ? <Check className="w-4 h-4 text-emerald-400" /> : <AlertCircle className="w-4 h-4 text-rose-400" />}
+              <span>{vaultTestResult.message}</span>
+              {vaultTestResult.latency && (
+                <span className="ml-auto text-[10px] px-2 py-0.5 rounded bg-black/40 font-mono text-slate-300">
+                  {vaultTestResult.latency}ms
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Action Buttons: Seed Profil & Backfill Transaksi */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+          <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-white/10 flex flex-col justify-between gap-3">
+            <div>
+              <div className="font-extrabold text-xs text-amber-300 flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 text-amber-400" />
+                <span>Salin Data Profil UMKM</span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">
+                Salin seluruh profil 34 peserta ke tab <code className="text-emerald-400 font-mono">Untungin_Profil</code>.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleSeedParticipantsToVault}
+              disabled={isSeedingVault}
+              className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              <Users className="w-4 h-4" />
+              <span>{isSeedingVault ? 'Menyalin...' : '🚀 Salin Profil UMKM'}</span>
+            </button>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-white/10 flex flex-col justify-between gap-3">
+            <div>
+              <div className="font-extrabold text-xs text-cyan-300 flex items-center gap-1.5">
+                <Database className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Salin Riwayat Transaksi Lama</span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">
+                Backfill seluruh riwayat transaksi kas lama ke <code className="text-cyan-400 font-mono">Untungin_Transaksi</code>.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleSeedTransactionsToVault}
+              disabled={isSeedingTransactions}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 text-slate-950 font-black text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              <CloudDownload className="w-4 h-4" />
+              <span>{isSeedingTransactions ? 'Backfill...' : '📦 Salin Riwayat Transaksi'}</span>
+            </button>
+          </div>
+        </div>
+
+        {seedResult && (
+          <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${
+            seedResult.success 
+              ? 'bg-emerald-500/20 text-emerald-200 border border-emerald-500/30' 
+              : 'bg-rose-500/20 text-rose-200 border border-rose-500/30'
+          }`}>
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <span>{seedResult.message}</span>
+          </div>
+        )}
+
+        {seedTxResult && (
+          <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${
+            seedTxResult.success 
+              ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-500/30' 
+              : 'bg-rose-500/20 text-rose-200 border border-rose-500/30'
+          }`}>
+            <CheckCircle2 className="w-4 h-4 text-cyan-400" />
+            <span>{seedTxResult.message}</span>
+          </div>
+        )}
+
+        {/* Outbox Resilience Status */}
+        <div className="p-3.5 rounded-2xl bg-slate-950/40 border border-white/5 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs text-slate-300">
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span>Status Antrean Resilient Outbox:</span>
+            <strong className={outboxCount > 0 ? 'text-amber-400' : 'text-emerald-400 font-mono'}>
+              {outboxCount} pending
+            </strong>
+          </div>
+          {outboxCount > 0 && (
+            <button
+              type="button"
+              onClick={handleFlushOutbox}
+              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs cursor-pointer"
+            >
+              Kirim Sekarang
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Section 2.5: Sinkronisasi Jawaban Tugas ke Google Spreadsheet */}
