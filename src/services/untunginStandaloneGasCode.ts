@@ -225,18 +225,22 @@ function doPost(e) {
 
     switch (action) {
       case "ping":
-        result = { status: "success", message: "PONG! Untungin Pro Engine Standalone Siap.", timestamp: new Date().toISOString() };
+        result = { status: "success", message: "PONG! Untungin Pro Engine Standalone Siap (v1.2 Universal Bridge).", timestamp: new Date().toISOString() };
         break;
 
       case "initSheets":
         result = initUntunginDatabase();
         break;
 
+      // Mendukung aksi dari PartnerUp dual-sync maupun Standalone Vercel Engine
       case "pushTransaksi":
+      case "tambahTransaksi":
+      case "smartUpdate":
         result = handlePushTransaksi(payload);
         break;
 
       case "deleteTransaksi":
+      case "smartDelete":
         result = handleDeleteTransaksi(payload);
         break;
 
@@ -245,15 +249,22 @@ function doPost(e) {
         break;
 
       case "syncProfil":
+      case "daftarUsaha":
         result = handleSyncProfil(payload);
         break;
 
       case "syncAkun":
+      case "tambahAkun":
         result = handleSyncAkun(payload);
         break;
 
       case "activateVoucher":
+      case "aktivasiVoucher":
         result = handleActivateVoucher(payload);
+        break;
+
+      case "gantiPin":
+        result = handleGantiPin(payload);
         break;
 
       case "getKasData":
@@ -277,7 +288,7 @@ function doPost(e) {
 }
 
 /**
- * Simpan atau perbarui transaksi kas tunggal (Smart Update vs Append)
+ * Simpan atau perbarui transaksi kas tunggal (Mendukung PartnerUp & Standalone Vercel payload)
  */
 function handlePushTransaksi(p) {
   const ss = getSpreadsheet();
@@ -287,16 +298,28 @@ function handlePushTransaksi(p) {
     sheet = ss.getSheetByName("Untungin_Transaksi");
   }
 
-  const txId = (p.id || ("TX-" + Utilities.getUuid().substring(0, 8).toUpperCase())).trim();
+  // Dukungan struktur nested dari Standalone Vercel ({ transaction: {...} } atau { data: {...} })
+  const item = p.transaction || p.data || p;
+
+  const txId = (item.id || item.transactionId || p.transactionId || ("TX-" + Utilities.getUuid().substring(0, 8).toUpperCase())).trim();
   const nowStr = new Date().toISOString();
-  const txDate = p.tanggal || Utilities.formatDate(new Date(), "Asia/Jakarta", "yyyy-MM-dd");
-  const namaUsaha = (p.namaUsaha || "UMKM").trim();
-  const arusKas = p.arusKas || p.tipe || "Masuk";
-  const kategori = p.kategori || "Umum";
-  const nominal = Number(p.nominal) || 0;
-  const rekening = p.rekening || p.akun || "Kas Tunai";
-  const keterangan = p.keterangan || "-";
-  const catatan = p.catatan || "-";
+  const txDate = item.tanggal || item.date || Utilities.formatDate(new Date(), "Asia/Jakarta", "yyyy-MM-dd");
+  const namaUsaha = (item.namaUsaha || item.umkmId || p.namaUsaha || "UMKM").trim();
+  
+  // Normalisasi jenis arus kas
+  const rawType = String(item.arusKas || item.tipe || item.type || "Masuk").toLowerCase();
+  let arusKas = "Pemasukan";
+  if (rawType.includes("keluar") || rawType === "expense") {
+    arusKas = "Pengeluaran";
+  } else if (rawType.includes("transfer")) {
+    arusKas = "Transfer";
+  }
+
+  const kategori = item.kategori || item.category || "Umum";
+  const nominal = Number(item.nominal || item.amount) || 0;
+  const rekening = item.rekening || item.akun || item.accountId || "Kas Tunai";
+  const keterangan = item.keterangan || item.desc || "-";
+  const catatan = item.catatan || "-";
 
   // Cek apakah transaksi sudah ada (Smart Update vs Append)
   const data = sheet.getDataRange().getValues();
@@ -350,19 +373,19 @@ function handlePushTransaksi(p) {
 }
 
 /**
- * Hapus transaksi dari Vault Standalone (Delete Propagation)
+ * Hapus transaksi dari Vault Standalone (Mendukung deleteTransaksi dan smartDelete)
  */
 function handleDeleteTransaksi(p) {
   const ss = getSpreadsheet();
   let sheet = ss.getSheetByName("Untungin_Transaksi");
   if (!sheet) return { status: "success", message: "Tab transaksi belum dibuat" };
 
-  const txId = (p.id || p.txId || "").trim();
+  const txId = (p.id || p.txId || p.transactionId || "").trim();
   if (!txId) return { status: "error", message: "ID transaksi tidak disertakan" };
 
   const data = sheet.getDataRange().getValues();
   let foundRow = -1;
-  let namaUsaha = (p.namaUsaha || "").trim();
+  let namaUsaha = (p.namaUsaha || p.umkmId || "").trim();
 
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][0]).trim() === txId) {
@@ -389,6 +412,27 @@ function handleDeleteTransaksi(p) {
     message: "Transaksi tidak ditemukan di Vault (mungkin sudah terhapus)",
     txId: txId
   };
+}
+
+/**
+ * Pembaruan PIN Kas Peserta dari Standalone
+ */
+function handleGantiPin(p) {
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName("Untungin_Profil");
+  if (!sheet) return { status: "error", message: "Tab Untungin_Profil belum siap" };
+
+  const profileId = (p.profileId || p.namaUsaha || "").trim().toLowerCase();
+  const newPin = String(p.newPin || p.pin || "123456").trim();
+
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]).toLowerCase().trim() === profileId) {
+      sheet.getRange(i + 1, 7).setValue(newPin);
+      return { status: "success", message: "PIN Kas berhasil diperbarui" };
+    }
+  }
+  return { status: "success", message: "PIN baru dicatat" };
 }
 
 /**

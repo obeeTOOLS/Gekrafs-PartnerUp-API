@@ -1592,10 +1592,10 @@ export const DeveloperTools: React.FC = () => {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 text-xs font-extrabold text-slate-300">
                       <FileCode className="w-4 h-4 text-indigo-400" />
-                      <span>Kode Standalone GAS v1.1 (Terbaru)</span>
+                      <span>Kode Standalone GAS v1.2 (Universal Bridge)</span>
                     </div>
                     <p className="text-[11px] text-slate-400">
-                      Mendukung *Smart Edit* (memperbarui baris tanpa menumpuk) dan *Delete Propagation* (sinkronisasi hapus transaksi).
+                      Mendukung *Smart Edit*, *Delete Propagation*, serta kompatibel penuh dengan PartnerUp dan Standalone Vercel App.
                     </p>
                   </div>
                   <div className="flex items-center justify-between pt-1 border-t border-white/5">
@@ -1610,7 +1610,7 @@ export const DeveloperTools: React.FC = () => {
                       className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-colors"
                     >
                       {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
-                      <span>{copiedCode ? 'Tersalin!' : 'Salin Kode v1.1'}</span>
+                      <span>{copiedCode ? 'Tersalin!' : 'Salin Kode v1.2'}</span>
                     </button>
                   </div>
                 </div>
@@ -1801,15 +1801,15 @@ export const DeveloperTools: React.FC = () => {
           </button>
         </div>
 
-        {/* Kode Standalone GAS v1.1 - Tombol Salin Cepat */}
+        {/* Kode Standalone GAS v1.2 - Tombol Salin Cepat */}
         <div className="p-4 rounded-2xl bg-indigo-950/70 border border-indigo-400/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-xs font-black text-amber-300">
               <FileCode className="w-4 h-4 text-indigo-400" />
-              <span>Kode Google Apps Script v1.1 Standalone Engine</span>
+              <span>Kode Google Apps Script v1.2 (Universal Bridge Engine)</span>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed">
-              Kode terbaru dengan dukungan <strong>Smart Update baris</strong> (tanpa baris ganda) dan <strong>Delete Propagation</strong> (sinkron hapus transaksi). Tempel di file Apps Script spreadsheet <code className="text-amber-300">[standalone]</code> Anda.
+              Kompatibel penuh dengan <strong>PartnerUp Inkubasi</strong> dan <strong>Untungin Standalone Vercel App</strong> (mendukung <em>tambahTransaksi</em>, <em>smartUpdate</em>, <em>smartDelete</em>, <em>aktivasiVoucher</em>, dan <em>gantiPin</em>).
             </p>
           </div>
 
@@ -1823,7 +1823,7 @@ export const DeveloperTools: React.FC = () => {
             className="px-5 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-black text-xs shadow-lg shadow-indigo-600/30 flex items-center gap-2 cursor-pointer flex-shrink-0 transition-all"
           >
             {copiedCode ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
-            <span>{copiedCode ? '✅ Kode v1.1 Tersalin!' : '📋 Salin Kode v1.1 Standalone'}</span>
+            <span>{copiedCode ? '✅ Kode v1.2 Tersalin!' : '📋 Salin Kode v1.2 Universal Bridge'}</span>
           </button>
         </div>
 
