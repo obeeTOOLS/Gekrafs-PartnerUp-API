@@ -19,6 +19,7 @@ import { BlueprintMigrasiPdfModal } from './BlueprintMigrasiPdfModal';
 import { TaskQuestionEditor } from './TaskQuestionEditor';
 import { generateKasPinPdf } from '../utils/generateKasPinPdf';
 import { generateUntunginMigrationPdf } from '../utils/generateUntunginMigrationPdf';
+import { UNTUNGIN_STANDALONE_GAS_CODE } from '../services/untunginStandaloneGasCode';
 import { 
   Terminal, 
   Copy, 
@@ -139,6 +140,9 @@ export const DeveloperTools: React.FC = () => {
   const [isTestingVault, setIsTestingVault] = useState(false);
   const [isSeedingVault, setIsSeedingVault] = useState(false);
   const [seedResult, setSeedResult] = useState<{ success: boolean; count?: number; message: string } | null>(null);
+  const [isSeedingTransactions, setIsSeedingTransactions] = useState(false);
+  const [seedTxResult, setSeedTxResult] = useState<{ success: boolean; count?: number; message: string } | null>(null);
+  const [outboxCount, setOutboxCount] = useState(() => kasService.getOutboxCount());
 
   const handleSaveVaultEndpoint = () => {
     kasService.setVaultConfig(vaultEndpointInput, vaultConfig.enabled);
@@ -159,6 +163,7 @@ export const DeveloperTools: React.FC = () => {
     try {
       const res = await kasService.testVaultConnection(vaultEndpointInput);
       setVaultTestResult(res);
+      setOutboxCount(kasService.getOutboxCount());
     } catch (e: any) {
       setVaultTestResult({ success: false, message: e?.message || 'Gagal menghubungi vault' });
     } finally {
@@ -172,10 +177,36 @@ export const DeveloperTools: React.FC = () => {
     try {
       const res = await kasService.seedAllParticipantsToVault(vaultEndpointInput);
       setSeedResult(res);
+      setOutboxCount(kasService.getOutboxCount());
     } catch (e: any) {
       setSeedResult({ success: false, message: e?.message || 'Gagal menyalin data ke vault' });
     } finally {
       setIsSeedingVault(false);
+    }
+  };
+
+  const handleSeedTransactionsToVault = async () => {
+    setIsSeedingTransactions(true);
+    setSeedTxResult(null);
+    try {
+      const res = await kasService.seedAllTransactionsToVault(vaultEndpointInput);
+      setSeedTxResult(res);
+      setOutboxCount(kasService.getOutboxCount());
+    } catch (e: any) {
+      setSeedTxResult({ success: false, message: e?.message || 'Gagal menyalin riwayat transaksi' });
+    } finally {
+      setIsSeedingTransactions(false);
+    }
+  };
+
+  const handleFlushOutbox = async () => {
+    try {
+      const res = await kasService.flushVaultOutbox();
+      setOutboxCount(kasService.getOutboxCount());
+      setVaultTestResult({ success: true, message: `✅ Berhasil sinkron antrean: ${res.processed} diproses, ${res.remaining} pending.` });
+      setTimeout(() => setVaultTestResult(null), 3500);
+    } catch (err: any) {
+      setVaultTestResult({ success: false, message: 'Gagal mengosongkan outbox: ' + (err?.message || err) });
     }
   };
 
@@ -1488,6 +1519,102 @@ export const DeveloperTools: React.FC = () => {
                   <span>{seedResult.message}</span>
                 </div>
               )}
+
+              {/* Backfill: Salin Seluruh Riwayat Transaksi Kas Lama ke Vault */}
+              <div className="p-4 rounded-2xl bg-slate-950/60 border border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="space-y-1 max-w-xl">
+                  <div className="font-extrabold text-sm text-cyan-300 flex items-center gap-2">
+                    <Database className="w-4 h-4 text-cyan-400" />
+                    <span>Backfill: Salin Riwayat Transaksi Kas Lama ke Vault</span>
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Menduplikasi seluruh transaksi kas yang sudah ada sebelumnya di PartnerUp ke tab <code className="text-cyan-400 font-mono">Untungin_Transaksi</code> di sheet mandiri Anda dengan mode batch cerdas (*Smart Upsert* tanpa data dobel).
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSeedTransactionsToVault}
+                  disabled={isSeedingTransactions}
+                  className="px-5 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 text-slate-950 font-black text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer flex-shrink-0"
+                >
+                  {isSeedingTransactions ? (
+                    <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <CloudDownload className="w-4 h-4 text-slate-950" />
+                  )}
+                  <span>{isSeedingTransactions ? 'Sedang Backfill...' : '📦 Salin Riwayat Transaksi ke Vault'}</span>
+                </button>
+              </div>
+
+              {seedTxResult && (
+                <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${
+                  seedTxResult.success 
+                    ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-500/30' 
+                    : 'bg-rose-500/20 text-rose-200 border border-rose-500/30'
+                }`}>
+                  <CheckCircle2 className="w-4 h-4 text-cyan-400" />
+                  <span>{seedTxResult.message}</span>
+                </div>
+              )}
+
+              {/* Resilient Outbox & Script Update Section */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                {/* Outbox Resilience Status */}
+                <div className="p-4 rounded-2xl bg-slate-950/40 border border-white/5 flex flex-col justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-xs font-extrabold text-slate-300">
+                      <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                      <span>Resilient Offline Outbox Queue</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      Mencegah data hilang saat koneksi internet lambat/terputus. Seluruh payload disimpan di antrean lokal dan dicoba ulang otomatis.
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between pt-1 border-t border-white/5">
+                    <span className="text-xs font-mono text-slate-300">
+                      Status Antrean: <strong className={outboxCount > 0 ? 'text-amber-400' : 'text-emerald-400'}>{outboxCount} pending</strong>
+                    </span>
+                    {outboxCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleFlushOutbox}
+                        className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs cursor-pointer transition-colors"
+                      >
+                        Kirim Sekarang
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Kode GAS v1.1 Standalone Engine */}
+                <div className="p-4 rounded-2xl bg-slate-950/40 border border-white/5 flex flex-col justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-xs font-extrabold text-slate-300">
+                      <FileCode className="w-4 h-4 text-indigo-400" />
+                      <span>Kode Standalone GAS v1.1 (Terbaru)</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      Mendukung *Smart Edit* (memperbarui baris tanpa menumpuk) dan *Delete Propagation* (sinkronisasi hapus transaksi).
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between pt-1 border-t border-white/5">
+                    <span className="text-[10px] text-slate-400">Tempel di <code className="text-amber-300">Code[untungin].gs</code></span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(UNTUNGIN_STANDALONE_GAS_CODE);
+                        setCopiedCode(true);
+                        setTimeout(() => setCopiedCode(false), 2500);
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedCode ? 'Tersalin!' : 'Salin Kode v1.1'}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

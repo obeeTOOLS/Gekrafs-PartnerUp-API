@@ -236,6 +236,10 @@ function doPost(e) {
         result = handlePushTransaksi(payload);
         break;
 
+      case "deleteTransaksi":
+        result = handleDeleteTransaksi(payload);
+        break;
+
       case "pushBatchTransaksi":
         result = handlePushBatchTransaksi(payload);
         break;
@@ -273,7 +277,7 @@ function doPost(e) {
 }
 
 /**
- * Simpan transaksi kas tunggal
+ * Simpan atau perbarui transaksi kas tunggal (Smart Update vs Append)
  */
 function handlePushTransaksi(p) {
   const ss = getSpreadsheet();
@@ -283,7 +287,7 @@ function handlePushTransaksi(p) {
     sheet = ss.getSheetByName("Untungin_Transaksi");
   }
 
-  const txId = p.id || ("TX-" + Utilities.getUuid().substring(0, 8).toUpperCase());
+  const txId = (p.id || ("TX-" + Utilities.getUuid().substring(0, 8).toUpperCase())).trim();
   const nowStr = new Date().toISOString();
   const txDate = p.tanggal || Utilities.formatDate(new Date(), "Asia/Jakarta", "yyyy-MM-dd");
   const namaUsaha = (p.namaUsaha || "UMKM").trim();
@@ -294,35 +298,101 @@ function handlePushTransaksi(p) {
   const keterangan = p.keterangan || "-";
   const catatan = p.catatan || "-";
 
-  // Append ke baris transaksi
-  sheet.appendRow([
-    txId,
-    nowStr,
-    txDate,
-    namaUsaha,
-    arusKas,
-    kategori,
-    nominal,
-    rekening,
-    keterangan,
-    catatan,
-    new Date()
-  ]);
+  // Cek apakah transaksi sudah ada (Smart Update vs Append)
+  const data = sheet.getDataRange().getValues();
+  let existingRow = -1;
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]).trim() === txId) {
+      existingRow = i + 1;
+      break;
+    }
+  }
+
+  if (existingRow > 0) {
+    // Update data pada baris yang sudah ada
+    sheet.getRange(existingRow, 3).setValue(txDate);
+    sheet.getRange(existingRow, 4).setValue(namaUsaha);
+    sheet.getRange(existingRow, 5).setValue(arusKas);
+    sheet.getRange(existingRow, 6).setValue(kategori);
+    sheet.getRange(existingRow, 7).setValue(nominal);
+    sheet.getRange(existingRow, 8).setValue(rekening);
+    sheet.getRange(existingRow, 9).setValue(keterangan);
+    sheet.getRange(existingRow, 10).setValue(catatan);
+    sheet.getRange(existingRow, 11).setValue(new Date());
+  } else {
+    // Tambah baris baru
+    sheet.appendRow([
+      txId,
+      nowStr,
+      txDate,
+      namaUsaha,
+      arusKas,
+      kategori,
+      nominal,
+      rekening,
+      keterangan,
+      catatan,
+      new Date()
+    ]);
+  }
 
   // Update rekapan profil UMKM
   updateProfilSummary(ss, namaUsaha);
 
   return {
     status: "success",
-    message: "Transaksi kas berhasil dicatat ke Vault Standalone",
+    message: existingRow > 0 ? "Transaksi berhasil diperbarui di Vault" : "Transaksi baru berhasil dicatat ke Vault",
     transactionId: txId,
     namaUsaha: namaUsaha,
-    nominal: nominal
+    nominal: nominal,
+    isUpdated: existingRow > 0
   };
 }
 
 /**
- * Simpan transaksi kas dalam jumlah banyak (Batch Sync)
+ * Hapus transaksi dari Vault Standalone (Delete Propagation)
+ */
+function handleDeleteTransaksi(p) {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName("Untungin_Transaksi");
+  if (!sheet) return { status: "success", message: "Tab transaksi belum dibuat" };
+
+  const txId = (p.id || p.txId || "").trim();
+  if (!txId) return { status: "error", message: "ID transaksi tidak disertakan" };
+
+  const data = sheet.getDataRange().getValues();
+  let foundRow = -1;
+  let namaUsaha = (p.namaUsaha || "").trim();
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]).trim() === txId) {
+      foundRow = i + 1;
+      if (!namaUsaha) namaUsaha = String(data[i][3]).trim();
+      break;
+    }
+  }
+
+  if (foundRow > 0) {
+    sheet.deleteRow(foundRow);
+    if (namaUsaha) {
+      updateProfilSummary(ss, namaUsaha);
+    }
+    return {
+      status: "success",
+      message: "Transaksi " + txId + " berhasil dihapus dari Vault",
+      deletedId: txId
+    };
+  }
+
+  return {
+    status: "success",
+    message: "Transaksi tidak ditemukan di Vault (mungkin sudah terhapus)",
+    txId: txId
+  };
+}
+
+/**
+ * Simpan atau perbarui transaksi kas dalam jumlah banyak (Batch Sync & Backfill)
  */
 function handlePushBatchTransaksi(p) {
   const ss = getSpreadsheet();
@@ -338,31 +408,110 @@ function handlePushBatchTransaksi(p) {
   }
 
   const nowStr = new Date().toISOString();
-  const rows = items.map(t => [
-    t.id || ("TX-" + Utilities.getUuid().substring(0, 8).toUpperCase()),
-    t.timestamp || nowStr,
-    t.tanggal || Utilities.formatDate(new Date(), "Asia/Jakarta", "yyyy-MM-dd"),
-    (t.namaUsaha || p.namaUsaha || "UMKM").trim(),
-    t.arusKas || t.tipe || "Masuk",
-    t.kategori || "Umum",
-    Number(t.nominal) || 0,
-    t.rekening || t.akun || "Kas Tunai",
-    t.keterangan || "-",
-    t.catatan || "-",
-    new Date()
-  ]);
+  const data = sheet.getDataRange().getValues();
+  const existingIdMap = {};
+  for (let i = 1; i < data.length; i++) {
+    const id = String(data[i][0]).trim();
+    if (id) existingIdMap[id] = i + 1;
+  }
 
-  sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
+  const newRows = [];
+  let updatedCount = 0;
+  const touchedBiz = {};
 
-  const namaUsaha = (p.namaUsaha || (items[0] && items[0].namaUsaha) || "").trim();
-  if (namaUsaha) {
-    updateProfilSummary(ss, namaUsaha);
+  items.forEach(t => {
+    const txId = (t.id || ("TX-" + Utilities.getUuid().substring(0, 8).toUpperCase())).trim();
+    const txDate = t.tanggal || Utilities.formatDate(new Date(), "Asia/Jakarta", "yyyy-MM-dd");
+    const biz = (t.namaUsaha || p.namaUsaha || "UMKM").trim();
+    const arusKas = t.arusKas || t.tipe || "Masuk";
+    const kategori = t.kategori || "Umum";
+    const nominal = Number(t.nominal) || 0;
+    const rekening = t.rekening || t.akun || "Kas Tunai";
+    const keterangan = t.keterangan || "-";
+    const catatan = t.catatan || "-";
+
+    touchedBiz[biz] = true;
+
+    if (existingIdMap[txId]) {
+      const rowIdx = existingIdMap[txId];
+      sheet.getRange(rowIdx, 3).setValue(txDate);
+      sheet.getRange(rowIdx, 4).setValue(biz);
+      sheet.getRange(rowIdx, 5).setValue(arusKas);
+      sheet.getRange(rowIdx, 6).setValue(kategori);
+      sheet.getRange(rowIdx, 7).setValue(nominal);
+      sheet.getRange(rowIdx, 8).setValue(rekening);
+      sheet.getRange(rowIdx, 9).setValue(keterangan);
+      sheet.getRange(rowIdx, 10).setValue(catatan);
+      sheet.getRange(rowIdx, 11).setValue(new Date());
+      updatedCount++;
+    } else {
+      newRows.push([
+        txId,
+        t.timestamp || nowStr,
+        txDate,
+        biz,
+        arusKas,
+        kategori,
+        nominal,
+        rekening,
+        keterangan,
+        catatan,
+        new Date()
+      ]);
+    }
+  });
+
+  if (newRows.length > 0) {
+    sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, newRows[0].length).setValues(newRows);
+  }
+
+  Object.keys(touchedBiz).forEach(biz => {
+    updateProfilSummary(ss, biz);
+  });
+
+  return {
+    status: "success",
+    message: "Batch sync sukses: " + newRows.length + " baru ditambahkan, " + updatedCount + " diperbarui.",
+    newCount: newRows.length,
+    updatedCount: updatedCount,
+    total: items.length
+  };
+}
+
+/**
+ * Mengambil transaksi kas dari Vault
+ */
+function handleGetKasData(p) {
+  const ss = getSpreadsheet();
+  const txSheet = ss.getSheetByName("Untungin_Transaksi");
+  if (!txSheet) return { status: "success", transactions: [] };
+
+  const namaUsaha = (p.namaUsaha || "").toLowerCase().trim();
+  const data = txSheet.getDataRange().getValues();
+  const txList = [];
+
+  for (let i = 1; i < data.length; i++) {
+    const rowBiz = String(data[i][3]).toLowerCase().trim();
+    if (!namaUsaha || rowBiz === namaUsaha) {
+      txList.push({
+        id: data[i][0],
+        timestamp: data[i][1],
+        tanggal: data[i][2],
+        namaUsaha: data[i][3],
+        arusKas: data[i][4],
+        kategori: data[i][5],
+        nominal: data[i][6],
+        rekening: data[i][7],
+        keterangan: data[i][8],
+        catatan: data[i][9]
+      });
+    }
   }
 
   return {
     status: "success",
-    message: "Berhasil mencatat " + rows.length + " transaksi ke Vault Standalone",
-    count: rows.length
+    count: txList.length,
+    transactions: txList
   };
 }
 

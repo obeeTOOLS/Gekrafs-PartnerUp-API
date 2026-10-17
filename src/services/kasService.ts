@@ -448,6 +448,9 @@ class KasService {
       console.warn('[kasService] Cloud sync deleteTransaction error:', err);
     });
 
+    // Dual-Stream Shadow Sync: hapus transaksi dari sheet vault mandiri
+    this.dispatchVaultShadowSync('deleteTransaksi', { id: txId, namaUsaha });
+
     return true;
   }
 
@@ -1687,22 +1690,97 @@ class KasService {
   }
 
   /**
-   * Dispatcher pengiriman data ganda asinkron (non-blocking) ke Standalone Vault
+   * Mengambil antrean outbox vault dari local storage
+   */
+  public getVaultOutbox(): Array<{ id: string; action: string; payload: any; createdAt: number; attempts: number }> {
+    try {
+      const raw = localStorage.getItem('untungin_vault_outbox_v1');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Menyimpan antrean outbox vault
+   */
+  public saveVaultOutbox(items: Array<{ id: string; action: string; payload: any; createdAt: number; attempts: number }>): void {
+    try {
+      localStorage.setItem('untungin_vault_outbox_v1', JSON.stringify(items.slice(-100)));
+    } catch (e) {
+      console.warn('Failed to save vault outbox:', e);
+    }
+  }
+
+  /**
+   * Mendapatkan jumlah antrean pending di outbox
+   */
+  public getOutboxCount(): number {
+    return this.getVaultOutbox().length;
+  }
+
+  /**
+   * Mengosongkan dan mengirim seluruh antrean outbox (Resilient Retry Worker)
+   */
+  public async flushVaultOutbox(): Promise<{ processed: number; remaining: number }> {
+    const config = this.getVaultConfig();
+    if (!config.enabled || !config.endpoint) return { processed: 0, remaining: 0 };
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      return { processed: 0, remaining: this.getOutboxCount() };
+    }
+
+    const queue = this.getVaultOutbox();
+    if (queue.length === 0) return { processed: 0, remaining: 0 };
+
+    const batch = queue.slice(0, 10);
+    let processed = 0;
+    const remaining: typeof queue = [];
+
+    for (const item of batch) {
+      try {
+        await fetch(config.endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({ action: item.action, ...item.payload }),
+          mode: 'no-cors'
+        });
+        processed++;
+      } catch (err) {
+        if (item.attempts < 5) {
+          remaining.push({ ...item, attempts: item.attempts + 1 });
+        }
+      }
+    }
+
+    const finalQueue = [...remaining, ...queue.slice(10)];
+    this.saveVaultOutbox(finalQueue);
+    return { processed, remaining: finalQueue.length };
+  }
+
+  /**
+   * Dispatcher pengiriman data ganda asinkron (non-blocking) ke Standalone Vault dengan Outbox Queue
    */
   public dispatchVaultShadowSync(action: string, payload: any): void {
     const config = this.getVaultConfig();
     if (!config.enabled || !config.endpoint) return;
 
     try {
-      fetch(config.endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({ action, ...payload }),
-        mode: 'no-cors'
-      }).catch(err => {
-        // Log senyap tanpa pernah memutus alur kerja pengguna
-        console.debug('[ShadowVaultSync] Non-blocking push notification:', err);
-      });
+      const newItem = {
+        id: 'outbox_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+        action,
+        payload,
+        createdAt: Date.now(),
+        attempts: 0
+      };
+
+      const queue = this.getVaultOutbox();
+      queue.push(newItem);
+      this.saveVaultOutbox(queue);
+
+      // Trigger asynchronous non-blocking flush
+      setTimeout(() => {
+        this.flushVaultOutbox().catch(() => {});
+      }, 20);
     } catch (err) {
       console.debug('[ShadowVaultSync] Dispatch error caught:', err);
     }
@@ -1773,6 +1851,69 @@ class KasService {
       success: true,
       count: successCount,
       message: `Berhasil menduplikasi profil ${successCount} UMKM ke tab Untungin_Profil di Spreadsheet Vault Mandiri.`
+    };
+  }
+
+  /**
+   * Menyalin seluruh riwayat transaksi kas yang sudah ada di PartnerUp ke tab Untungin_Transaksi di Spreadsheet Vault (Historical Backfill)
+   */
+  public async seedAllTransactionsToVault(endpointUrl?: string): Promise<{ success: boolean; count: number; message: string }> {
+    const targetUrl = endpointUrl || this.getVaultConfig().endpoint;
+    const allPeserta = gasService.getPeserta();
+    if (!allPeserta || allPeserta.length === 0) {
+      return { success: false, count: 0, message: 'Tidak ada data peserta ditemukan di PartnerUp.' };
+    }
+
+    const allTx: any[] = [];
+    for (const p of allPeserta) {
+      const kasData = this.getKasData(p.namaUsaha);
+      if (kasData && kasData.transactions && kasData.transactions.length > 0) {
+        for (const t of kasData.transactions) {
+          allTx.push({
+            id: t.id,
+            timestamp: t.createdAt || new Date().toISOString(),
+            tanggal: t.date,
+            namaUsaha: t.namaUsaha,
+            arusKas: t.type === 'income' ? 'Pemasukan' : t.type === 'expense' ? 'Pengeluaran' : 'Transfer',
+            kategori: t.category || 'Umum',
+            nominal: t.amount,
+            rekening: t.accountId || 'Kas Tunai',
+            keterangan: t.desc || '-',
+            catatan: `Backfill PartnerUp (${t.createdBy || 'System'})`
+          });
+        }
+      }
+    }
+
+    if (allTx.length === 0) {
+      return { success: true, count: 0, message: 'Belum ada riwayat transaksi kas yang tersimpan di sistem untuk dimigrasikan.' };
+    }
+
+    // Kirim per batch (50 item per pengiriman)
+    const chunkSize = 50;
+    let sentCount = 0;
+    for (let i = 0; i < allTx.length; i += chunkSize) {
+      const chunk = allTx.slice(i, i + chunkSize);
+      try {
+        await fetch(targetUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            action: 'pushBatchTransaksi',
+            items: chunk
+          }),
+          mode: 'no-cors'
+        });
+        sentCount += chunk.length;
+      } catch (err) {
+        console.warn('[seedAllTransactionsToVault] Gagal mengirim batch:', err);
+      }
+    }
+
+    return {
+      success: true,
+      count: sentCount,
+      message: `Berhasil mereplikasi ${sentCount} riwayat transaksi kas ke tab Untungin_Transaksi di Vault Mandiri!`
     };
   }
 }

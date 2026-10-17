@@ -403,12 +403,40 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
     return `Rp ${n.toLocaleString('id-ID', { maximumFractionDigits: 0 })}`;
   };
 
-  // Filter Transaksi Berdasarkan Tahun & Bulan
+  // Daftar Tahun Dinamis (Otomatis mendeteksi tahun dari data aktual + rentang tahun aktif)
+  const availableYears = useMemo(() => {
+    const yearsSet = new Set<string>();
+    const currentNumericYear = new Date().getFullYear();
+    // Default rentang tahun aktif (3 tahun ke belakang sampai 2 tahun ke depan)
+    for (let y = currentNumericYear - 3; y <= currentNumericYear + 2; y++) {
+      yearsSet.add(String(y));
+    }
+    // Tambahkan otomatis tahun dari seluruh transaksi aktual yang tersimpan di data
+    transactions.forEach(t => {
+      if (t.date && t.date.length >= 4) {
+        const y = t.date.slice(0, 4);
+        if (/^\d{4}$/.test(y)) {
+          yearsSet.add(y);
+        }
+      }
+    });
+    return Array.from(yearsSet).sort((a, b) => b.localeCompare(a));
+  }, [transactions]);
+
+  // Filter Transaksi Berdasarkan Tahun & Bulan (Mendukung 'all' tahun dan 'all' bulan)
   const filteredTransactions = useMemo(() => {
-    let list = transactions.filter(t => t.date.startsWith(selectedYear));
-    if (selectedMonth !== 'all') {
-      const ym = `${selectedYear}-${selectedMonth.padStart(2, '0')}`;
-      list = list.filter(t => t.date.startsWith(ym));
+    let list = transactions;
+    if (selectedYear !== 'all') {
+      list = list.filter(t => t.date.startsWith(selectedYear));
+      if (selectedMonth !== 'all') {
+        const ym = `${selectedYear}-${selectedMonth.padStart(2, '0')}`;
+        list = list.filter(t => t.date.startsWith(ym));
+      }
+    } else if (selectedMonth !== 'all') {
+      list = list.filter(t => {
+        const parts = t.date.split('-');
+        return parts.length >= 2 && parts[1] === selectedMonth.padStart(2, '0');
+      });
     }
     return list.slice().sort((a, b) => b.date.localeCompare(a.date));
   }, [transactions, selectedYear, selectedMonth]);
@@ -646,7 +674,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Untungin - Buku Kas ${namaUsaha} ${selectedMonth !== 'all' ? MONTH_NAMES[Number(selectedMonth) - 1] : 'Semua'} ${selectedYear}.csv`;
+    a.download = `Untungin - Buku Kas ${namaUsaha} ${selectedMonth !== 'all' ? MONTH_NAMES[Number(selectedMonth) - 1] : 'Semua-Bulan'} ${selectedYear !== 'all' ? selectedYear : 'Semua-Tahun'}.csv`;
     a.click();
     URL.revokeObjectURL(url);
     showToast('File CSV berhasil diunduh.', 'success');
@@ -1384,10 +1412,11 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                   <select
                     value={selectedYear}
                     onChange={(e) => setSelectedYear(e.target.value)}
-                    className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-amber-400 text-xs"
+                    className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-amber-400 text-xs cursor-pointer"
                   >
-                    {[2025, 2026, 2027].map(y => (
-                      <option key={y} value={String(y)}>{y}</option>
+                    <option value="all">Semua Tahun</option>
+                    {availableYears.map(y => (
+                      <option key={y} value={y}>{y}</option>
                     ))}
                   </select>
                 </div>
@@ -2058,7 +2087,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                     fontSize === 'xlarge' ? 'text-sm sm:text-base' : fontSize === 'large' ? 'text-xs sm:text-sm' : 'text-xs'
                   }`}>
                     {namaUsaha} &middot; Periode:{' '}
-                    {selectedMonth !== 'all' ? MONTH_NAMES[Number(selectedMonth) - 1] : 'Seluruh Bulan'} {selectedYear}
+                    {selectedMonth !== 'all' ? MONTH_NAMES[Number(selectedMonth) - 1] : 'Seluruh Bulan'} {selectedYear !== 'all' ? selectedYear : '(Seluruh Tahun)'}
                   </p>
                 </div>
 
