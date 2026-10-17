@@ -149,6 +149,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
   // Fitur Import CSV (Eksklusif PRO)
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importFileName, setImportFileName] = useState('');
+  const [importRejectReason, setImportRejectReason] = useState<string | null>(null);
   const [importParsedRows, setImportParsedRows] = useState<Array<{
     id: string;
     date: string;
@@ -788,12 +789,23 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
         let colDesc = headerCells.findIndex(h => h.includes('deskripsi') || h.includes('keterangan') || h.includes('uraian') || h.includes('catatan'));
         let colAmount = headerCells.findIndex(h => h.includes('jumlah') || h.includes('nominal') || h.includes('amount') || h.includes('total') || h.includes('rp'));
 
-        if (colTanggal === -1) colTanggal = 0;
-        if (colJenis === -1) colJenis = 1;
-        if (colAkun === -1) colAkun = 2;
-        if (colKategori === -1) colKategori = 3;
-        if (colDesc === -1) colDesc = 4;
-        if (colAmount === -1) colAmount = 5;
+        // PENGAMAN MUTLAK: Wajib memiliki kolom esensial Template Resmi Untungin
+        // Jika kolom inti (Tanggal, Jenis, Jumlah) tidak ditemukan, tolak langsung!
+        if (colTanggal === -1 || colJenis === -1 || colAmount === -1 || headerCells.length < 3) {
+          const missingCols: string[] = [];
+          if (colTanggal === -1) missingCols.push('Tanggal');
+          if (colJenis === -1) missingCols.push('Jenis (Masuk/Keluar)');
+          if (colAmount === -1) missingCols.push('Jumlah (Nominal)');
+          
+          const errDetail = `File Ditolak! Format file tidak sesuai dengan Template Resmi Untungin. Kolom wajib tidak ditemukan: ${missingCols.join(', ')}. Silakan unduh dan gunakan Template Resmi Untungin terlebih dahulu.`;
+          setImportRejectReason(errDetail);
+          setImportParsedRows([]);
+          showToast('❌ File Ditolak: Gunakan Template Resmi Untungin!', 'error');
+          return;
+        }
+
+        // File valid sesuai template resmi, bersihkan pesan penolakan
+        setImportRejectReason(null);
 
         const defaultAccountId = accounts.length > 0 ? accounts[0].id : '';
         const defaultAccountName = accounts.length > 0 ? accounts[0].name : 'Kas Tunai';
@@ -3104,8 +3116,34 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                 </label>
               </div>
 
+              {/* Alert Penolakan Format Bebas (PENGAMAN TEMPLATE RESMI) */}
+              {importRejectReason && (
+                <div className="p-4 rounded-2xl bg-rose-50 border-2 border-rose-300 text-rose-950 space-y-2 animate-in fade-in">
+                  <div className="flex items-center gap-2 font-black text-xs sm:text-sm text-rose-800">
+                    <AlertTriangle className="w-5 h-5 text-rose-600 flex-shrink-0" />
+                    <span>⚠️ File Ditolak: Bukan Format Template Resmi Untungin</span>
+                  </div>
+                  <p className="text-xs text-rose-700 leading-relaxed font-medium">
+                    {importRejectReason}
+                  </p>
+                  <div className="pt-2 border-t border-rose-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px]">
+                    <span className="text-rose-800 font-semibold">
+                      Demi keamanan saldo kas Anda, sistem menolak file berformat bebas.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleDownloadImportTemplate}
+                      className="px-3 py-1.5 rounded-lg bg-rose-700 hover:bg-rose-800 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer w-fit"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Unduh Template Resmi</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Langkah 3: Pratinjau & 3 Pengaman Integritas */}
-              {importParsedRows.length > 0 && (
+              {importParsedRows.length > 0 && !importRejectReason && (
                 <div className="space-y-3 pt-2 border-t border-slate-100">
                   <div className="font-extrabold text-[#001c3c] text-xs flex items-center gap-1.5">
                     <ShieldCheck className="w-4 h-4 text-emerald-600" />
