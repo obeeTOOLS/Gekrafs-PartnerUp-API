@@ -10,6 +10,8 @@ import {
   FileText,
   AlertTriangle,
   Download,
+  Upload,
+  FileSpreadsheet,
   Plus,
   Trash2,
   Edit2,
@@ -143,6 +145,24 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
 
   // Toast Notifikasi
   const [toastMsg, setToastMsg] = useState<{ text: string; type: 'success' | 'error' | 'warning' } | null>(null);
+
+  // Fitur Import CSV (Eksklusif PRO)
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importFileName, setImportFileName] = useState('');
+  const [importParsedRows, setImportParsedRows] = useState<Array<{
+    id: string;
+    date: string;
+    type: 'income' | 'expense' | 'transfer';
+    accountId: string;
+    accountName: string;
+    category: string;
+    desc: string;
+    amount: number;
+    isValid: boolean;
+    errorReason?: string;
+    isDuplicate?: boolean;
+  }>>([]);
+  const [isProcessingImport, setIsProcessingImport] = useState(false);
 
   // Custom Modal Konfirmasi di Tengah Layar (Pengganti dialog confirm bawaan browser)
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -678,6 +698,238 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
     a.click();
     URL.revokeObjectURL(url);
     showToast('File CSV berhasil diunduh.', 'success');
+  };
+
+  // 1. Download Template Resmi Import Untungin (CSV)
+  const handleDownloadImportTemplate = () => {
+    const headers = ['Tanggal', 'Jenis', 'Akun', 'Kategori', 'Deskripsi', 'Jumlah'];
+    const sampleRows = [
+      ['2026-10-17', 'Pendapatan', 'Kas Tunai Toko', 'Penjualan Produk', 'Contoh: Penjualan produk kue & pastry', '150000'],
+      ['2026-10-17', 'Pengeluaran', 'Kas Tunai Toko', 'Bahan Baku & Kemasan', 'Contoh: Pembelian terigu & box kemasan', '45000'],
+      ['2026-10-18', 'Pendapatan', 'Rekening Bank BCA', 'Pesanan B2B / Katering', 'Contoh: DP Pesanan katering acara kantor', '500000']
+    ];
+    const csvContent = '\uFEFF' + [headers.join(';'), ...sampleRows.map(r => r.join(';'))].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Template_Import_Untungin.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Template Import CSV berhasil diunduh.', 'success');
+  };
+
+  // Helper parsing satu baris CSV dengan memperhatikan kutip
+  const parseCsvLine = (text: string, delimiter: string): string[] => {
+    const result: string[] = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      if (char === '"' || char === "'") {
+        if (inQuotes && text[i + 1] === char) {
+          cur += char;
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === delimiter && !inQuotes) {
+        result.push(cur.trim());
+        cur = '';
+      } else {
+        cur += char;
+      }
+    }
+    result.push(cur.trim());
+    return result;
+  };
+
+  // Helper normalisasi tanggal ke format YYYY-MM-DD
+  const normalizeDate = (raw: string): string | null => {
+    const s = raw.trim().replace(/[./]/g, '-');
+    if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(s)) {
+      const parts = s.split('-');
+      return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+    }
+    if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(s)) {
+      const parts = s.split('-');
+      return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    }
+    return null;
+  };
+
+  // 2. Handler Baca & Validasi File CSV (3 Pengaman)
+  const handleCsvFileUpload = (file: File) => {
+    if (!file) return;
+    setImportFileName(file.name);
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      try {
+        let content = (e.target?.result as string) || '';
+        if (content.charCodeAt(0) === 0xFEFF) {
+          content = content.slice(1);
+        }
+
+        const lines = content.split(/\r\n|\n|\r/).filter(l => l.trim().length > 0);
+        if (lines.length < 2) {
+          showToast('File CSV kosong atau tidak memiliki baris data.', 'error');
+          return;
+        }
+
+        const firstLine = lines[0];
+        const delimiter = (firstLine.match(/;/g) || []).length >= (firstLine.match(/,/g) || []).length ? ';' : ',';
+
+        const headerCells = parseCsvLine(firstLine.toLowerCase(), delimiter).map(h => h.replace(/["']/g, '').trim());
+        let colTanggal = headerCells.findIndex(h => h.includes('tanggal') || h.includes('date'));
+        let colJenis = headerCells.findIndex(h => h.includes('jenis') || h.includes('tipe') || h.includes('type') || h.includes('arus'));
+        let colAkun = headerCells.findIndex(h => h.includes('akun') || h.includes('rekening') || h.includes('bank') || h.includes('account'));
+        let colKategori = headerCells.findIndex(h => h.includes('kategori') || h.includes('category'));
+        let colDesc = headerCells.findIndex(h => h.includes('deskripsi') || h.includes('keterangan') || h.includes('uraian') || h.includes('catatan'));
+        let colAmount = headerCells.findIndex(h => h.includes('jumlah') || h.includes('nominal') || h.includes('amount') || h.includes('total') || h.includes('rp'));
+
+        if (colTanggal === -1) colTanggal = 0;
+        if (colJenis === -1) colJenis = 1;
+        if (colAkun === -1) colAkun = 2;
+        if (colKategori === -1) colKategori = 3;
+        if (colDesc === -1) colDesc = 4;
+        if (colAmount === -1) colAmount = 5;
+
+        const defaultAccountId = accounts.length > 0 ? accounts[0].id : '';
+        const defaultAccountName = accounts.length > 0 ? accounts[0].name : 'Kas Tunai';
+
+        const parsedRows = [];
+        for (let idx = 1; idx < lines.length; idx++) {
+          const rawLine = lines[idx];
+          const cols = parseCsvLine(rawLine, delimiter);
+          if (cols.length === 0 || cols.every(c => !c)) continue;
+
+          const rawDate = cols[colTanggal] || '';
+          const rawJenis = (cols[colJenis] || '').toLowerCase();
+          const rawAkun = cols[colAkun] || '';
+          const rawKategori = cols[colKategori] || '';
+          const rawDesc = cols[colDesc] || '-';
+          const rawAmount = cols[colAmount] || '0';
+
+          const cleanDate = normalizeDate(rawDate);
+          let isValid = true;
+          let errorReason = '';
+
+          if (!cleanDate) {
+            isValid = false;
+            errorReason = 'Format tanggal tidak valid (gunakan YYYY-MM-DD)';
+          }
+
+          let txTypeParsed: 'income' | 'expense' | 'transfer' = 'income';
+          if (rawJenis.includes('keluar') || rawJenis.includes('expense') || rawJenis.includes('beban') || rawJenis.includes('pengeluaran')) {
+            txTypeParsed = 'expense';
+          } else if (rawJenis.includes('transfer')) {
+            txTypeParsed = 'transfer';
+          } else {
+            txTypeParsed = 'income';
+          }
+
+          const cleanAmtStr = rawAmount.replace(/[^0-9,.-]/g, '').replace(/,/g, '.');
+          const parsedAmount = Math.abs(parseFloat(cleanAmtStr)) || 0;
+          if (parsedAmount <= 0) {
+            isValid = false;
+            errorReason = errorReason ? `${errorReason}, nominal kosong/nol` : 'Nominal transaksi harus lebih dari 0';
+          }
+
+          let matchedAccId = defaultAccountId;
+          let matchedAccName = defaultAccountName;
+          if (rawAkun) {
+            const foundAcc = accounts.find(a => a.name.toLowerCase().trim() === rawAkun.toLowerCase().trim());
+            if (foundAcc) {
+              matchedAccId = foundAcc.id;
+              matchedAccName = foundAcc.name;
+            }
+          }
+
+          const finalCategory = rawKategori.trim() || (txTypeParsed === 'income' ? 'Penjualan Produk' : 'Operasional & Bahan');
+
+          const isDup = transactions.some(t => 
+            t.date === cleanDate && 
+            Math.abs(t.amount - parsedAmount) < 0.01 && 
+            (t.desc || '').trim().toLowerCase() === rawDesc.trim().toLowerCase()
+          );
+
+          parsedRows.push({
+            id: `IMP-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 5)}`,
+            date: cleanDate || rawDate,
+            type: txTypeParsed,
+            accountId: matchedAccId,
+            accountName: matchedAccName,
+            category: finalCategory,
+            desc: rawDesc,
+            amount: parsedAmount,
+            isValid,
+            errorReason,
+            isDuplicate: isDup
+          });
+        }
+
+        setImportParsedRows(parsedRows);
+        if (parsedRows.length === 0) {
+          showToast('Tidak ada baris data transaksi yang dapat diproses.', 'warning');
+        } else {
+          const validCount = parsedRows.filter(r => r.isValid).length;
+          showToast(`Berhasil membaca file: ${validCount} dari ${parsedRows.length} baris valid.`, 'success');
+        }
+      } catch (err: any) {
+        showToast('Gagal membaca file CSV: ' + (err?.message || 'Format tidak didukung'), 'error');
+      }
+    };
+
+    reader.readAsText(file);
+  };
+
+  // 3. Handler Eksekusi Simpan Data Import Massal
+  const handleCommitImport = async () => {
+    const validRows = importParsedRows.filter(r => r.isValid);
+    if (validRows.length === 0) {
+      showToast('Tidak ada transaksi valid yang dapat diimpor.', 'error');
+      return;
+    }
+
+    setIsProcessingImport(true);
+    try {
+      const createdTxItems: any[] = [];
+      for (const row of validRows) {
+        const newTx = kasService.addTransaction(namaUsaha, {
+          date: row.date,
+          type: row.type,
+          accountId: row.accountId,
+          category: row.category,
+          desc: row.desc,
+          amount: row.amount,
+          createdBy: 'Import CSV (PRO)'
+        });
+        createdTxItems.push({
+          id: newTx.id,
+          tanggal: newTx.date,
+          namaUsaha: newTx.namaUsaha,
+          arusKas: newTx.type === 'income' ? 'Pemasukan' : newTx.type === 'expense' ? 'Pengeluaran' : 'Transfer',
+          kategori: newTx.category,
+          nominal: newTx.amount,
+          rekening: row.accountName,
+          keterangan: newTx.desc
+        });
+      }
+
+      // Replikasi batch ke Vault Mandiri di latar belakang
+      kasService.dispatchVaultShadowSync('pushBatchTransaksi', { items: createdTxItems });
+
+      loadData();
+      setIsImportModalOpen(false);
+      setImportParsedRows([]);
+      setImportFileName('');
+      showToast(`🎉 Berhasil mengimpor ${validRows.length} transaksi kas secara massal!`, 'success');
+    } catch (err: any) {
+      showToast('Gagal menyimpan transaksi impor: ' + (err?.message || err), 'error');
+    } finally {
+      setIsProcessingImport(false);
+    }
   };
 
   return (
@@ -1862,6 +2114,30 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                       <Download className="w-4 h-4" />
                       <span>Ekspor CSV / Excel</span>
                     </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!hasProAccess && !isCuratorUser && !isDeveloperUser) {
+                          showToast('Fitur Impor Transaksi CSV massal adalah fitur eksklusif Untungin PRO. Silakan aktivasi kode voucher Anda!', 'warning');
+                          setIsPremiumModalOpen(true);
+                        } else {
+                          setIsImportModalOpen(true);
+                        }
+                      }}
+                      className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all cursor-pointer shadow-xs border ${
+                        hasProAccess || isCuratorUser || isDeveloperUser
+                          ? 'bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black border-amber-300'
+                          : 'bg-amber-50 hover:bg-amber-100 text-amber-950 font-bold border-amber-300/70'
+                      } ${fontSize === 'xlarge' ? 'text-sm' : 'text-xs'}`}
+                      title={hasProAccess || isCuratorUser || isDeveloperUser ? 'Impor riwayat transaksi massal dari file CSV' : 'Fitur Eksklusif PRO: Upgrade untuk membuka fitur impor CSV massal'}
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span>Impor CSV</span>
+                      <span className="px-1.5 py-0.5 rounded-full bg-slate-950/20 text-[9px] font-black uppercase tracking-wider">
+                        PRO
+                      </span>
+                    </button>
                   </div>
                 </div>
 
@@ -2735,6 +3011,245 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
               >
                 <Crown className="w-4 h-4 text-amber-300" />
                 <span>Aktifkan Langsung</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 8.5. MODAL IMPOR TRANSAKSI CSV (EKSKLUSIF UNTUNGIN PRO) */}
+      {isImportModalOpen && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-5 bg-black/75 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white max-w-2xl w-full rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95">
+            {/* Header Modal */}
+            <div className="bg-gradient-to-r from-[#001c3c] to-[#003366] text-white p-5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center font-bold shadow">
+                  <Upload className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base sm:text-lg font-black tracking-tight">Impor Transaksi Kas Massal</h3>
+                    <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[10px] uppercase tracking-wider">
+                      PRO
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300">
+                    Unggah catatan pembukuan lama atau mutasi dalam format CSV resmi Untungin
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsImportModalOpen(false);
+                  setImportParsedRows([]);
+                  setImportFileName('');
+                }}
+                className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content Body */}
+            <div className="p-5 overflow-y-auto space-y-5 text-left text-xs text-slate-700">
+              {/* Langkah 1: Unduh Template */}
+              <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="font-extrabold text-[#001c3c] text-xs flex items-center gap-1.5">
+                    <FileSpreadsheet className="w-4 h-4 text-amber-600" />
+                    <span>Langkah 1: Unduh Template Resmi Untungin</span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 leading-relaxed">
+                    Pastikan kolom file Anda sesuai: <code className="font-mono text-amber-900 bg-amber-100/60 px-1 py-0.5 rounded">Tanggal; Jenis; Akun; Kategori; Deskripsi; Jumlah</code>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDownloadImportTemplate}
+                  className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs flex items-center gap-1.5 cursor-pointer transition-all shadow-xs flex-shrink-0"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Unduh Template CSV</span>
+                </button>
+              </div>
+
+              {/* Langkah 2: Area Upload File */}
+              <div className="space-y-1.5">
+                <div className="font-extrabold text-[#001c3c] text-xs">
+                  Langkah 2: Pilih File CSV yang Sudah Diisi
+                </div>
+                <label className="border-2 border-dashed border-slate-300 hover:border-amber-500 bg-slate-50 hover:bg-amber-50/30 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors text-center">
+                  <input
+                    type="file"
+                    accept=".csv"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleCsvFileUpload(file);
+                    }}
+                  />
+                  <div className="w-12 h-12 rounded-2xl bg-white shadow-sm border border-slate-200 flex items-center justify-center text-amber-600">
+                    <Upload className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <span className="font-extrabold text-sm text-[#001c3c] block">
+                      {importFileName ? importFileName : 'Klik atau seret file CSV ke sini'}
+                    </span>
+                    <span className="text-[11px] text-slate-500">
+                      Mendukung separator titik koma (;) atau koma (,) UTF-8
+                    </span>
+                  </div>
+                </label>
+              </div>
+
+              {/* Langkah 3: Pratinjau & 3 Pengaman Integritas */}
+              {importParsedRows.length > 0 && (
+                <div className="space-y-3 pt-2 border-t border-slate-100">
+                  <div className="font-extrabold text-[#001c3c] text-xs flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                    <span>Langkah 3: Pratinjau & Verifikasi 3 Pengaman Sistem</span>
+                  </div>
+
+                  {/* Ringkasan Status Validasi */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div className="p-2.5 rounded-xl bg-slate-100 border border-slate-200 text-center">
+                      <span className="text-[10px] text-slate-500 block">Total Baris</span>
+                      <strong className="text-sm font-black text-slate-900">{importParsedRows.length}</strong>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-center">
+                      <span className="text-[10px] text-emerald-700 block">Siap Diimpor</span>
+                      <strong className="text-sm font-black text-emerald-700">
+                        {importParsedRows.filter(r => r.isValid).length}
+                      </strong>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-emerald-50/60 border border-emerald-100 text-center">
+                      <span className="text-[10px] text-emerald-800 block">Total Masuk</span>
+                      <strong className="text-xs font-black text-emerald-900">
+                        {rupiah(importParsedRows.filter(r => r.isValid && r.type === 'income').reduce((s, r) => s + r.amount, 0))}
+                      </strong>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-center">
+                      <span className="text-[10px] text-rose-700 block">Total Keluar</span>
+                      <strong className="text-xs font-black text-rose-700">
+                        {rupiah(importParsedRows.filter(r => r.isValid && r.type === 'expense').reduce((s, r) => s + r.amount, 0))}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {/* Catatan Pengaman */}
+                  {importParsedRows.some(r => !r.isValid) && (
+                    <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-[11px] text-rose-800 flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                      <span>
+                        Ditemukan <strong>{importParsedRows.filter(r => !r.isValid).length} baris tidak lengkap/salah format</strong> yang akan otomatis dilewati demi keamanan saldo Anda.
+                      </span>
+                    </div>
+                  )}
+
+                  {importParsedRows.some(r => r.isDuplicate) && (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-800 flex items-center gap-2">
+                      <Info className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                      <span>
+                        Ada <strong>{importParsedRows.filter(r => r.isDuplicate).length} transaksi</strong> yang memiliki tanggal, nominal, dan keterangan persis sama dengan transaksi yang sudah ada.
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Tabel Pratinjau (Maksimal 5 Baris Pertama) */}
+                  <div className="border border-slate-200 rounded-xl overflow-hidden">
+                    <div className="bg-slate-100 px-3 py-2 text-[11px] font-black text-slate-700 flex justify-between items-center">
+                      <span>Pratinjau Data (Menampilkan hingga 5 baris pertama)</span>
+                      <span className="text-[10px] text-slate-500 font-normal">Hanya baris valid yang disimpan</span>
+                    </div>
+                    <div className="overflow-x-auto max-h-48">
+                      <table className="w-full text-left text-[11px]">
+                        <thead className="bg-slate-50 text-slate-600 border-b border-slate-200">
+                          <tr>
+                            <th className="p-2">Tgl</th>
+                            <th className="p-2">Arus</th>
+                            <th className="p-2">Akun</th>
+                            <th className="p-2">Kategori & Uraian</th>
+                            <th className="p-2 text-right">Nominal</th>
+                            <th className="p-2 text-center">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {importParsedRows.slice(0, 5).map((row, i) => (
+                            <tr key={i} className={!row.isValid ? 'bg-rose-50/50' : row.isDuplicate ? 'bg-amber-50/30' : ''}>
+                              <td className="p-2 font-mono whitespace-nowrap">{row.date}</td>
+                              <td className="p-2 whitespace-nowrap">
+                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-black ${
+                                  row.type === 'income' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                                }`}>
+                                  {row.type === 'income' ? 'Masuk' : row.type === 'expense' ? 'Keluar' : 'Transfer'}
+                                </span>
+                              </td>
+                              <td className="p-2 text-slate-600 whitespace-nowrap">{row.accountName}</td>
+                              <td className="p-2">
+                                <span className="font-bold text-slate-800 block">{row.category}</span>
+                                <span className="text-[10px] text-slate-500">{row.desc}</span>
+                              </td>
+                              <td className="p-2 text-right font-mono font-bold whitespace-nowrap">
+                                {rupiah(row.amount)}
+                              </td>
+                              <td className="p-2 text-center whitespace-nowrap">
+                                {row.isValid ? (
+                                  <span className="text-emerald-700 font-bold inline-flex items-center gap-1">
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    <span>Siap</span>
+                                  </span>
+                                ) : (
+                                  <span className="text-rose-600 font-bold inline-flex items-center gap-1" title={row.errorReason}>
+                                    <AlertTriangle className="w-3.5 h-3.5" />
+                                    <span>Lewati</span>
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer Modal Action */}
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsImportModalOpen(false);
+                  setImportParsedRows([]);
+                  setImportFileName('');
+                }}
+                className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-200 font-bold text-xs cursor-pointer transition-colors"
+              >
+                Batal
+              </button>
+
+              <button
+                type="button"
+                onClick={handleCommitImport}
+                disabled={isProcessingImport || importParsedRows.filter(r => r.isValid).length === 0}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 disabled:opacity-50 text-white font-black text-xs flex items-center gap-2 cursor-pointer transition-all shadow-md"
+              >
+                {isProcessingImport ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Sedang Menyimpan Transaksi...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>
+                      Simpan {importParsedRows.filter(r => r.isValid).length} Transaksi Sekarang
+                    </span>
+                  </>
+                )}
               </button>
             </div>
           </div>
