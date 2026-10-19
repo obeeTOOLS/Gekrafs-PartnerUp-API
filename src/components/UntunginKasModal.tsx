@@ -258,7 +258,7 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
 
   useEffect(() => {
     setPremiumStatus(kasService.getPremiumStatus(namaUsaha));
-  }, [namaUsaha]);
+  }, [namaUsaha, isOpen]);
 
   useEffect(() => {
     const handlePremiumUpdate = (e: any) => {

@@ -206,6 +206,25 @@ export interface KasPremiumAccess {
 const STORAGE_PIN_PREFIX = 'gkf_untungin_pin_v1_';
 const STORAGE_PREMIUM_PREFIX = 'gkf_untungin_premium_v1_';
 
+/**
+ * Registri perpanjangan trial resmi oleh Kurator PartnerUp (Offline-Safe & Cloud-Bridged)
+ */
+const APPROVED_CURATOR_EXTENSIONS: Record<string, {
+  transactionLimit: number;
+  additionalDays: number;
+  extendedBy: string;
+  notes: string;
+  lastExtendedAt: string;
+}> = {
+  'fida accessories': {
+    transactionLimit: 25,
+    additionalDays: 14,
+    extendedBy: 'Kurator PartnerUp',
+    notes: 'Perpanjangan masa pembinaan kurasi UMKM (14 hari & +15 kuota transaksi)',
+    lastExtendedAt: '2026-10-19T08:00:00.000Z'
+  }
+};
+
 class KasService {
   private getStorageKey(namaUsaha: string): string {
     const clean = (namaUsaha || 'default').toLowerCase().trim().replace(/[^a-z0-9]/g, '_');
@@ -533,11 +552,19 @@ class KasService {
 
       const mergedTransactions = Array.from(txMap.values()).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
-      // Sinkronkan akun jika ada akun dari cloud
+      // Sinkronkan akun jika ada akun dari cloud & ekstrak Cloud Trial Config jika ada
       let mergedAccounts = current.accounts;
       if (response.accounts && Array.isArray(response.accounts.accounts) && response.accounts.accounts.length > 0) {
-        if (current.accounts.length <= 3 && current.transactions.length === 0) {
-          mergedAccounts = response.accounts.accounts;
+        // Ekstraksi konfigurasi Trial dari Cloud jika ada
+        const cloudTrialItem = response.accounts.accounts.find((a: any) => a.id === '__trial_config__' || a.id === 'trial_config');
+        if (cloudTrialItem) {
+          this.applyCloudTrialConfig(namaUsaha, cloudTrialItem);
+        }
+
+        // Filter akun kas murni (tanpa metadata trial internal)
+        const realCloudAccounts = response.accounts.accounts.filter((a: any) => a.id !== '__trial_config__' && a.id !== 'trial_config');
+        if (realCloudAccounts.length > 0 && current.accounts.length <= 3 && current.transactions.length === 0) {
+          mergedAccounts = realCloudAccounts;
         }
       }
 
@@ -762,6 +789,31 @@ class KasService {
       const raw = localStorage.getItem(key);
       let parsed = raw ? JSON.parse(raw) : null;
 
+      // Periksa apakah unit usaha memiliki perpanjangan resmi dari Kurator yang terdaftar
+      const approvedCurator = APPROVED_CURATOR_EXTENSIONS[clean];
+      if (approvedCurator && (!parsed || (Number(parsed.transactionLimit) || 10) < approvedCurator.transactionLimit)) {
+        const now = new Date();
+        const baseStart = parsed?.trialStartedAt || now.toISOString();
+        const currentExpMs = parsed?.trialExpiresAt ? new Date(parsed.trialExpiresAt).getTime() : 0;
+        const baseExpireMs = Math.max(Date.now(), currentExpMs);
+        const expireDate = new Date(baseExpireMs + approvedCurator.additionalDays * 24 * 60 * 60 * 1000);
+        parsed = {
+          ...parsed,
+          namaUsaha,
+          isPremium: false,
+          trialStartedAt: baseStart,
+          trialExpiresAt: expireDate.toISOString(),
+          transactionLimit: approvedCurator.transactionLimit,
+          txBaseline: parsed?.txBaseline || 0,
+          extendedBy: approvedCurator.extendedBy,
+          lastExtendedAt: approvedCurator.lastExtendedAt,
+          trialNotes: approvedCurator.notes
+        };
+        try {
+          localStorage.setItem(key, JSON.stringify(parsed));
+        } catch {}
+      }
+
       // 1. Jika sudah berstatus Pro Aktif (via developer, voucher, kurator, atau lisensi)
       if (parsed && parsed.isPremium === true) {
         let isProExpired = false;
@@ -972,7 +1024,136 @@ class KasService {
     localStorage.setItem(key, JSON.stringify(updatedRecord));
     window.dispatchEvent(new CustomEvent('gkf-kas-premium-updated', { detail: { namaUsaha, access: updatedRecord } }));
 
+    // Solusi 2: Otomatis sinkronkan pembaruan trial ini ke Cloud (PartnerUp GAS & Untungin Standalone Vault)
+    this.syncTrialToCloud(namaUsaha, updatedRecord).catch(err => {
+      console.warn('[kasService] syncTrialToCloud background notice:', err);
+    });
+
     return this.getPremiumStatus(namaUsaha);
+  }
+
+  /**
+   * Menerapkan konfigurasi trial dari cloud ke penyimpanan lokal perangkat peserta
+   */
+  public applyCloudTrialConfig(namaUsaha: string, cloudTrial: any): boolean {
+    if (!namaUsaha || !cloudTrial) return false;
+    const key = this.getPremiumStorageKey(namaUsaha);
+    const raw = localStorage.getItem(key);
+    const local = raw ? JSON.parse(raw) : {};
+
+    const cloudLimit = Number(cloudTrial.transactionLimit) || 10;
+    const localLimit = Number(local.transactionLimit) || 10;
+    
+    const cloudExpireMs = cloudTrial.trialExpiresAt ? new Date(cloudTrial.trialExpiresAt).getTime() : 0;
+    const localExpireMs = local.trialExpiresAt ? new Date(local.trialExpiresAt).getTime() : 0;
+
+    const cloudExtendedAtMs = cloudTrial.lastExtendedAt ? new Date(cloudTrial.lastExtendedAt).getTime() : 0;
+    const localExtendedAtMs = local.lastExtendedAt ? new Date(local.lastExtendedAt).getTime() : 0;
+
+    const isCloudPro = Boolean(cloudTrial.isPremium);
+
+    // Kriteria pembaruan: cloud memiliki lisensi Pro, limit lebih tinggi, expired lebih lama, atau waktu perpanjangan lebih baru
+    const shouldUpdate = 
+      isCloudPro ||
+      cloudLimit > localLimit || 
+      cloudExpireMs > localExpireMs ||
+      (cloudExtendedAtMs > 0 && cloudExtendedAtMs > localExtendedAtMs);
+
+    if (shouldUpdate) {
+      const mergedRecord = {
+        ...local,
+        namaUsaha,
+        isPremium: isCloudPro || local.isPremium,
+        transactionLimit: Math.max(cloudLimit, localLimit),
+        trialStartedAt: local.trialStartedAt || cloudTrial.trialStartedAt || new Date().toISOString(),
+        trialExpiresAt: cloudExpireMs > localExpireMs ? cloudTrial.trialExpiresAt : (local.trialExpiresAt || cloudTrial.trialExpiresAt),
+        lastExtendedAt: cloudTrial.lastExtendedAt || local.lastExtendedAt || new Date().toISOString(),
+        extendedBy: cloudTrial.extendedBy || local.extendedBy || 'Kurator PartnerUp',
+        trialNotes: cloudTrial.trialNotes || local.trialNotes || 'Diperpanjang oleh Kurator PartnerUp',
+        txBaseline: local.txBaseline !== undefined ? local.txBaseline : (cloudTrial.txBaseline || 0)
+      };
+
+      try {
+        localStorage.setItem(key, JSON.stringify(mergedRecord));
+        window.dispatchEvent(new CustomEvent('gkf-kas-premium-updated', { detail: { namaUsaha, access: mergedRecord } }));
+        console.log(`[kasService] Cloud trial config applied for "${namaUsaha}": limit ${mergedRecord.transactionLimit} tx, expires ${mergedRecord.trialExpiresAt}`);
+      } catch (e) {
+        console.warn('[kasService] Failed to save cloud trial config to localStorage:', e);
+      }
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Menyelaraskan status trial / voucher / lisensi ke Cloud Google Apps Script (PartnerUp & Standalone Vault)
+   */
+  public async syncTrialToCloud(namaUsaha: string, accessRecord: any): Promise<{ success: boolean; message: string }> {
+    if (!namaUsaha) return { success: false, message: 'Nama usaha kosong' };
+
+    try {
+      const currentKas = this.getKasData(namaUsaha);
+      const accounts = Array.isArray(currentKas.accounts) ? currentKas.accounts : [];
+      const cleanAccounts = accounts.filter((a: any) => a.id !== '__trial_config__' && a.id !== 'trial_config');
+      
+      const trialMetaItem = {
+        id: '__trial_config__',
+        name: 'Trial Cloud Config',
+        type: 'meta',
+        namaUsaha,
+        transactionLimit: accessRecord.transactionLimit || 10,
+        trialStartedAt: accessRecord.trialStartedAt,
+        trialExpiresAt: accessRecord.trialExpiresAt,
+        lastExtendedAt: accessRecord.lastExtendedAt || new Date().toISOString(),
+        extendedBy: accessRecord.extendedBy || 'Kurator PartnerUp',
+        trialNotes: accessRecord.trialNotes || '',
+        isTrialActive: accessRecord.isTrialActive !== false,
+        isPremium: Boolean(accessRecord.isPremium)
+      };
+
+      const payloadAccounts = [...cleanAccounts, trialMetaItem];
+      const pinData = this.getKasPin(namaUsaha);
+
+      // 1. Kirim ke Google Apps Script PartnerUp (otomatis tersimpan di tab Kas_Profil kolom C)
+      gasService.dispatchRemoteAction('saveKasAccounts', {
+        namaUsaha,
+        accounts: payloadAccounts,
+        pinData
+      }).catch(err => console.debug('[kasService] PartnerUp cloud trial sync notice:', err));
+
+      // 2. Kirim juga ke Standalone Vault Google Apps Script (tab Untungin_Profil)
+      this.dispatchVaultShadowSync('syncProfil', {
+        namaUsaha,
+        statusLisensi: accessRecord.isPremium ? 'PRO' : 'TRIAL_EXTENDED',
+        voucherExpiresAt: accessRecord.trialExpiresAt || '-',
+        voucherDurationMonths: 0,
+        pinHash: pinData?.pin || '123456'
+      });
+
+      return { success: true, message: 'Trial berhasil disinkronkan ke cloud.' };
+    } catch (e: any) {
+      console.warn('[kasService] Error dispatching trial to cloud:', e);
+      return { success: false, message: e.message || 'Gagal sinkron trial ke cloud' };
+    }
+  }
+
+  /**
+   * Menarik status trial terbaru dari cloud secara independen
+   */
+  public async syncTrialFromCloud(namaUsaha: string): Promise<boolean> {
+    if (!namaUsaha) return false;
+    try {
+      const response = await gasService.dispatchRemoteAction('getKasData', { namaUsaha });
+      if (response && response.status === 'success' && response.accounts && Array.isArray(response.accounts.accounts)) {
+        const cloudTrialItem = response.accounts.accounts.find((a: any) => a.id === '__trial_config__' || a.id === 'trial_config');
+        if (cloudTrialItem) {
+          return this.applyCloudTrialConfig(namaUsaha, cloudTrialItem);
+        }
+      }
+    } catch (err) {
+      console.debug('[kasService] syncTrialFromCloud notice:', err);
+    }
+    return false;
   }
 
   /**
@@ -1035,6 +1216,9 @@ class KasService {
     try {
       localStorage.setItem(key, JSON.stringify(access));
       window.dispatchEvent(new CustomEvent('gkf-kas-premium-updated', { detail: { namaUsaha, access } }));
+      this.syncTrialToCloud(namaUsaha, access).catch(err => {
+        console.warn('[kasService] syncTrialToCloud non-blocking catch:', err);
+      });
     } catch (e) {
       console.error('[kasService] Error saving premium status', e);
     }

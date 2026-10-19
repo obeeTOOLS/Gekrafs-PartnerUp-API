@@ -80,6 +80,9 @@ export const TrialManagerModal: React.FC<TrialManagerModalProps> = ({
       notes: notes.trim()
     });
 
+    // Otomatis kirimkan sinkronisasi ke Cloud agar seketika tersambung ke HP peserta
+    kasService.syncTrialToCloud(namaUsaha, updated).catch(console.error);
+
     setCurrentStatus(updated);
     setIsSuccess(true);
     onUpdated(updated);
@@ -87,7 +90,7 @@ export const TrialManagerModal: React.FC<TrialManagerModalProps> = ({
     setTimeout(() => {
       setIsSuccess(false);
       onClose();
-    }, 900);
+    }, 1200);
   };
 
   return (
@@ -330,7 +333,7 @@ export const TrialManagerModal: React.FC<TrialManagerModalProps> = ({
                 {isSuccess ? (
                   <>
                     <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <span>Trial Berhasil Diperpanjang!</span>
+                    <span>Tersinkron ke Cloud & HP Peserta!</span>
                   </>
                 ) : (
                   <>
