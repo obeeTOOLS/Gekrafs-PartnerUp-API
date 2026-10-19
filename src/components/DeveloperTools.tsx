@@ -1610,7 +1610,7 @@ export const DeveloperTools: React.FC = () => {
                       className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-colors"
                     >
                       {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
-                      <span>{copiedCode ? 'Tersalin!' : 'Salin Kode v1.2'}</span>
+                      <span>{copiedCode ? 'Tersalin!' : 'Salin Kode v1.3'}</span>
                     </button>
                   </div>
                 </div>
@@ -1806,10 +1806,10 @@ export const DeveloperTools: React.FC = () => {
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-xs font-black text-amber-300">
               <FileCode className="w-4 h-4 text-indigo-400" />
-              <span>Kode Google Apps Script v1.2 (Universal Bridge Engine)</span>
+              <span>Kode Google Apps Script v1.3 (Universal Dual-Stream Audit Bridge)</span>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed">
-              Kompatibel penuh dengan <strong>PartnerUp Inkubasi</strong> dan <strong>Untungin Standalone Vercel App</strong> (mendukung <em>tambahTransaksi</em>, <em>smartUpdate</em>, <em>smartDelete</em>, <em>aktivasiVoucher</em>, dan <em>gantiPin</em>).
+              Mendukung normalisasi otomatis <strong>Pengeluaran (Expense)</strong> vs <strong>Pemasukan (Income)</strong>, sinkronisasi saldo presisi, serta kompatibilitas penuh dengan <strong>PartnerUp</strong> dan <strong>Untungin Standalone Vercel App</strong>.
             </p>
           </div>
 
@@ -1823,7 +1823,7 @@ export const DeveloperTools: React.FC = () => {
             className="px-5 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-black text-xs shadow-lg shadow-indigo-600/30 flex items-center gap-2 cursor-pointer flex-shrink-0 transition-all"
           >
             {copiedCode ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
-            <span>{copiedCode ? '✅ Kode v1.2 Tersalin!' : '📋 Salin Kode v1.2 Universal Bridge'}</span>
+            <span>{copiedCode ? '✅ Kode v1.3 Tersalin!' : '📋 Salin Kode v1.3 Universal Bridge'}</span>
           </button>
         </div>
 

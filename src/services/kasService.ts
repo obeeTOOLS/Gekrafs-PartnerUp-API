@@ -225,6 +225,27 @@ const APPROVED_CURATOR_EXTENSIONS: Record<string, {
   }
 };
 
+/**
+ * Registri lisensi Untungin Pro terverifikasi (Voucher Resmi Developer & Lifetime Pro)
+ */
+const APPROVED_PRO_ACCOUNTS: Record<string, {
+  grantedBy: string;
+  method: 'developer' | 'payment';
+  durationMonths: number;
+  durationLabel: string;
+  proExpiresAt?: string;
+  notes: string;
+}> = {
+  'happy food': {
+    grantedBy: 'Voucher Resmi Developer (PRO-1Y)',
+    method: 'payment',
+    durationMonths: 12,
+    durationLabel: '1 Tahun',
+    proExpiresAt: '2027-10-19T00:00:00.000Z',
+    notes: 'Aktivasi Lisensi Untungin Pro 1 Tahun via Voucher Resmi'
+  }
+};
+
 class KasService {
   private getStorageKey(namaUsaha: string): string {
     const clean = (namaUsaha || 'default').toLowerCase().trim().replace(/[^a-z0-9]/g, '_');
@@ -808,6 +829,27 @@ class KasService {
           extendedBy: approvedCurator.extendedBy,
           lastExtendedAt: approvedCurator.lastExtendedAt,
           trialNotes: approvedCurator.notes
+        };
+        try {
+          localStorage.setItem(key, JSON.stringify(parsed));
+        } catch {}
+      }
+
+      // Periksa apakah unit usaha memiliki lisensi Pro resmi terverifikasi di registri
+      const approvedPro = APPROVED_PRO_ACCOUNTS[clean];
+      if (approvedPro && (!parsed || !parsed.isPremium)) {
+        parsed = {
+          ...parsed,
+          namaUsaha,
+          isPremium: true,
+          tier: 'premium',
+          unlockedAt: parsed?.unlockedAt || new Date().toISOString(),
+          grantedBy: approvedPro.grantedBy,
+          method: approvedPro.method,
+          proDurationMonths: approvedPro.durationMonths,
+          proDurationLabel: approvedPro.durationLabel,
+          proExpiresAt: approvedPro.proExpiresAt,
+          notes: approvedPro.notes
         };
         try {
           localStorage.setItem(key, JSON.stringify(parsed));
@@ -1852,13 +1894,14 @@ class KasService {
     try {
       const defaultEndpoint = ((import.meta as any).env?.VITE_UNTUNGIN_VAULT_ENDPOINT as string) || 'https://script.google.com/macros/s/AKfycbzt3TEU-OQioP9OxUm5BPHuuAihKqF1tJDDb396T4TguB2V_-KpKMaLD5O8VD6xAiVk/exec';
       const endpoint = localStorage.getItem('untungin_vault_endpoint') || defaultEndpoint;
-      const enabled = localStorage.getItem('untungin_vault_enabled') === 'true' || (Boolean((import.meta as any).env?.VITE_UNTUNGIN_VAULT_ENDPOINT) && localStorage.getItem('untungin_vault_enabled') !== 'false');
+      // Selalu aktif secara default (Dual-Stream Sync wajib aktif agar data transaksi peserta tidak hilang saat migrasi)
+      const enabled = localStorage.getItem('untungin_vault_enabled') !== 'false';
       return { endpoint, enabled };
     } catch {
       const fallbackEndpoint = ((import.meta as any).env?.VITE_UNTUNGIN_VAULT_ENDPOINT as string) || 'https://script.google.com/macros/s/AKfycbzt3TEU-OQioP9OxUm5BPHuuAihKqF1tJDDb396T4TguB2V_-KpKMaLD5O8VD6xAiVk/exec';
       return {
         endpoint: fallbackEndpoint,
-        enabled: false
+        enabled: true
       };
     }
   }
@@ -2050,27 +2093,58 @@ class KasService {
       return { success: false, count: 0, message: 'Tidak ada data peserta ditemukan di PartnerUp.' };
     }
 
-    const allTx: any[] = [];
+    const txMap = new Map<string, any>();
+
+    // 1. Ambil seluruh transaksi dari Cloud PartnerUp (Google Sheets Kas_Transaksi)
+    try {
+      const cloudRes = await gasService.dispatchRemoteAction('getKasData', { namaUsaha: '' });
+      const cloudData = cloudRes?.data || [];
+      if (Array.isArray(cloudData)) {
+        for (const t of cloudData) {
+          if (t && t.id) {
+            txMap.set(t.id, {
+              id: t.id,
+              timestamp: t.createdAt || new Date().toISOString(),
+              tanggal: t.date || new Date().toISOString().split('T')[0],
+              namaUsaha: t.namaUsaha || 'UMKM',
+              arusKas: t.type === 'income' ? 'Pemasukan' : t.type === 'expense' ? 'Pengeluaran' : 'Transfer',
+              kategori: t.category || 'Umum',
+              nominal: Number(t.amount) || 0,
+              rekening: t.accountId || 'Kas Tunai',
+              keterangan: t.desc || '-',
+              catatan: `PartnerUp: ${t.createdBy || 'Cloud'}`
+            });
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[seedAllTransactionsToVault] Gagal menarik dari PartnerUp cloud, menggunakan data lokal:', e);
+    }
+
+    // 2. Tambahkan/timpa dengan data lokal jika ada transaksi baru yang belum terkirim
     for (const p of allPeserta) {
       const kasData = this.getKasData(p.namaUsaha);
       if (kasData && kasData.transactions && kasData.transactions.length > 0) {
         for (const t of kasData.transactions) {
-          allTx.push({
-            id: t.id,
-            timestamp: t.createdAt || new Date().toISOString(),
-            tanggal: t.date,
-            namaUsaha: t.namaUsaha,
-            arusKas: t.type === 'income' ? 'Pemasukan' : t.type === 'expense' ? 'Pengeluaran' : 'Transfer',
-            kategori: t.category || 'Umum',
-            nominal: t.amount,
-            rekening: t.accountId || 'Kas Tunai',
-            keterangan: t.desc || '-',
-            catatan: `Backfill PartnerUp (${t.createdBy || 'System'})`
-          });
+          if (t && t.id && !txMap.has(t.id)) {
+            txMap.set(t.id, {
+              id: t.id,
+              timestamp: t.createdAt || new Date().toISOString(),
+              tanggal: t.date,
+              namaUsaha: t.namaUsaha,
+              arusKas: t.type === 'income' ? 'Pemasukan' : t.type === 'expense' ? 'Pengeluaran' : 'Transfer',
+              kategori: t.category || 'Umum',
+              nominal: t.amount,
+              rekening: t.accountId || 'Kas Tunai',
+              keterangan: t.desc || '-',
+              catatan: `PartnerUp: ${t.createdBy || 'Lokal'}`
+            });
+          }
         }
       }
     }
 
+    const allTx = Array.from(txMap.values());
     if (allTx.length === 0) {
       return { success: true, count: 0, message: 'Belum ada riwayat transaksi kas yang tersimpan di sistem untuk dimigrasikan.' };
     }

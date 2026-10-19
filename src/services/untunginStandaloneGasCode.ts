@@ -244,11 +244,16 @@ function doPost(e) {
 
     switch (action) {
       case "ping":
-        result = { status: "success", message: "PONG! Untungin Pro Engine Standalone Siap (v1.2 Universal Bridge).", timestamp: new Date().toISOString() };
+        result = { status: "success", message: "PONG! Untungin Pro Engine Standalone Siap (v1.3 Universal Dual-Stream Audit Bridge).", timestamp: new Date().toISOString() };
         break;
 
       case "initSheets":
         result = initUntunginDatabase();
+        break;
+
+      case "perbaikiKlasifikasi":
+      case "recalculateSaldo":
+        result = perbaikiKlasifikasiTransaksiDanSaldo();
         break;
 
       // Mendukung aksi dari PartnerUp dual-sync maupun Standalone Vercel Engine
@@ -338,14 +343,8 @@ function handlePushTransaksi(p) {
   const txDate = item.tanggal || item.date || Utilities.formatDate(new Date(), "Asia/Jakarta", "yyyy-MM-dd");
   const namaUsaha = (item.namaUsaha || item.umkmId || p.namaUsaha || "UMKM").trim();
   
-  // Normalisasi jenis arus kas
-  const rawType = String(item.arusKas || item.tipe || item.type || "Masuk").toLowerCase();
-  let arusKas = "Pemasukan";
-  if (rawType.includes("keluar") || rawType === "expense") {
-    arusKas = "Pengeluaran";
-  } else if (rawType.includes("transfer")) {
-    arusKas = "Transfer";
-  }
+  // Normalisasi jenis arus kas menggunakan universal parser
+  const arusKas = normalizeArusKas(item);
 
   const kategori = item.kategori || item.category || "Umum";
   const nominal = Number(item.nominal || item.amount) || 0;
@@ -499,7 +498,7 @@ function handlePushBatchTransaksi(p) {
     const txId = (t.id || ("TX-" + Utilities.getUuid().substring(0, 8).toUpperCase())).trim();
     const txDate = t.tanggal || Utilities.formatDate(new Date(), "Asia/Jakarta", "yyyy-MM-dd");
     const biz = (t.namaUsaha || p.namaUsaha || "UMKM").trim();
-    const arusKas = t.arusKas || t.tipe || "Masuk";
+    const arusKas = normalizeArusKas(t);
     const kategori = t.kategori || "Umum";
     const nominal = Number(t.nominal) || 0;
     const rekening = t.rekening || t.akun || "Kas Tunai";
@@ -822,6 +821,102 @@ function updateProfilSummary(ss, namaUsaha) {
       }
     }
   } catch (e) {}
+}
+
+/**
+ * Normalisasi Cerdas Jenis Arus Kas (Pemasukan vs Pengeluaran vs Transfer)
+ * Mendukung format PartnerUp, Standalone Vercel, akuntansi umum, dan fallback kategori pengeluaran
+ */
+function normalizeArusKas(item) {
+  if (!item) return "Pemasukan";
+  const rawType = String(item.arusKas || item.tipe || item.type || item.jenis || "").toLowerCase().trim();
+  
+  if (rawType.includes("keluar") || rawType === "expense" || rawType === "out" || rawType === "debit") {
+    return "Pengeluaran";
+  }
+  if (rawType.includes("transfer")) {
+    return "Transfer";
+  }
+  if (rawType.includes("masuk") || rawType === "income" || rawType === "in" || rawType === "credit") {
+    return "Pemasukan";
+  }
+
+  // Heuristik kategori & deskripsi pengeluaran standar
+  const cat = String(item.kategori || item.category || "").toLowerCase();
+  const desc = String(item.keterangan || item.desc || "").toLowerCase();
+  const expenseKeywords = [
+    "bahan baku", "kemasan", "packaging", "operasional", "gaji", "upah",
+    "transport", "ongkir", "sewa", "listrik", "air", "pembelian", "beli",
+    "cetak", "canva", "accurate", "alat", "peralatan", "tandon", "stiker",
+    "gula", "apel", "terigu", "biaya", "pengeluaran"
+  ];
+
+  for (let i = 0; i < expenseKeywords.length; i++) {
+    if (cat.includes(expenseKeywords[i]) || desc.includes(expenseKeywords[i])) {
+      return "Pengeluaran";
+    }
+  }
+
+  return "Pemasukan";
+}
+
+/**
+ * FUNGSI UTILITY PERBAIKAN SATU-KLIK (Jalankan di Apps Script Editor atau via Remote API):
+ * Memperbaiki seluruh klasifikasi 'Pemasukan' vs 'Pengeluaran' pada baris transaksi yang sudah ada
+ * dan memperbarui saldo bersih seluruh profil UMKM di tab Untungin_Profil secara otomatis.
+ */
+function perbaikiKlasifikasiTransaksiDanSaldo() {
+  const ss = getSpreadsheet();
+  const txSheet = ss.getSheetByName("Untungin_Transaksi");
+  if (!txSheet) return { status: "error", message: "Tab Untungin_Transaksi tidak ditemukan." };
+
+  const data = txSheet.getDataRange().getValues();
+  if (data.length <= 1) return { status: "success", message: "Belum ada transaksi di tab Untungin_Transaksi." };
+
+  let fixedCount = 0;
+  const touchedBiz = {};
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const biz = String(row[3] || "").trim();
+    const currentArus = String(row[4] || "").trim();
+    const kategori = String(row[5] || "").trim();
+    const keterangan = String(row[8] || "").trim();
+    const catatan = String(row[9] || "").trim();
+
+    // Deteksi jika ada jejak pengeluaran di kategori/keterangan/catatan
+    let probeType = currentArus;
+    if (catatan.toLowerCase().includes("expense") || keterangan.toLowerCase().includes("expense")) {
+      probeType = "expense";
+    }
+
+    const calculatedArus = normalizeArusKas({
+      arusKas: probeType,
+      kategori: kategori,
+      keterangan: keterangan,
+      catatan: catatan
+    });
+
+    if (calculatedArus !== currentArus) {
+      txSheet.getRange(i + 1, 5).setValue(calculatedArus);
+      txSheet.getRange(i + 1, 11).setValue(new Date());
+      fixedCount++;
+    }
+
+    if (biz) touchedBiz[biz] = true;
+  }
+
+  // Update ringkasan saldo di Untungin_Profil
+  Object.keys(touchedBiz).forEach(biz => {
+    updateProfilSummary(ss, biz);
+  });
+
+  return {
+    status: "success",
+    message: "Berhasil memperbaiki klasifikasi " + fixedCount + " transaksi dan menyinkronkan saldo profil UMKM.",
+    fixedCount: fixedCount,
+    totalBiz: Object.keys(touchedBiz).length
+  };
 }
 
 /**
