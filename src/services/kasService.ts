@@ -1666,12 +1666,14 @@ class KasService {
    */
   public getVaultConfig(): { endpoint: string; enabled: boolean } {
     try {
-      const endpoint = localStorage.getItem('untungin_vault_endpoint') || 'https://script.google.com/macros/s/AKfycbzt3TEU-OQioP9OxUm5BPHuuAihKqF1tJDDb396T4TguB2V_-KpKMaLD5O8VD6xAiVk/exec';
-      const enabled = localStorage.getItem('untungin_vault_enabled') === 'true';
+      const defaultEndpoint = ((import.meta as any).env?.VITE_UNTUNGIN_VAULT_ENDPOINT as string) || 'https://script.google.com/macros/s/AKfycbzt3TEU-OQioP9OxUm5BPHuuAihKqF1tJDDb396T4TguB2V_-KpKMaLD5O8VD6xAiVk/exec';
+      const endpoint = localStorage.getItem('untungin_vault_endpoint') || defaultEndpoint;
+      const enabled = localStorage.getItem('untungin_vault_enabled') === 'true' || (Boolean((import.meta as any).env?.VITE_UNTUNGIN_VAULT_ENDPOINT) && localStorage.getItem('untungin_vault_enabled') !== 'false');
       return { endpoint, enabled };
     } catch {
+      const fallbackEndpoint = ((import.meta as any).env?.VITE_UNTUNGIN_VAULT_ENDPOINT as string) || 'https://script.google.com/macros/s/AKfycbzt3TEU-OQioP9OxUm5BPHuuAihKqF1tJDDb396T4TguB2V_-KpKMaLD5O8VD6xAiVk/exec';
       return {
-        endpoint: 'https://script.google.com/macros/s/AKfycbzt3TEU-OQioP9OxUm5BPHuuAihKqF1tJDDb396T4TguB2V_-KpKMaLD5O8VD6xAiVk/exec',
+        endpoint: fallbackEndpoint,
         enabled: false
       };
     }

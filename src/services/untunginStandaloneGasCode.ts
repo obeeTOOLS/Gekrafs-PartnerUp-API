@@ -1,17 +1,18 @@
 /**
  * ============================================================================
- * UNTUNGIN PRO API ENGINE — STANDALONE BACKEND GAS (v1.0)
+ * UNTUNGIN PRO API ENGINE — STANDALONE BACKEND GAS (v1.2)
  * ============================================================================
  * Proyek: UNTUNGIN - PRO API ENGINE (script.google.com)
  * Target Spreadsheet ID: 1l_MT50H0blcu771UYMm6Tqc4Q1R2s4U2iOglx-cW4kE
  * Arsitektur: Headless Serverless REST API untuk Database Kas & UMKM Mandiri
+ * Fitur: Multi-Akun, Smart Update Transaksi, Batch Backfill, Modul Hutang & Piutang
  * Sifat: 100% Terpisah & Decoupled dari PartnerUp
  * ============================================================================
  */
 
 export const UNTUNGIN_STANDALONE_GAS_CODE = `/**
  * ============================================================================
- * UNTUNGIN PRO API ENGINE — STANDALONE BACKEND v1.0
+ * UNTUNGIN PRO API ENGINE — STANDALONE BACKEND v1.2
  * Database & API Serverless Mandiri untuk Ekosistem Kas Untungin
  * ============================================================================
  * Spreadsheet Target: 1l_MT50H0blcu771UYMm6Tqc4Q1R2s4U2iOglx-cW4kE
@@ -102,6 +103,24 @@ function initUntunginDatabase() {
         "Catatan Lisensi"
       ],
       color: "#b45309" // Amber Gold
+    },
+    {
+      name: "Untungin_HutangPiutang",
+      headers: [
+        "ID Catatan",
+        "Timestamp ISO",
+        "Nama Usaha",
+        "Tipe (HUTANG/PIUTANG)",
+        "Pihak Terkait",
+        "Nomor WhatsApp",
+        "Nominal (Rp)",
+        "Tanggal Transaksi",
+        "Tanggal Jatuh Tempo",
+        "Status (BELUM_LUNAS/LUNAS)",
+        "Keterangan",
+        "Terakhir Diperbarui"
+      ],
+      color: "#0284c7" // Light Blue / Sky
     },
     {
       name: "Untungin_Audit",
@@ -269,6 +288,19 @@ function doPost(e) {
 
       case "getKasData":
         result = handleGetKasData(payload);
+        break;
+
+      case "pushHutangPiutang":
+      case "syncHutangPiutang":
+        result = handlePushHutangPiutang(payload);
+        break;
+
+      case "deleteHutangPiutang":
+        result = handleDeleteHutangPiutang(payload);
+        break;
+
+      case "getHutangPiutang":
+        result = handleGetHutangPiutang(payload);
         break;
 
       default:
@@ -629,6 +661,131 @@ function handleSyncProfil(p) {
 }
 
 /**
+ * Sinkronisasi Rekening / Akun Kas (Multi-Dompet)
+ */
+function handleSyncAkun(p) {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName("Untungin_Akun");
+  if (!sheet) {
+    initUntunginDatabase();
+    sheet = ss.getSheetByName("Untungin_Akun");
+  }
+
+  const item = p.account || p.data || p;
+  const accountId = (item.id || item.accountId || ("ACC-" + Utilities.getUuid().substring(0, 8).toUpperCase())).trim();
+  const namaUsaha = (item.namaUsaha || p.namaUsaha || "UMKM").trim();
+  const namaAkun = (item.namaAkun || item.name || "Kas Tunai").trim();
+  const tipeAkun = (item.tipe || item.type || "Tunai").trim();
+  const nomorRek = (item.nomorRekening || item.noRek || "-").trim();
+  const atasNama = (item.atasNama || "-").trim();
+  const saldoAwal = Number(item.saldoAwal || item.initialBalance) || 0;
+  const saldoBerjalan = Number(item.saldoBerjalan || item.balance || saldoAwal) || 0;
+  const statusAktif = (item.status || "Aktif").trim();
+
+  const data = sheet.getDataRange().getValues();
+  let existingRow = -1;
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]).trim() === accountId) {
+      existingRow = i + 1;
+      break;
+    }
+  }
+
+  if (existingRow > 0) {
+    sheet.getRange(existingRow, 2).setValue(namaUsaha);
+    sheet.getRange(existingRow, 3).setValue(namaAkun);
+    sheet.getRange(existingRow, 4).setValue(tipeAkun);
+    sheet.getRange(existingRow, 5).setValue(nomorRek);
+    sheet.getRange(existingRow, 6).setValue(atasNama);
+    sheet.getRange(existingRow, 7).setValue(saldoAwal);
+    sheet.getRange(existingRow, 8).setValue(saldoBerjalan);
+    sheet.getRange(existingRow, 9).setValue(statusAktif);
+  } else {
+    sheet.appendRow([
+      accountId,
+      namaUsaha,
+      namaAkun,
+      tipeAkun,
+      nomorRek,
+      atasNama,
+      saldoAwal,
+      saldoBerjalan,
+      statusAktif
+    ]);
+  }
+
+  return {
+    status: "success",
+    message: "Akun kas " + namaAkun + " berhasil disinkronkan",
+    accountId: accountId
+  };
+}
+
+/**
+ * Aktivasi Voucher Lisensi Untungin PRO
+ */
+function handleActivateVoucher(p) {
+  const ss = getSpreadsheet();
+  let vSheet = ss.getSheetByName("Untungin_Voucher");
+  let pSheet = ss.getSheetByName("Untungin_Profil");
+  if (!vSheet || !pSheet) {
+    initUntunginDatabase();
+    vSheet = ss.getSheetByName("Untungin_Voucher");
+    pSheet = ss.getSheetByName("Untungin_Profil");
+  }
+
+  const voucherCode = (p.voucherCode || p.kodeVoucher || p.code || "").trim().toUpperCase();
+  const namaUsaha = (p.namaUsaha || "").trim();
+
+  if (!voucherCode) return { status: "error", message: "Kode voucher wajib diisi" };
+  if (!namaUsaha) return { status: "error", message: "Nama usaha wajib diisi" };
+
+  const vData = vSheet.getDataRange().getValues();
+  let foundRow = -1;
+  let durasiBulan = 12;
+
+  for (let i = 1; i < vData.length; i++) {
+    if (String(vData[i][0]).trim().toUpperCase() === voucherCode) {
+      const status = String(vData[i][2]).trim().toLowerCase();
+      if (status !== "available" && status !== "aktif") {
+        return { status: "error", message: "Voucher sudah pernah digunakan atau hangus" };
+      }
+      foundRow = i + 1;
+      durasiBulan = Number(vData[i][1]) || 12;
+      break;
+    }
+  }
+
+  const expiredDate = new Date();
+  expiredDate.setMonth(expiredDate.getMonth() + durasiBulan);
+  const expStr = Utilities.formatDate(expiredDate, "Asia/Jakarta", "yyyy-MM-dd");
+
+  if (foundRow > 0) {
+    vSheet.getRange(foundRow, 3).setValue("Claimed");
+    vSheet.getRange(foundRow, 4).setValue(namaUsaha);
+    vSheet.getRange(foundRow, 5).setValue(new Date());
+    vSheet.getRange(foundRow, 6).setValue(expStr);
+  }
+
+  const pData = pSheet.getDataRange().getValues();
+  for (let j = 1; j < pData.length; j++) {
+    if (String(pData[j][0]).toLowerCase().trim() === namaUsaha.toLowerCase()) {
+      pSheet.getRange(j + 1, 4).setValue("PRO");
+      pSheet.getRange(j + 1, 5).setValue(durasiBulan);
+      pSheet.getRange(j + 1, 6).setValue(expStr);
+      break;
+    }
+  }
+
+  return {
+    status: "success",
+    message: "Voucher berhasil diaktivasi! Status PRO aktif hingga " + expStr,
+    statusLisensi: "PRO",
+    expiredAt: expStr
+  };
+}
+
+/**
  * Update ringkasan saldo & total transaksi di tabel profil
  */
 function updateProfilSummary(ss, namaUsaha) {
@@ -665,6 +822,150 @@ function updateProfilSummary(ss, namaUsaha) {
       }
     }
   } catch (e) {}
+}
+
+/**
+ * ============================================================================
+ * MODUL HUTANG & PIUTANG (BON PELANGGAN & KEWAJIBAN SUPPLIER)
+ * ============================================================================
+ */
+
+/**
+ * Simpan atau perbarui catatan hutang/piutang (Smart Update vs Append)
+ */
+function handlePushHutangPiutang(p) {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName("Untungin_HutangPiutang");
+  if (!sheet) {
+    initUntunginDatabase();
+    sheet = ss.getSheetByName("Untungin_HutangPiutang");
+  }
+
+  const item = p.data || p.item || p;
+  const debtId = (item.id || item.debtId || ("DEBT-STD-" + Utilities.getUuid().substring(0, 8).toUpperCase())).trim();
+  const nowStr = new Date().toISOString();
+  const namaUsaha = (item.namaUsaha || p.namaUsaha || "UMKM").trim();
+  const rawType = String(item.tipe || item.type || "PIUTANG").toUpperCase();
+  const tipe = rawType.includes("HUTANG") ? "HUTANG" : "PIUTANG";
+  const pihakTerkait = item.pihakTerkait || item.pihak || "-";
+  const kontakWa = item.kontakWa || item.whatsapp || item.noHp || "-";
+  const nominal = Number(item.nominal || item.amount) || 0;
+  const tanggal = item.tanggal || Utilities.formatDate(new Date(), "Asia/Jakarta", "yyyy-MM-dd");
+  const jatuhTempo = item.jatuhTempo || item.dueDate || tanggal;
+  const status = (item.status || "BELUM_LUNAS").toUpperCase();
+  const keterangan = item.keterangan || "-";
+
+  // Cek apakah data sudah ada (Smart Update)
+  const data = sheet.getDataRange().getValues();
+  let existingRow = -1;
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]).trim() === debtId) {
+      existingRow = i + 1;
+      break;
+    }
+  }
+
+  if (existingRow > 0) {
+    sheet.getRange(existingRow, 3).setValue(namaUsaha);
+    sheet.getRange(existingRow, 4).setValue(tipe);
+    sheet.getRange(existingRow, 5).setValue(pihakTerkait);
+    sheet.getRange(existingRow, 6).setValue(kontakWa);
+    sheet.getRange(existingRow, 7).setValue(nominal);
+    sheet.getRange(existingRow, 8).setValue(tanggal);
+    sheet.getRange(existingRow, 9).setValue(jatuhTempo);
+    sheet.getRange(existingRow, 10).setValue(status);
+    sheet.getRange(existingRow, 11).setValue(keterangan);
+    sheet.getRange(existingRow, 12).setValue(new Date());
+  } else {
+    sheet.appendRow([
+      debtId,
+      nowStr,
+      namaUsaha,
+      tipe,
+      pihakTerkait,
+      kontakWa,
+      nominal,
+      tanggal,
+      jatuhTempo,
+      status,
+      keterangan,
+      new Date()
+    ]);
+  }
+
+  return {
+    status: "success",
+    message: "Data " + tipe + " (" + debtId + ") berhasil disimpan ke Vault",
+    id: debtId
+  };
+}
+
+/**
+ * Hapus catatan hutang/piutang dari tab Untungin_HutangPiutang
+ */
+function handleDeleteHutangPiutang(p) {
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName("Untungin_HutangPiutang");
+  if (!sheet) return { status: "success", message: "Tab hutang piutang belum ada" };
+
+  const debtId = (p.id || p.debtId || "").trim();
+  if (!debtId) return { status: "error", message: "ID catatan tidak disertakan" };
+
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]).trim() === debtId) {
+      sheet.deleteRow(i + 1);
+      return {
+        status: "success",
+        message: "Catatan " + debtId + " berhasil dihapus dari Vault",
+        deletedId: debtId
+      };
+    }
+  }
+
+  return {
+    status: "success",
+    message: "Data tidak ditemukan atau sudah terhapus",
+    id: debtId
+  };
+}
+
+/**
+ * Mengambil catatan hutang piutang dari Vault
+ */
+function handleGetHutangPiutang(p) {
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName("Untungin_HutangPiutang");
+  if (!sheet) return { status: "success", items: [] };
+
+  const namaUsaha = (p.namaUsaha || "").toLowerCase().trim();
+  const data = sheet.getDataRange().getValues();
+  const items = [];
+
+  for (let i = 1; i < data.length; i++) {
+    const rowBiz = String(data[i][2]).toLowerCase().trim();
+    if (!namaUsaha || rowBiz === namaUsaha) {
+      items.push({
+        id: data[i][0],
+        timestamp: data[i][1],
+        namaUsaha: data[i][2],
+        tipe: data[i][3],
+        pihakTerkait: data[i][4],
+        kontakWa: data[i][5],
+        nominal: data[i][6],
+        tanggal: data[i][7],
+        jatuhTempo: data[i][8],
+        status: data[i][9],
+        keterangan: data[i][10]
+      });
+    }
+  }
+
+  return {
+    status: "success",
+    count: items.length,
+    items: items
+  };
 }
 
 /**

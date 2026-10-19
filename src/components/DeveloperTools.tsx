@@ -1780,7 +1780,7 @@ export const DeveloperTools: React.FC = () => {
             </div>
             <h2 className="text-lg font-black text-white flex items-center gap-2">
               <Database className="w-5 h-5 text-emerald-400" />
-              <span>Live Shadow Replication & Salin Kode v1.1</span>
+              <span>Live Shadow Replication & Salin Kode v1.2 (Hutang-Piutang Engine)</span>
             </h2>
             <p className="text-xs text-slate-300">
               Duplikasi data transaksi dan profil secara asinkron ke spreadsheet mandiri <code className="text-amber-300">[standalone]</code> tanpa mengganggu sistem PartnerUp.

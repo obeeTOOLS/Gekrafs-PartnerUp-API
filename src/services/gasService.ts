@@ -107,7 +107,6 @@ class GasService {
           // Sanitasi & auto-repair jika data peserta di local storage rusak/hanya 1 baris
           if (!Array.isArray(parsed) || parsed.length < 50) {
             this.peserta = INITIAL_PESERTA;
-            localStorage.setItem(STORAGE_KEYS.PESERTA, JSON.stringify(this.peserta));
           } else {
             this.peserta = parsed;
           }
@@ -116,6 +115,25 @@ class GasService {
         }
       } else {
         this.peserta = INITIAL_PESERTA;
+      }
+
+      // Auto-heal & deduplikasi: Pastikan Inovasi Pangan Lestari selalu ada & bersihkan duplikat Abhin Sewa
+      const hasInovasi = this.peserta.some((p) => p.namaUsaha.trim().toLowerCase() === 'inovasi pangan lestari');
+      const abhinCount = this.peserta.filter((p) => p.namaUsaha.trim().toLowerCase() === 'abhin sewa').length;
+      if (!hasInovasi || abhinCount > 1) {
+        const uniquePesertaMap = new Map<string, PesertaItem>();
+        for (const p of this.peserta) {
+          const key = p.namaUsaha.trim().toLowerCase();
+          if (!uniquePesertaMap.has(key) || (p.deskripsi && p.deskripsi.length > (uniquePesertaMap.get(key)?.deskripsi?.length || 0))) {
+            uniquePesertaMap.set(key, p);
+          }
+        }
+        if (!uniquePesertaMap.has('inovasi pangan lestari')) {
+          const inovasiBackup = INITIAL_PESERTA.find((p) => p.namaUsaha.trim().toLowerCase() === 'inovasi pangan lestari');
+          if (inovasiBackup) uniquePesertaMap.set('inovasi pangan lestari', inovasiBackup);
+        }
+        this.peserta = Array.from(uniquePesertaMap.values()).sort((a, b) => (a.row || 0) - (b.row || 0));
+        localStorage.setItem(STORAGE_KEYS.PESERTA, JSON.stringify(this.peserta));
       }
 
       const storedAsesmen = localStorage.getItem(STORAGE_KEYS.ASESMEN);
@@ -459,11 +477,25 @@ class GasService {
         });
       });
 
+      // Sanitasi & Deduplikasi pendaftar ganda Google Form serta proteksi data Inovasi Pangan Lestari
+      const deduplicatedPesertaMap = new Map<string, PesertaItem>();
+      newPesertaList.forEach((p) => {
+        const key = p.namaUsaha.trim().toLowerCase();
+        if (!deduplicatedPesertaMap.has(key) || (p.deskripsi && p.deskripsi.length > (deduplicatedPesertaMap.get(key)?.deskripsi?.length || 0))) {
+          deduplicatedPesertaMap.set(key, p);
+        }
+      });
+      if (!deduplicatedPesertaMap.has('inovasi pangan lestari')) {
+        const inovasiBackup = INITIAL_PESERTA.find((p) => p.namaUsaha.trim().toLowerCase() === 'inovasi pangan lestari');
+        if (inovasiBackup) deduplicatedPesertaMap.set('inovasi pangan lestari', inovasiBackup);
+      }
+      const sanitizedPesertaList = Array.from(deduplicatedPesertaMap.values()).sort((a, b) => (a.row || 0) - (b.row || 0));
+
       // Update state aplikasi jika data berhasil ditarik dengan validasi kuorum keamanan
-      if (newPesertaList.length >= 10) {
-        this.peserta = newPesertaList;
-      } else if (newPesertaList.length > 0 && this.peserta.length <= 1) {
-        this.peserta = newPesertaList;
+      if (sanitizedPesertaList.length >= 10) {
+        this.peserta = sanitizedPesertaList;
+      } else if (sanitizedPesertaList.length > 0 && this.peserta.length <= 1) {
+        this.peserta = sanitizedPesertaList;
       }
       if (newAsesmenList.length > 0) this.asesmen = newAsesmenList;
       if (newTimelineList.length > 0) this.timeline = newTimelineList;

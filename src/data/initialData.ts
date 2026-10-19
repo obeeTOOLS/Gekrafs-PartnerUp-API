@@ -477,7 +477,7 @@ export const INITIAL_SETTINGS: AppSettings = {
   assessmentOpenDate: '2026-09-01',
   assessmentCloseDate: '2026-11-15',
   modeUjicoba: false,
-  gasEndpointUrl: 'https://script.google.com/macros/s/AKfycbwpLuT1HtWX7I9l1ABa2YthchqYEZ4cEuLcmXjeyW_PHOgXw9D9GhoOROySnKFHr1vO/exec',
+  gasEndpointUrl: ((import.meta as any).env?.VITE_GAS_ENDPOINT_URL as string) || 'https://script.google.com/macros/s/AKfycbwpLuT1HtWX7I9l1ABa2YthchqYEZ4cEuLcmXjeyW_PHOgXw9D9GhoOROySnKFHr1vO/exec',
   autoSync: true,
   passcode: '123456'
 };
@@ -1765,23 +1765,23 @@ export const INITIAL_PESERTA: PesertaItem[] = [
   },
   {
     "row": 63,
-    "timestamp": "10/10/2026 16:05:02",
-    "namaUsaha": "Abhin Sewa",
-    "namaPemilik": "Sri Happy Nisaur",
-    "subsektor": "Lainnya",
-    "whatsapp": "81239069060",
-    "email": "foto.srihappy@gmail.com",
+    "timestamp": "05/10/2026 13:08:45",
+    "namaUsaha": "Inovasi Pangan Lestari",
+    "namaPemilik": "Abdullah Dzikri",
+    "subsektor": "Kuliner",
+    "whatsapp": "82257449290",
+    "email": "dzikri.pangan@gmail.com",
     "statusKurasi": "Lolos Kurasi",
     "catatanKurator": "",
     "sesi": "Sesi 2",
-    "nib": "foto.srihappy@gmail.com",
+    "nib": "82257449290",
     "alamatUsaha": "Kota Batu",
-    "kotaKabupaten": "Jl. Utomorejo No 54",
-    "omzet": "Di bawah Rp50 juta",
+    "kotaKabupaten": "Kota Batu",
+    "omzet": "Rp50 juta – Rp300 juta",
     "instagram": "",
     "tiktok": "",
-    "marketplace": "Saya memiliki usaha rental perlengkapan bayi dan stroller harian di Kota Batu",
-    "deskripsi": "Saya memiliki usaha rental perlengkapan bayi dan stroller harian di Kota Batu"
+    "marketplace": "",
+    "deskripsi": "Perusahaan olahan hasil pertanian dan pangan inovatif berkelanjutan Kota Batu"
   },
   {
     "row": 64,
