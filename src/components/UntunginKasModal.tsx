@@ -380,6 +380,36 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
     }
   };
 
+  const [isPullingStandalone, setIsPullingStandalone] = useState(false);
+
+  const handlePullFromStandalone = async () => {
+    if (!namaUsaha || isPullingStandalone) return;
+    setIsPullingStandalone(true);
+    try {
+      const res = await kasService.pullFromStandaloneVault(namaUsaha);
+      if (res.success) {
+        loadData();
+        setLastSyncedTime(new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }));
+        showToast(res.message, 'success');
+      } else {
+        showToast(res.message, 'warning');
+      }
+    } catch (err: any) {
+      showToast(`Gagal menarik data: ${err?.message || 'Koneksi terputus'}`, 'error');
+    } finally {
+      setIsPullingStandalone(false);
+    }
+  };
+
+  const handleCleanDummyTransactions = () => {
+    if (!confirm(`Bersihkan transaksi pengujian sandbox / dummy untuk "${namaUsaha}"? Tindakan ini akan menghapus transaksi testing acak agar pembukuan Anda rapi.`)) {
+      return;
+    }
+    const res = kasService.cleanDummySandboxTransactions(namaUsaha);
+    loadData();
+    showToast(res.message, 'success');
+  };
+
   // Muat data saat modal terbuka atau namaUsaha berubah
   const loadData = () => {
     if (!namaUsaha) return;
@@ -1115,6 +1145,25 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                   <RefreshCw className={`w-3 h-3 ${isSyncingCloud ? 'animate-spin text-blue-300' : 'text-emerald-300/80'}`} />
                 </button>
 
+                {/* Tombol Tarik Data dari Standalone Vault */}
+                <button
+                  type="button"
+                  onClick={handlePullFromStandalone}
+                  disabled={isPullingStandalone}
+                  title="Tarik data transaksi & akun dari Untungin Standalone Vault ke PartnerUp"
+                  className={`px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs ${
+                    isPullingStandalone
+                      ? 'bg-purple-500/25 text-purple-200 border-purple-400/50 animate-pulse'
+                      : 'bg-purple-500/20 hover:bg-purple-500/35 text-purple-200 border-purple-400/40'
+                  }`}
+                >
+                  <Download className={`w-3.5 h-3.5 ${isPullingStandalone ? 'animate-bounce text-purple-300' : 'text-purple-300'}`} />
+                  <span className="font-bold">
+                    {isPullingStandalone ? 'Menarik...' : 'Tarik Standalone'}
+                  </span>
+                  <RefreshCw className={`w-3 h-3 ${isPullingStandalone ? 'animate-spin text-purple-300' : 'text-purple-300/80'}`} />
+                </button>
+
                 <button
                   type="button"
                   onClick={() => setHideAmount(!hideAmount)}
@@ -1285,6 +1334,28 @@ export const UntunginKasModal: React.FC<UntunginKasModalProps> = ({
                       <span>Beri Pro Lifetime</span>
                     </button>
                   )}
+
+                  {/* Tombol Tarik Data Standalone & Bersihkan Dummy */}
+                  <button
+                    type="button"
+                    onClick={handlePullFromStandalone}
+                    disabled={isPullingStandalone}
+                    className="px-2.5 py-1 rounded-lg bg-teal-500/20 hover:bg-teal-500/35 text-teal-200 hover:text-white border border-teal-400/40 font-bold transition-all cursor-pointer text-[11px] flex items-center gap-1.5 shadow-2xs"
+                    title="Tarik data riwayat transaksi dan akun dari Spreadsheet Standalone Vault"
+                  >
+                    <Download className={`w-3.5 h-3.5 ${isPullingStandalone ? 'animate-bounce text-teal-300' : 'text-teal-300'}`} />
+                    <span>{isPullingStandalone ? 'Menarik...' : '📥 Tarik Standalone'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleCleanDummyTransactions}
+                    className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/35 text-amber-200 hover:text-white border border-amber-400/40 font-bold transition-all cursor-pointer text-[11px] flex items-center gap-1.5 shadow-2xs"
+                    title="Bersihkan transaksi dummy/sandbox pengujian (nominal 999, shadow sync)"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-amber-300" />
+                    <span>Bersihkan Mutasi Dummy</span>
+                  </button>
                 </>
               )}
             </div>

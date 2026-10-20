@@ -337,13 +337,22 @@ class KasService {
     asOfDate?: string
   ): number {
     let bal = Number(account.initialBalance) || 0;
+    const cleanId = String(account.id || '').toLowerCase().trim();
+    const cleanName = String(account.name || '').toLowerCase().trim();
+
+    const matchesAcc = (targetId?: string): boolean => {
+      if (!targetId) return false;
+      const clean = String(targetId).toLowerCase().trim();
+      return clean === cleanId || clean === cleanName;
+    };
+
     transactions.forEach(t => {
       if (asOfDate && t.date > asOfDate) return;
 
       if (t.type === 'transfer') {
-        if (t.accountId === account.id) bal -= Number(t.amount) || 0;
-        if (t.toAccountId === account.id) bal += Number(t.amount) || 0;
-      } else if (t.accountId === account.id) {
+        if (matchesAcc(t.accountId)) bal -= Number(t.amount) || 0;
+        if (matchesAcc(t.toAccountId)) bal += Number(t.amount) || 0;
+      } else if (matchesAcc(t.accountId)) {
         if (t.type === 'income') bal += Number(t.amount) || 0;
         else if (t.type === 'expense') bal -= Number(t.amount) || 0;
       }
@@ -2174,6 +2183,225 @@ class KasService {
       success: true,
       count: sentCount,
       message: `Berhasil mereplikasi ${sentCount} riwayat transaksi kas ke tab Untungin_Transaksi di Vault Mandiri!`
+    };
+  }
+
+  /**
+   * Menarik riwayat transaksi dan akun kas dari Untungin Standalone Vault ke PartnerUp (Pull / Inward Sync)
+   * Mengonversi format, menyelaraskan akun kas, dan menyelaraskan saldo berjalan
+   */
+  public async pullFromStandaloneVault(
+    namaUsaha?: string,
+    endpointUrl?: string
+  ): Promise<{
+    success: boolean;
+    count: number;
+    accountsCount: number;
+    message: string;
+    summary?: { totalIncome: number; totalExpense: number; totalSaldo: number; netProfit: number };
+  }> {
+    const targetUrl = endpointUrl || this.getVaultConfig().endpoint;
+    if (!targetUrl) {
+      return { success: false, count: 0, accountsCount: 0, message: 'Endpoint Standalone Vault belum terkonfigurasi.' };
+    }
+
+    try {
+      const res = await fetch(targetUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'getKasData',
+          namaUsaha: namaUsaha || ''
+        })
+      });
+
+      const json = await res.json();
+      if (!json || json.status !== 'success') {
+        throw new Error(json?.message || 'Format respons Standalone Vault tidak valid');
+      }
+
+      const rawTxs: any[] = Array.isArray(json.transactions) ? json.transactions : [];
+      if (rawTxs.length === 0) {
+        return {
+          success: true,
+          count: 0,
+          accountsCount: 0,
+          message: namaUsaha
+            ? `Tidak ada transaksi untuk unit "${namaUsaha}" di Standalone Vault.`
+            : 'Belum ada transaksi ditemukan di Standalone Vault.'
+        };
+      }
+
+      // Kelompokkan data per unit usaha
+      const groupedByBiz = new Map<string, any[]>();
+      rawTxs.forEach(t => {
+        const biz = (t.namaUsaha || namaUsaha || 'UMKM').trim();
+        if (!namaUsaha || biz.toLowerCase() === namaUsaha.toLowerCase().trim()) {
+          const list = groupedByBiz.get(biz) || [];
+          list.push(t);
+          groupedByBiz.set(biz, list);
+        }
+      });
+
+      let totalImported = 0;
+      let totalAccountsMapped = 0;
+
+      for (const [bizName, txList] of groupedByBiz.entries()) {
+        const currentData = this.getKasData(bizName);
+        const existingTxMap = new Map<string, KasTransaction>();
+        currentData.transactions.forEach(t => existingTxMap.set(t.id, t));
+
+        // Peta akun kas yang ada
+        const accountMap = new Map<string, KasAccount>();
+        currentData.accounts.forEach(acc => {
+          accountMap.set(acc.id.toLowerCase().trim(), acc);
+          accountMap.set(acc.name.toLowerCase().trim(), acc);
+        });
+
+        const convertedTxs: KasTransaction[] = [];
+        for (const item of txList) {
+          const rawType = String(item.arusKas || '').toLowerCase().trim();
+          let type: 'income' | 'expense' | 'transfer' = 'income';
+          if (rawType === 'pengeluaran' || rawType === 'keluar' || rawType === 'expense' || rawType === 'outflow') {
+            type = 'expense';
+          } else if (rawType === 'transfer') {
+            type = 'transfer';
+          } else {
+            type = 'income';
+          }
+
+          let dateStr = new Date().toISOString().split('T')[0];
+          if (item.tanggal) {
+            const rawDate = String(item.tanggal);
+            dateStr = rawDate.includes('T') ? rawDate.split('T')[0] : rawDate.substring(0, 10);
+          }
+
+          const rawAcc = String(item.rekening || 'Kas Tunai').trim();
+          const cleanAccKey = rawAcc.toLowerCase().trim();
+
+          // Jika akun belum ada di PartnerUp, daftarkan otomatis agar saldo terhitung
+          if (!accountMap.has(cleanAccKey)) {
+            const isBank = cleanAccKey.includes('bank') || cleanAccKey.includes('bca') || cleanAccKey.includes('mandiri') || cleanAccKey.includes('bri') || cleanAccKey.includes('bni');
+            const isWallet = cleanAccKey.includes('qris') || cleanAccKey.includes('ovo') || cleanAccKey.includes('gopay') || cleanAccKey.includes('dana') || cleanAccKey.includes('wallet');
+            const newAcc: KasAccount = {
+              id: rawAcc.startsWith('acc_') ? rawAcc : `acc_std_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+              namaUsaha: bizName,
+              name: rawAcc.startsWith('acc_') ? (isBank ? 'Rekening Bank Usaha' : isWallet ? 'E-Wallet Usaha' : 'Kas Tunai Toko') : rawAcc,
+              type: isBank ? 'Bank' : isWallet ? 'E-Wallet' : 'Kas',
+              initialBalance: 0
+            };
+            accountMap.set(newAcc.id.toLowerCase().trim(), newAcc);
+            accountMap.set(cleanAccKey, newAcc);
+            totalAccountsMapped++;
+          }
+
+          const resolvedAcc = accountMap.get(cleanAccKey);
+
+          const tx: KasTransaction = {
+            id: String(item.id || `tx_std_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`),
+            namaUsaha: bizName,
+            date: dateStr,
+            type,
+            category: String(item.kategori || 'Umum'),
+            amount: Number(item.nominal) || 0,
+            accountId: resolvedAcc ? resolvedAcc.id : rawAcc,
+            desc: item.keterangan || item.catatan || '-',
+            createdAt: item.timestamp || new Date().toISOString(),
+            createdBy: item.catatan ? `Standalone (${item.catatan})` : 'Untungin Standalone Vault'
+          };
+
+          existingTxMap.set(tx.id, tx);
+          convertedTxs.push(tx);
+        }
+
+        // Ambil daftar akun unik
+        const uniqueAccounts: KasAccount[] = [];
+        const seenAccIds = new Set<string>();
+        for (const acc of accountMap.values()) {
+          if (!seenAccIds.has(acc.id)) {
+            seenAccIds.add(acc.id);
+            uniqueAccounts.push(acc);
+          }
+        }
+
+        const mergedTxs = Array.from(existingTxMap.values()).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+        // Simpan ke storage lokal terisolasi
+        this.saveKasData(bizName, currentData.categories, uniqueAccounts, mergedTxs);
+        totalImported += convertedTxs.length;
+
+        // Replikasi juga ke cloud PartnerUp jika memungkinkan
+        try {
+          await gasService.dispatchRemoteAction('saveKasTransactionsBatch', {
+            transactions: convertedTxs,
+            namaUsaha: bizName
+          });
+        } catch (puCloudErr) {
+          console.warn('[pullFromStandaloneVault] Gagal mereplikasi ke PartnerUp cloud:', puCloudErr);
+        }
+      }
+
+      const summary = namaUsaha ? this.getSummary(namaUsaha) : undefined;
+
+      return {
+        success: true,
+        count: totalImported,
+        accountsCount: totalAccountsMapped,
+        summary: summary ? {
+          totalIncome: summary.totalIncome,
+          totalExpense: summary.totalExpense,
+          totalSaldo: summary.totalSaldo,
+          netProfit: summary.netProfit
+        } : undefined,
+        message: `Berhasil menarik ${totalImported} transaksi & menyelaraskan ${totalAccountsMapped} akun dari Standalone Vault!`
+      };
+    } catch (err: any) {
+      console.error('[pullFromStandaloneVault] error:', err);
+      return {
+        success: false,
+        count: 0,
+        accountsCount: 0,
+        message: `Gagal menarik data dari Standalone Vault: ${err?.message || 'Koneksi terputus'}`
+      };
+    }
+  }
+
+  /**
+   * Membersihkan transaksi uji coba sandbox / dummy (misal nominal 999, shadow sync test)
+   */
+  public cleanDummySandboxTransactions(namaUsaha: string): { removedCount: number; message: string } {
+    if (!namaUsaha) return { removedCount: 0, message: 'Nama usaha kosong' };
+    const current = this.getKasData(namaUsaha);
+    const beforeCount = current.transactions.length;
+
+    const isDummy = (t: KasTransaction) => {
+      const desc = (t.desc || '').toLowerCase();
+      const id = (t.id || '').toLowerCase();
+      const amt = Number(t.amount);
+      return (
+        amt === 999 ||
+        desc.includes('shadow sync') ||
+        desc.includes('handshake standalone') ||
+        desc.includes('uji coba handshake') ||
+        id.startsWith('tx-test') ||
+        id.startsWith('tx-verify') ||
+        (desc.includes('jual ke oleh oleh') && t.namaUsaha.toLowerCase() === 'obeecreatives')
+      );
+    };
+
+    const cleaned = current.transactions.filter(t => !isDummy(t));
+    const removedCount = beforeCount - cleaned.length;
+
+    if (removedCount > 0) {
+      this.saveKasData(namaUsaha, current.categories, current.accounts, cleaned);
+      current.transactions.filter(isDummy).forEach(d => {
+        this.dispatchVaultShadowSync('deleteTransaksi', { id: d.id, namaUsaha });
+      });
+    }
+
+    return {
+      removedCount,
+      message: `Berhasil membersihkan ${removedCount} transaksi uji coba dummy dari "${namaUsaha}".`
     };
   }
 }

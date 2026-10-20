@@ -193,9 +193,26 @@ export const DeveloperTools: React.FC = () => {
       setSeedTxResult(res);
       setOutboxCount(kasService.getOutboxCount());
     } catch (e: any) {
-      setSeedTxResult({ success: false, message: e?.message || 'Gagal menyalin riwayat transaksi' });
     } finally {
       setIsSeedingTransactions(false);
+    }
+  };
+
+  const [isPullingFromVault, setIsPullingFromVault] = useState(false);
+  const [pullVaultResult, setPullVaultResult] = useState<{ success: boolean; count?: number; message: string } | null>(null);
+  const [pullTargetBiz, setPullTargetBiz] = useState<string>('obeecreatives');
+
+  const handlePullTransactionsFromVault = async () => {
+    setIsPullingFromVault(true);
+    setPullVaultResult(null);
+    try {
+      const res = await kasService.pullFromStandaloneVault(pullTargetBiz, vaultEndpointInput);
+      setPullVaultResult(res);
+      setOutboxCount(kasService.getOutboxCount());
+    } catch (e: any) {
+      setPullVaultResult({ success: false, message: e?.message || 'Gagal menarik data dari Standalone Vault' });
+    } finally {
+      setIsPullingFromVault(false);
     }
   };
 
@@ -1780,7 +1797,7 @@ export const DeveloperTools: React.FC = () => {
             </div>
             <h2 className="text-lg font-black text-white flex items-center gap-2">
               <Database className="w-5 h-5 text-emerald-400" />
-              <span>Live Shadow Replication & Salin Kode v1.2 (Hutang-Piutang Engine)</span>
+              <span>Live Shadow Replication & Salin Kode v1.3 (Dual-Stream Audit & Hutang-Piutang Engine)</span>
             </h2>
             <p className="text-xs text-slate-300">
               Duplikasi data transaksi dan profil secara asinkron ke spreadsheet mandiri <code className="text-amber-300">[standalone]</code> tanpa mengganggu sistem PartnerUp.
@@ -1881,8 +1898,8 @@ export const DeveloperTools: React.FC = () => {
           )}
         </div>
 
-        {/* Action Buttons: Seed Profil & Backfill Transaksi */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+        {/* Action Buttons: Seed Profil, Backfill Transaksi & Tarik Data Standalone */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
           <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-white/10 flex flex-col justify-between gap-3">
             <div>
               <div className="font-extrabold text-xs text-amber-300 flex items-center gap-1.5">
@@ -1924,6 +1941,38 @@ export const DeveloperTools: React.FC = () => {
               <span>{isSeedingTransactions ? 'Backfill...' : '📦 Salin Riwayat Transaksi'}</span>
             </button>
           </div>
+
+          <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-purple-500/30 flex flex-col justify-between gap-3 shadow-sm">
+            <div>
+              <div className="font-extrabold text-xs text-purple-300 flex items-center gap-1.5">
+                <Download className="w-3.5 h-3.5 text-purple-400" />
+                <span>Tarik Data dari Standalone</span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">
+                Tarik transaksi & selaraskan saldo akun dari Standalone Vault ke PartnerUp.
+              </p>
+              <div className="mt-2">
+                <select
+                  value={pullTargetBiz}
+                  onChange={(e) => setPullTargetBiz(e.target.value)}
+                  className="w-full text-[11px] font-bold bg-slate-900 border border-purple-500/40 rounded-lg px-2 py-1 text-purple-200 outline-none"
+                >
+                  <option value="obeecreatives">Khusus: obeecreatives</option>
+                  <option value="Happy Food">Khusus: Happy Food</option>
+                  <option value="">Semua Unit Usaha</option>
+                </select>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handlePullTransactionsFromVault}
+              disabled={isPullingFromVault}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              <Download className={`w-4 h-4 ${isPullingFromVault ? 'animate-bounce text-purple-200' : ''}`} />
+              <span>{isPullingFromVault ? 'Menarik...' : '📥 Tarik ke PartnerUp'}</span>
+            </button>
+          </div>
         </div>
 
         {seedResult && (
@@ -1945,6 +1994,17 @@ export const DeveloperTools: React.FC = () => {
           }`}>
             <CheckCircle2 className="w-4 h-4 text-cyan-400" />
             <span>{seedTxResult.message}</span>
+          </div>
+        )}
+
+        {pullVaultResult && (
+          <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${
+            pullVaultResult.success 
+              ? 'bg-purple-500/20 text-purple-200 border border-purple-500/30' 
+              : 'bg-rose-500/20 text-rose-200 border border-rose-500/30'
+          }`}>
+            <CheckCircle2 className="w-4 h-4 text-purple-400" />
+            <span>{pullVaultResult.message}</span>
           </div>
         )}
 

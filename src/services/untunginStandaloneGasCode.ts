@@ -194,13 +194,25 @@ function initUntunginDatabase() {
  */
 function doGet(e) {
   try {
+    const params = (e && e.parameter) ? e.parameter : {};
+    const action = params.action;
+    if (action === "getKasData") {
+      return createJsonResponse(handleGetKasData(params));
+    }
+    if (action === "getHutangPiutang") {
+      return createJsonResponse(handleGetHutangPiutang(params));
+    }
+    if (action === "getAkun") {
+      return createJsonResponse(handleGetAkun(params));
+    }
+
     const ss = getSpreadsheet();
     const sheetNames = ss.getSheets().map(s => s.getName());
 
     const response = {
       status: "success",
       engine: "UNTUNGIN - PRO API ENGINE (STANDALONE)",
-      version: "1.0.0",
+      version: "1.3.0",
       spreadsheetId: ss.getId(),
       spreadsheetName: ss.getName(),
       databaseReady: sheetNames.includes("Untungin_Transaksi"),
@@ -293,6 +305,10 @@ function doPost(e) {
 
       case "getKasData":
         result = handleGetKasData(payload);
+        break;
+
+      case "getAkun":
+        result = handleGetAkun(payload);
         break;
 
       case "pushHutangPiutang":
@@ -583,10 +599,67 @@ function handleGetKasData(p) {
     }
   }
 
+  // Ambil juga data akun kas jika ada
+  const accSheet = ss.getSheetByName("Untungin_Akun");
+  const accList = [];
+  if (accSheet) {
+    const accData = accSheet.getDataRange().getValues();
+    for (let j = 1; j < accData.length; j++) {
+      const accBiz = String(accData[j][1]).toLowerCase().trim();
+      if (!namaUsaha || accBiz === namaUsaha) {
+        accList.push({
+          id: accData[j][0],
+          namaUsaha: accData[j][1],
+          name: accData[j][2],
+          type: accData[j][3],
+          nomorRekening: accData[j][4],
+          atasNama: accData[j][5],
+          saldoAwal: Number(accData[j][6]) || 0,
+          saldoBerjalan: Number(accData[j][7]) || 0,
+          status: accData[j][8]
+        });
+      }
+    }
+  }
+
   return {
     status: "success",
     count: txList.length,
-    transactions: txList
+    transactions: txList,
+    accounts: accList
+  };
+}
+
+/**
+ * Mengambil akun kas dari Untungin_Akun
+ */
+function handleGetAkun(p) {
+  const ss = getSpreadsheet();
+  const accSheet = ss.getSheetByName("Untungin_Akun");
+  if (!accSheet) return { status: "success", accounts: [] };
+  const namaUsaha = (p.namaUsaha || "").toLowerCase().trim();
+  const accData = accSheet.getDataRange().getValues();
+  const accList = [];
+  for (let j = 1; j < accData.length; j++) {
+    const accBiz = String(accData[j][1]).toLowerCase().trim();
+    if (!namaUsaha || accBiz === namaUsaha) {
+      accList.push({
+        id: accData[j][0],
+        namaUsaha: accData[j][1],
+        name: accData[j][2],
+        type: accData[j][3],
+        nomorRekening: accData[j][4],
+        atasNama: accData[j][5],
+        saldoAwal: Number(accData[j][6]) || 0,
+        saldoBerjalan: Number(accData[j][7]) || 0,
+        status: accData[j][8]
+      });
+    }
+  }
+  return {
+    status: "success",
+    count: accList.length,
+    accounts: accList
   };
 }
 
